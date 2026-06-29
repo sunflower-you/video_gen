@@ -81,6 +81,38 @@ const edgeLineStyles: { value: string; label: string; strokeDasharray?: string; 
 
 const edgeLineStyleByValue = new Map(edgeLineStyles.map((item) => [item.value, item]));
 
+type NodeParameterPreset = {
+  key: string;
+  label: string;
+  nodeTypes: string[];
+  patch: Record<string, string | boolean> | (() => Record<string, string | boolean>);
+};
+
+const nodeParameterPresets: NodeParameterPreset[] = [
+  { key: "image-portrait", label: "竖屏 9:16", nodeTypes: ["image_generation"], patch: { width: "768", height: "1344" } },
+  { key: "image-landscape", label: "横屏 16:9", nodeTypes: ["image_generation"], patch: { width: "1344", height: "768" } },
+  { key: "image-square", label: "方图 1:1", nodeTypes: ["image_generation"], patch: { width: "1024", height: "1024" } },
+  { key: "image-random-seed", label: "随机 seed", nodeTypes: ["image_generation"], patch: () => ({ seed: String(Math.floor(Math.random() * 100000000)) }) },
+  { key: "video-fast-cut", label: "快切 3 秒", nodeTypes: ["video_generation"], patch: { duration: "3", fps: "16" } },
+  { key: "video-standard", label: "标准 5 秒", nodeTypes: ["video_generation"], patch: { duration: "5", fps: "16" } },
+  { key: "video-smooth", label: "流畅 24fps", nodeTypes: ["video_generation"], patch: { fps: "24" } },
+  { key: "tts-female", label: "女声常速", nodeTypes: ["tts_generation"], patch: { voice: "zh-CN-XiaoxiaoNeural", rate: "1" } },
+  { key: "tts-male", label: "男声常速", nodeTypes: ["tts_generation"], patch: { voice: "zh-CN-YunxiNeural", rate: "1" } },
+  { key: "tts-slow", label: "慢速旁白", nodeTypes: ["tts_generation"], patch: { rate: "0.85" } },
+  { key: "compose-subtitle", label: "带字幕成片", nodeTypes: ["compose_generation"], patch: { subtitle: true } },
+  { key: "compose-no-subtitle", label: "无字幕成片", nodeTypes: ["compose_generation"], patch: { subtitle: false } }
+];
+
+function presetPatch(preset: NodeParameterPreset) {
+  return typeof preset.patch === "function" ? preset.patch() : preset.patch;
+}
+
+function parameterPresetByKey(key: string) {
+  const preset = nodeParameterPresets.find((item) => item.key === key);
+  if (!preset) throw new Error(`未知节点参数预设：${key}`);
+  return preset;
+}
+
 type NodePort = {
   id: string;
   label: string;
@@ -772,6 +804,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     return selectedEdge ? [selectedEdge] : [];
   }, [edges, selectedEdge]);
   const selectedSelectionEdges = useMemo(() => edges.filter((edge) => selectedNodeIds.has(edge.source) && selectedNodeIds.has(edge.target)), [edges, selectedNodeIds]);
+  const selectedParameterPresetNodes = useMemo(() => selectedNodes.filter((node) => nodeParameterPresets.some((preset) => preset.nodeTypes.includes(String((node.data as Record<string, unknown>).nodeType || "")))), [selectedNodes]);
   const selectedGroupTitles = useMemo(() => {
     const titles = new Set(selectedNodes.map((node) => String((node.data as Record<string, unknown>).group_title || "")).filter(Boolean));
     return [...titles];
@@ -1972,6 +2005,26 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     rememberGraphHistory();
     setNodes((items) => items.map((node) => node.id === selectedNode.id ? { ...node, data: { ...node.data, ...patch } } : node));
     setStatus(`已应用参数预设：${label}。`);
+  }
+
+  function applySelectedNodeParameterPreset(preset: NodeParameterPreset) {
+    if (!selectedNode) return;
+    applySelectedNodePreset(preset.label, presetPatch(preset));
+  }
+
+  function applySelectedNodesParameterPreset(preset: NodeParameterPreset) {
+    if (!selectedNodes.length) {
+      setStatus("请先框选或点选生成节点，再批量应用参数预设。");
+      return;
+    }
+    const targetIds = new Set(selectedNodes.filter((node) => preset.nodeTypes.includes(String((node.data as Record<string, unknown>).nodeType || ""))).map((node) => node.id));
+    if (!targetIds.size) {
+      setStatus(`当前选区没有可应用“${preset.label}”的生成节点。`);
+      return;
+    }
+    rememberGraphHistory();
+    setNodes((items) => items.map((node) => targetIds.has(node.id) ? { ...node, data: { ...node.data, ...presetPatch(preset) } } : node));
+    setStatus(`已为选区 ${targetIds.size} 个节点应用参数预设：${preset.label}。`);
   }
 
   function updateSelectedNodeType(nextType: string) {
@@ -3871,6 +3924,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     { key: "expand-selection-tts", title: "选区生成配音链", description: "为选区末端批量创建旁白配音节点并自动连线", disabled: !selectedNodes.length, run: expandSelectedNodesToTtsGeneration },
     { key: "collect-selection-compose", title: "选区汇聚到合成节点", description: "在选区右侧创建合成节点并连接选区末端分支", disabled: !selectedNodes.length, run: collectSelectedNodesToCompose },
     { key: "connect-existing-compose", title: "选区接入已有合成节点", description: "把选区末端素材按媒体类型连接到选中的合成节点", disabled: !selectedNodes.length, run: connectSelectedNodesToExistingCompose },
+    { key: "selection-preset-portrait", title: "选区参数预设：竖屏 9:16", description: "批量设置选区内分镜图生成节点尺寸", disabled: !selectedParameterPresetNodes.length, run: () => applySelectedNodesParameterPreset(parameterPresetByKey("image-portrait")) },
+    { key: "selection-preset-video-standard", title: "选区参数预设：标准 5 秒", description: "批量设置选区内镜头视频生成节点时长和帧率", disabled: !selectedParameterPresetNodes.length, run: () => applySelectedNodesParameterPreset(parameterPresetByKey("video-standard")) },
+    { key: "selection-preset-tts-female", title: "选区参数预设：女声常速", description: "批量设置选区内旁白配音节点音色和语速", disabled: !selectedParameterPresetNodes.length, run: () => applySelectedNodesParameterPreset(parameterPresetByKey("tts-female")) },
+    { key: "selection-preset-compose-subtitle", title: "选区参数预设：带字幕成片", description: "批量开启选区内合成节点字幕", disabled: !selectedParameterPresetNodes.length, run: () => applySelectedNodesParameterPreset(parameterPresetByKey("compose-subtitle")) },
     { key: "clear-selection", title: "清空当前选区", description: "取消节点和连线选择", shortcut: "Esc", disabled: !selectedNodes.length && !selectedEdge, run: clearCanvasSelection },
     { key: "fit-graph", title: "适配全部节点", description: "把完整节点图适配到当前视图", shortcut: "Ctrl/⌘ 1", disabled: !nodes.length, run: fitGraphView },
     { key: "fit-selection", title: "适配选中节点", description: "把当前选区适配到视图中心", shortcut: "Ctrl/⌘ 2", disabled: !selectedNodes.length, run: fitSelectedNodeView },
@@ -4461,6 +4518,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { expandSelectedNodesToTtsGeneration(); setNodeContextMenu(null); }}>生成配音链</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { collectSelectedNodesToCompose(); setNodeContextMenu(null); }}>汇聚到合成节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { connectSelectedNodesToExistingCompose(); setNodeContextMenu(null); }}>接入已有合成</button>
+            <button disabled={busy || !selectedParameterPresetNodes.length} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { applySelectedNodesParameterPreset(parameterPresetByKey("image-portrait")); setNodeContextMenu(null); }}>选区套用竖屏 9:16</button>
+            <button disabled={busy || !selectedParameterPresetNodes.length} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { applySelectedNodesParameterPreset(parameterPresetByKey("video-standard")); setNodeContextMenu(null); }}>选区套用标准 5 秒</button>
+            <button disabled={busy || !selectedParameterPresetNodes.length} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { applySelectedNodesParameterPreset(parameterPresetByKey("tts-female")); setNodeContextMenu(null); }}>选区套用女声常速</button>
+            <button disabled={busy || !selectedParameterPresetNodes.length} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { applySelectedNodesParameterPreset(parameterPresetByKey("compose-subtitle")); setNodeContextMenu(null); }}>选区套用带字幕成片</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { groupSelectedNodes(); setNodeContextMenu(null); }}>打组选区</button>
             <button disabled={busy || !selectedGroupIds.size} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSelectedGroups(); setNodeContextMenu(null); }}>选中同组节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { ungroupSelectedNodes(); setNodeContextMenu(null); }}>取消分组</button>
@@ -4550,6 +4611,13 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <span className="text-xs text-slate-400">选区颜色标记</span>
             <div className="grid grid-cols-3 gap-2">
               {nodeMarkerColors.map((item) => <button key={item.value || "default"} className={`rounded-md border px-2 py-1.5 text-xs ${item.value ? `${item.className} text-white` : "border-white/10 bg-white/5 text-slate-200"} hover:ring-1 hover:ring-white/60`} onClick={() => setSelectedNodesColor(item.value)}>{item.label}</button>)}
+            </div>
+          </section>
+          <section className="grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">
+            <span className="text-xs text-slate-400">选区批量参数预设</span>
+            <p className="text-xs leading-5 text-slate-500">仅作用于匹配类型的图像、视频、配音和合成生成节点，素材节点会自动跳过。</p>
+            <div className="grid grid-cols-2 gap-2">
+              {nodeParameterPresets.map((preset) => <button key={preset.key} disabled={busy || !selectedNodes.some((node) => preset.nodeTypes.includes(String((node.data as Record<string, unknown>).nodeType || "")))} className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={() => applySelectedNodesParameterPreset(preset)}>{preset.label}</button>)}
             </div>
           </section>
           <section className="grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">
@@ -4705,33 +4773,25 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           {selectedType === "image_generation" && <section className="rounded-md border border-white/10 bg-white/[0.03] p-3">
             <p className="text-xs text-slate-400">分镜图参数预设</p>
             <div className="mt-2 grid grid-cols-2 gap-2">
-              <button className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodePreset("竖屏 9:16", { width: "768", height: "1344" })}>竖屏 9:16</button>
-              <button className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodePreset("横屏 16:9", { width: "1344", height: "768" })}>横屏 16:9</button>
-              <button className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodePreset("方图 1:1", { width: "1024", height: "1024" })}>方图 1:1</button>
-              <button className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodePreset("随机 seed", { seed: String(Math.floor(Math.random() * 100000000)) })}>随机 seed</button>
+              {nodeParameterPresets.filter((preset) => preset.nodeTypes.includes("image_generation")).map((preset) => <button key={preset.key} className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodeParameterPreset(preset)}>{preset.label}</button>)}
             </div>
           </section>}
           {selectedType === "video_generation" && <section className="rounded-md border border-white/10 bg-white/[0.03] p-3">
             <p className="text-xs text-slate-400">镜头视频参数预设</p>
             <div className="mt-2 grid grid-cols-3 gap-2">
-              <button className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodePreset("快切 3 秒", { duration: "3", fps: "16" })}>快切 3 秒</button>
-              <button className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodePreset("标准 5 秒", { duration: "5", fps: "16" })}>标准 5 秒</button>
-              <button className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodePreset("流畅 24fps", { fps: "24" })}>流畅 24fps</button>
+              {nodeParameterPresets.filter((preset) => preset.nodeTypes.includes("video_generation")).map((preset) => <button key={preset.key} className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodeParameterPreset(preset)}>{preset.label}</button>)}
             </div>
           </section>}
           {selectedType === "tts_generation" && <section className="rounded-md border border-white/10 bg-white/[0.03] p-3">
             <p className="text-xs text-slate-400">配音参数预设</p>
             <div className="mt-2 grid grid-cols-3 gap-2">
-              <button className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodePreset("女声常速", { voice: "zh-CN-XiaoxiaoNeural", rate: "1" })}>女声常速</button>
-              <button className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodePreset("男声常速", { voice: "zh-CN-YunxiNeural", rate: "1" })}>男声常速</button>
-              <button className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodePreset("慢速旁白", { rate: "0.85" })}>慢速旁白</button>
+              {nodeParameterPresets.filter((preset) => preset.nodeTypes.includes("tts_generation")).map((preset) => <button key={preset.key} className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodeParameterPreset(preset)}>{preset.label}</button>)}
             </div>
           </section>}
           {selectedType === "compose_generation" && <section className="rounded-md border border-white/10 bg-white/[0.03] p-3">
             <p className="text-xs text-slate-400">合成参数预设</p>
             <div className="mt-2 grid grid-cols-2 gap-2">
-              <button className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodePreset("带字幕成片", { subtitle: true })}>带字幕成片</button>
-              <button className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodePreset("无字幕成片", { subtitle: false })}>无字幕成片</button>
+              {nodeParameterPresets.filter((preset) => preset.nodeTypes.includes("compose_generation")).map((preset) => <button key={preset.key} className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodeParameterPreset(preset)}>{preset.label}</button>)}
             </div>
           </section>}
           {selectedType === "image" && <label className="grid gap-1"><span className="text-slate-400">图片 URL</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.image_url || "")} onChange={(event) => updateSelectedData("image_url", event.target.value)} /></label>}

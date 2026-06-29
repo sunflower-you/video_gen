@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type DragEvent as ReactDragEvent, type MouseEvent as ReactMouseEvent } from "react";
+import { useEffect, useMemo, useState, type DragEvent as ReactDragEvent, type MouseEvent as ReactMouseEvent } from "react";
 import {
   Background,
   Controls,
@@ -18,7 +18,7 @@ import {
   type NodeProps,
   type ReactFlowInstance
 } from "@xyflow/react";
-import { AlertTriangle, Boxes, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, GitBranch, Image, LayoutGrid, Library, Music, Play, Plus, RefreshCcw, Save, Search, Sparkles, Trash2, Upload, Video, Wand2 } from "lucide-react";
+import { AlertTriangle, Boxes, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, GitBranch, Image, LayoutGrid, Library, Music, Play, Plus, Redo2, RefreshCcw, Save, Search, Sparkles, Trash2, Undo2, Upload, Video, Wand2 } from "lucide-react";
 import { apiFetch, currentUserId, deleteJson, postJson, type Asset, type GenerationTask, type Project, type ProjectGraph, type ProjectGraphNode, type StoryboardShot } from "../lib/api";
 
 const nodeLabels: Record<string, string> = {
@@ -405,6 +405,12 @@ type CustomWorkflowPreset = {
   created_at: string;
 };
 
+type GraphHistorySnapshot = {
+  nodes: Node[];
+  edges: Edge[];
+  selectedNodeId: string;
+};
+
 const customPresetStorageKey = "video_gen_canvas_custom_presets";
 
 export function CanvasWorkspace({ projectId }: { projectId: string }) {
@@ -428,6 +434,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [customWorkflowPresets, setCustomWorkflowPresets] = useState<CustomWorkflowPreset[]>([]);
   const [presetTitle, setPresetTitle] = useState("自定义工作流");
   const [nodeContextMenu, setNodeContextMenu] = useState<{ nodeId: string; x: number; y: number } | null>(null);
+  const [graphPast, setGraphPast] = useState<GraphHistorySnapshot[]>([]);
+  const [graphFuture, setGraphFuture] = useState<GraphHistorySnapshot[]>([]);
   const [busy, setBusy] = useState(false);
 
   const selectedNode = useMemo(() => nodes.find((item) => item.id === selectedNodeId) || null, [nodes, selectedNodeId]);
@@ -451,6 +459,50 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       return !keyword || text.includes(keyword);
     });
   }, [paletteQuery]);
+
+  function cloneGraphSnapshot(snapshotNodes = nodes, snapshotEdges = edges, snapshotSelectedNodeId = selectedNodeId): GraphHistorySnapshot {
+    return {
+      nodes: snapshotNodes.map((node) => ({ ...node, position: { ...node.position }, data: { ...(node.data as Record<string, unknown>) } })),
+      edges: snapshotEdges.map((edge) => ({ ...edge, data: { ...(edge.data as Record<string, unknown> | undefined) } })),
+      selectedNodeId: snapshotSelectedNodeId
+    };
+  }
+
+  function rememberGraphHistory() {
+    setGraphPast((items) => [...items.slice(-19), cloneGraphSnapshot()]);
+    setGraphFuture([]);
+  }
+
+  function restoreGraphSnapshot(snapshot: GraphHistorySnapshot) {
+    setNodes(snapshot.nodes.map((node) => ({ ...node, position: { ...node.position }, data: { ...(node.data as Record<string, unknown>) } })));
+    setEdges(snapshot.edges.map((edge) => ({ ...edge, data: { ...(edge.data as Record<string, unknown> | undefined) } })));
+    setSelectedNodeId(snapshot.selectedNodeId);
+    setNodeContextMenu(null);
+  }
+
+  function undoGraphChange() {
+    if (!graphPast.length) {
+      setStatus("暂无可撤销的画布操作。");
+      return;
+    }
+    const previous = graphPast[graphPast.length - 1];
+    setGraphPast(graphPast.slice(0, -1));
+    setGraphFuture([cloneGraphSnapshot(), ...graphFuture].slice(0, 20));
+    restoreGraphSnapshot(previous);
+    setStatus("已撤销上一步画布操作。");
+  }
+
+  function redoGraphChange() {
+    if (!graphFuture.length) {
+      setStatus("暂无可重做的画布操作。");
+      return;
+    }
+    const next = graphFuture[0];
+    setGraphFuture(graphFuture.slice(1));
+    setGraphPast([...graphPast.slice(-19), cloneGraphSnapshot()]);
+    restoreGraphSnapshot(next);
+    setStatus("已重做画布操作。");
+  }
 
   useEffect(() => {
     void refreshAll();
@@ -476,6 +528,16 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
         event.preventDefault();
         void saveGraph();
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z" && !event.shiftKey) {
+        event.preventDefault();
+        undoGraphChange();
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && (event.key.toLowerCase() === "y" || (event.key.toLowerCase() === "z" && event.shiftKey))) {
+        event.preventDefault();
+        redoGraphChange();
         return;
       }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "c") {
@@ -512,9 +574,20 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     return () => window.removeEventListener("keydown", handleCanvasKeyDown);
   });
 
-  const onNodesChange = useCallback((changes: NodeChange[]) => setNodes((items) => applyNodeChanges(changes, items)), []);
-  const onEdgesChange = useCallback((changes: EdgeChange[]) => setEdges((items) => applyEdgeChanges(changes, items)), []);
-  const onConnect = useCallback((connection: Connection) => setEdges((items) => addEdge({ ...connection, id: `edge-${connection.source}-${connection.target}-${Date.now()}` }, items)), []);
+  function onNodesChange(changes: NodeChange[]) {
+    if (changes.some((change) => change.type !== "select" && change.type !== "dimensions")) rememberGraphHistory();
+    setNodes((items) => applyNodeChanges(changes, items));
+  }
+
+  function onEdgesChange(changes: EdgeChange[]) {
+    if (changes.some((change) => change.type !== "select")) rememberGraphHistory();
+    setEdges((items) => applyEdgeChanges(changes, items));
+  }
+
+  function onConnect(connection: Connection) {
+    rememberGraphHistory();
+    setEdges((items) => addEdge({ ...connection, id: `edge-${connection.source}-${connection.target}-${Date.now()}` }, items));
+  }
 
   function openNodeContextMenu(event: ReactMouseEvent, nodeId: string) {
     event.preventDefault();
@@ -538,6 +611,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       setProject(projectData as Project);
       setNodes((graphData?.nodes || []).map(toFlowNode));
       setEdges((graphData?.edges || []).map(toFlowEdge));
+      setGraphPast([]);
+      setGraphFuture([]);
       setAssets(assetResponse.ok ? await assetResponse.json() : []);
       setTasks(taskResponse.ok ? await taskResponse.json() : []);
       setStatus("全画幅创作画布已同步。");
@@ -547,6 +622,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         const graph = JSON.parse(cached) as ProjectGraph;
         setNodes((graph.nodes || []).map(toFlowNode));
         setEdges((graph.edges || []).map(toFlowEdge));
+        setGraphPast([]);
+        setGraphFuture([]);
       }
       setStatus(error instanceof Error ? error.message : "创作画布加载失败。");
     } finally {
@@ -614,6 +691,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function addNodeAtPosition(type: string, position: { x: number; y: number }, extraData: Record<string, unknown> = {}) {
     const node = createFlowNode(type, position, extraData);
+    rememberGraphHistory();
     setNodes((items) => [...items, node]);
     setSelectedNodeId(node.id);
     return node;
@@ -696,6 +774,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       source: createdNodes[sourceIndex].id,
       target: createdNodes[targetIndex].id
     }));
+    rememberGraphHistory();
     setNodes((items) => [...items, ...createdNodes]);
     setEdges((items) => [...items, ...createdEdges]);
     setSelectedNodeId(createdNodes[0]?.id || "");
@@ -735,6 +814,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         data: edge.data || {}
       } satisfies Edge];
     });
+    rememberGraphHistory();
     setNodes((items) => [...items, ...importedNodes]);
     setEdges((items) => [...items, ...importedEdges]);
     setSelectedNodeId(importedNodes[0]?.id || "");
@@ -799,6 +879,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   function addShotWorkflow(shot: StoryboardShot) {
     const timestamp = Date.now();
     const { createdNodes, createdEdges } = buildShotWorkflow(shot, timestamp, 220 + nodes.length * 28, 140 + nodes.length * 18);
+    rememberGraphHistory();
     setNodes((items) => [...items, ...createdNodes]);
     setEdges((items) => [...items, ...createdEdges]);
     setSelectedNodeId(createdNodes[0]?.id || "");
@@ -812,6 +893,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const groups = shotOptions.map((shot, index) => buildShotWorkflow(shot, timestamp + index, 220, 120 + index * 280));
     const createdNodes = groups.flatMap((group) => group.createdNodes);
     const createdEdges = groups.flatMap((group) => group.createdEdges);
+    rememberGraphHistory();
     setNodes((items) => [...items, ...createdNodes]);
     setEdges((items) => [...items, ...createdEdges]);
     setSelectedNodeId(createdNodes[0]?.id || "");
@@ -831,6 +913,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       return;
     }
     const patch = Object.fromEntries(selectedUpstreamInputs.map((item) => [item.key, item.value]));
+    rememberGraphHistory();
     setNodes((items) => items.map((node) => node.id === selectedNode.id ? { ...node, data: { ...node.data, ...patch } } : node));
     setStatus(`已从上游填充 ${selectedUpstreamInputs.length} 个参数。`);
   }
@@ -957,6 +1040,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       setStatus("画布暂无节点可整理。");
       return;
     }
+    rememberGraphHistory();
     setNodes((items) => layoutGraphNodes(items, edges));
     setStatus(`已按连线依赖整理 ${nodes.length} 个节点。`);
   }
@@ -971,6 +1055,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       position: { x: selectedNode.position.x + 40, y: selectedNode.position.y + 40 },
       data: { ...(selectedNode.data as Record<string, unknown>), graphNodeId: id, title: `${String(selectedData.title || nodeLabels[selectedType] || "节点")} 副本`, status: "draft" }
     };
+    rememberGraphHistory();
     setNodes((items) => [...items, duplicated]);
     setSelectedNodeId(id);
     setStatus("节点已复制，可继续编辑参数或接入连线。");
@@ -1028,6 +1113,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         target
       } satisfies Edge];
     });
+    rememberGraphHistory();
     setNodes((items) => [...items, ...pastedNodes]);
     setEdges((items) => [...items, ...pastedEdges]);
     setSelectedNodeId(pastedNodes[pastedNodes.length - 1]?.id || "");
@@ -1037,6 +1123,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   async function deleteSelectedNode() {
     if (!selectedNode) return;
     const nodeId = selectedNode.id;
+    rememberGraphHistory();
     setNodes((items) => items.filter((node) => node.id !== nodeId));
     setEdges((items) => items.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
     setSelectedNodeId("");
@@ -1054,6 +1141,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const dataKey = type === "video" ? "video_url" : type === "audio" ? "audio_url" : "image_url";
     const id = `asset-${asset.id}`;
     if (nodes.some((node) => node.id === id)) return;
+    rememberGraphHistory();
     setNodes((items) => [...items, {
       id,
       type: "platform",
@@ -1128,6 +1216,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         data: edge.data || {}
       } satisfies Edge];
     });
+    rememberGraphHistory();
     setNodes((items) => [...items, ...importedNodes]);
     setEdges((items) => [...items, ...importedEdges]);
     setSelectedNodeId(importedNodes[0]?.id || "");
@@ -1149,6 +1238,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         <div className="flex items-center gap-2 text-sm">
           <span className="max-w-[420px] truncate rounded border border-white/10 bg-white/5 px-3 py-2 text-slate-300">{status}</span>
           <button disabled={busy} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={() => void refreshAll()}><RefreshCcw size={16} />刷新</button>
+          <button disabled={busy || !graphPast.length} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={undoGraphChange}><Undo2 size={16} />撤销</button>
+          <button disabled={busy || !graphFuture.length} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={redoGraphChange}><Redo2 size={16} />重做</button>
           <button disabled={busy || !nodes.length} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={exportWorkflowJson}><Download size={16} />导出工作流</button>
           <button disabled={busy} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={() => setShowImport((value) => !value)}><Upload size={16} />导入工作流</button>
           <button disabled={busy || !nodes.length} className="inline-flex items-center gap-2 rounded-md border border-amber-400/40 bg-amber-500/10 px-3 py-2 disabled:opacity-50" onClick={() => setShowValidation((value) => !value)}><AlertTriangle size={16} />画布自检 {graphValidation.errorCount ? graphValidation.errorCount : ""}</button>

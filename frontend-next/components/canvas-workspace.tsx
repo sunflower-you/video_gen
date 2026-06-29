@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type DragEvent as ReactDragEvent, type MouseEvent as ReactMouseEvent } from "react";
 import {
   Background,
   Controls,
@@ -15,9 +15,10 @@ import {
   type EdgeChange,
   type Node,
   type NodeChange,
-  type NodeProps
+  type NodeProps,
+  type ReactFlowInstance
 } from "@xyflow/react";
-import { Boxes, Clapperboard, Copy, FileText, GitBranch, Image, Library, Music, Play, Plus, RefreshCcw, Save, Search, Sparkles, Trash2, Video, Wand2 } from "lucide-react";
+import { Boxes, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, FileText, GitBranch, Image, Library, Music, Play, Plus, RefreshCcw, Save, Search, Sparkles, Trash2, Video, Wand2 } from "lucide-react";
 import { apiFetch, currentUserId, deleteJson, postJson, type Asset, type GenerationTask, type Project, type ProjectGraph, type ProjectGraphNode, type StoryboardShot } from "../lib/api";
 
 const nodeLabels: Record<string, string> = {
@@ -212,6 +213,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState("");
+  const [flowInstance, setFlowInstance] = useState<ReactFlowInstance | null>(null);
+  const [copiedSelection, setCopiedSelection] = useState<{ nodes: Node[]; edges: Edge[] } | null>(null);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [tasks, setTasks] = useState<GenerationTask[]>([]);
   const [status, setStatus] = useState("正在加载全画幅创作画布...");
@@ -235,6 +238,39 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   useEffect(() => {
     void refreshAll();
   }, [projectId]);
+
+  useEffect(() => {
+    const handleCanvasKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        void saveGraph();
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "c") {
+        event.preventDefault();
+        copySelectedChain();
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "v") {
+        event.preventDefault();
+        pasteCopiedSelection();
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "d") {
+        event.preventDefault();
+        duplicateSelectedNode();
+        return;
+      }
+      if ((event.key === "Delete" || event.key === "Backspace") && selectedNode) {
+        event.preventDefault();
+        void deleteSelectedNode();
+      }
+    };
+    window.addEventListener("keydown", handleCanvasKeyDown);
+    return () => window.removeEventListener("keydown", handleCanvasKeyDown);
+  });
 
   const onNodesChange = useCallback((changes: NodeChange[]) => setNodes((items) => applyNodeChanges(changes, items)), []);
   const onEdgesChange = useCallback((changes: EdgeChange[]) => setEdges((items) => applyEdgeChanges(changes, items)), []);
@@ -298,10 +334,9 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     }
   }
 
-  function addNode(type: string) {
-    const id = `local-${type}-${Date.now()}`;
+  function buildNodeData(type: string) {
     const firstShotId = shotOptions[0]?.id || "";
-    const baseData = type === "script"
+    return type === "script"
       ? { title: "脚本 Beta", script: "在这里输入短视频脚本，运行后自动拆解分镜。" }
       : type === "image"
         ? { title: "图片节点", image_url: "/storage/reference/hero.png" }
@@ -318,16 +353,79 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
                   : type === "compose_generation"
                     ? { title: nodeLabels[type], subtitle: true }
                     : { title: nodeLabels[type], text: "输入内容" };
+  }
+
+  function createFlowNode(type: string, position: { x: number; y: number }, extraData: Record<string, unknown> = {}) {
+    const id = `local-${type}-${Date.now()}-${Math.round(position.x)}-${Math.round(position.y)}`;
     const node: Node = {
       id,
       type: "platform",
-      position: { x: 160 + nodes.length * 36, y: 120 + nodes.length * 28 },
-      data: { ...baseData, nodeType: type, graphNodeId: id, status: "draft" }
+      position,
+      data: { ...buildNodeData(type), ...extraData, nodeType: type, graphNodeId: id, status: String(extraData.status || "draft") }
     };
+    return node;
+  }
+
+  function addNodeAtPosition(type: string, position: { x: number; y: number }, extraData: Record<string, unknown> = {}) {
+    const node = createFlowNode(type, position, extraData);
     setNodes((items) => [...items, node]);
-    setSelectedNodeId(id);
+    setSelectedNodeId(node.id);
+    return node;
+  }
+
+  function addNode(type: string) {
+    const node = addNodeAtPosition(type, { x: 160 + nodes.length * 36, y: 120 + nodes.length * 28 });
     setShowPalette(false);
-    setStatus(`已添加${nodeLabels[type] || "节点"}。`);
+    setStatus(`已添加${nodeLabels[String(node.data.nodeType)] || "节点"}。`);
+  }
+
+  function flowPositionFromEvent(event: Pick<ReactMouseEvent, "clientX" | "clientY"> | Pick<ReactDragEvent, "clientX" | "clientY">) {
+    return flowInstance?.screenToFlowPosition({ x: event.clientX, y: event.clientY }) || { x: event.clientX - 360, y: event.clientY - 120 };
+  }
+
+  function handleCanvasDoubleClick(event: ReactMouseEvent) {
+    if ((event.target as HTMLElement | null)?.closest(".react-flow__node, .react-flow__controls, .react-flow__minimap")) return;
+    const node = addNodeAtPosition("text", flowPositionFromEvent(event), { title: "新建文本节点", text: "输入提示词、旁白或备注。" });
+    setShowPalette(false);
+    setStatus(`已在画布空白处创建${nodeLabels[String(node.data.nodeType)]}。`);
+  }
+
+  function inferAssetNodeType(value: string, mimeType = "") {
+    const text = `${mimeType} ${value}`.toLowerCase();
+    if (text.includes("video") || /\.(mp4|mov|webm|m4v)(\?|$)/.test(text)) return "video";
+    if (text.includes("audio") || /\.(mp3|wav|m4a|aac|ogg)(\?|$)/.test(text)) return "audio";
+    return "image";
+  }
+
+  function addDroppedAssetNode(type: string, url: string, position: { x: number; y: number }, title = "") {
+    const dataKey = type === "video" ? "video_url" : type === "audio" ? "audio_url" : "image_url";
+    const node = addNodeAtPosition(type, position, {
+      title: title || `拖入${nodeLabels[type] || "素材"}`,
+      [dataKey]: url,
+      text: "从画布拖入的素材，可继续接入生成链路。"
+    });
+    setShowAssets(false);
+    setStatus(`已拖入${nodeLabels[String(node.data.nodeType)] || "素材"}。`);
+  }
+
+  function handleCanvasDragOver(event: ReactDragEvent) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  }
+
+  function handleCanvasDrop(event: ReactDragEvent) {
+    event.preventDefault();
+    const position = flowPositionFromEvent(event);
+    const file = event.dataTransfer.files?.[0];
+    if (file) {
+      const type = inferAssetNodeType(file.name, file.type);
+      addDroppedAssetNode(type, URL.createObjectURL(file), position, file.name);
+      return;
+    }
+    const url = event.dataTransfer.getData("text/uri-list") || event.dataTransfer.getData("text/plain");
+    if (!url.trim()) return;
+    const type = inferAssetNodeType(url);
+    addDroppedAssetNode(type, url.trim(), position);
   }
 
   function addWorkflowPreset(presetKey: string) {
@@ -475,6 +573,64 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus("节点已复制，可继续编辑参数或接入连线。");
   }
 
+  function copySelectedChain() {
+    if (!selectedNode) {
+      setStatus("请先选择一个节点，再复制链路。");
+      return;
+    }
+    const chainNodes = orderedChainNodes(selectedNode.id, nodes, edges);
+    const nodeIds = new Set(chainNodes.map((node) => node.id));
+    const chainEdges = edges.filter((edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target));
+    const snapshot = { nodes: chainNodes, edges: chainEdges };
+    setCopiedSelection(snapshot);
+    window.localStorage.setItem(`project_graph_clipboard_${projectId}`, JSON.stringify(snapshot));
+    setStatus(`已复制链路：${chainNodes.length} 个节点、${chainEdges.length} 条连线。`);
+  }
+
+  function pasteCopiedSelection() {
+    let cached = copiedSelection;
+    if (!cached) {
+      try {
+        cached = JSON.parse(window.localStorage.getItem(`project_graph_clipboard_${projectId}`) || "null");
+      } catch {
+        window.localStorage.removeItem(`project_graph_clipboard_${projectId}`);
+      }
+    }
+    if (!cached?.nodes?.length) {
+      setStatus("暂无可粘贴的链路。");
+      return;
+    }
+    const timestamp = Date.now();
+    const idMap = new Map<string, string>();
+    const pastedNodes = (cached.nodes as Node[]).map((node, index) => {
+      const id = `paste-${node.id}-${timestamp}-${index}`;
+      idMap.set(node.id, id);
+      const data = { ...(node.data as Record<string, unknown>), graphNodeId: id, status: "draft" };
+      return {
+        ...node,
+        id,
+        selected: false,
+        position: { x: node.position.x + 72, y: node.position.y + 72 },
+        data
+      } satisfies Node;
+    });
+    const pastedEdges = ((cached.edges || []) as Edge[]).flatMap((edge, index) => {
+      const source = idMap.get(edge.source);
+      const target = idMap.get(edge.target);
+      if (!source || !target) return [];
+      return [{
+        ...edge,
+        id: `edge-paste-${timestamp}-${index}`,
+        source,
+        target
+      } satisfies Edge];
+    });
+    setNodes((items) => [...items, ...pastedNodes]);
+    setEdges((items) => [...items, ...pastedEdges]);
+    setSelectedNodeId(pastedNodes[pastedNodes.length - 1]?.id || "");
+    setStatus(`已粘贴链路：${pastedNodes.length} 个节点、${pastedEdges.length} 条连线。`);
+  }
+
   async function deleteSelectedNode() {
     if (!selectedNode) return;
     const nodeId = selectedNode.id;
@@ -572,9 +728,13 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        onInit={setFlowInstance}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onDoubleClick={handleCanvasDoubleClick}
+        onDragOver={handleCanvasDragOver}
+        onDrop={handleCanvasDrop}
         onNodeClick={(_, node) => setSelectedNodeId(node.id)}
         fitView
         className="h-full w-full"
@@ -628,6 +788,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-3 py-2 disabled:opacity-50" onClick={() => void runSelectedNode()}><Play size={16} />运行节点</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void runSelectedChain()}><GitBranch size={16} />运行链路</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={duplicateSelectedNode}><Copy size={16} />复制节点</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={copySelectedChain}><ClipboardCopy size={16} />复制链路</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={pasteCopiedSelection}><ClipboardPaste size={16} />粘贴链路</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 text-slate-300 disabled:opacity-50" onClick={() => void deleteSelectedNode()}><Trash2 size={16} />删除节点</button>
           </div>
         </div> : <p className="mt-4 rounded-md border border-white/10 bg-white/5 p-3 text-sm text-slate-400">点击画布节点后可编辑参数、运行生成或删除节点。</p>}

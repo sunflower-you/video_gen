@@ -354,6 +354,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /applySelectedNodeParamsToSelection/);
   assert.match(canvasWorkspace, /nodeBusinessParamPatch/);
   assert.match(canvasWorkspace, /negative_prompt/);
+  assert.match(canvasWorkspace, /reference_image_url/);
   assert.match(canvasWorkspace, /clearShotSelection/);
   assert.match(canvasWorkspace, /focusShotWorkflow/);
   assert.match(canvasWorkspace, /selectedShotBindingNodes/);
@@ -391,6 +392,8 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /当前选区没有其它同类型节点可应用参数/);
   assert.match(canvasWorkspace, /负面提示词/);
   assert.match(canvasWorkspace, /输入需要规避的画面问题/);
+  assert.match(canvasWorkspace, /参考图 URL/);
+  assert.match(canvasWorkspace, /可填写角色图、风格图或上游图片输出 URL/);
   assert.match(canvasWorkspace, /生成选区节点变体/);
   assert.match(canvasWorkspace, /生成变体/);
   assert.match(canvasWorkspace, /已生成 .*个生成节点变体/);

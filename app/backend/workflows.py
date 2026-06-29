@@ -123,11 +123,12 @@ def default_registry() -> WorkflowRegistry:
             input_schema={
                 "prompt": {"type": "string", "required": True, "label": "画面提示词"},
                 "negative_prompt": {"type": "string", "required": False, "label": "负面提示词"},
+                "reference_image_url": {"type": "string", "required": False, "label": "参考图 URL"},
                 "width": {"type": "integer", "required": True, "label": "宽度"},
                 "height": {"type": "integer", "required": True, "label": "高度"},
                 "seed": {"type": "integer", "required": False, "label": "随机种子"},
             },
-            default_params={"negative_prompt": "", "width": 768, "height": 1344, "seed": -1},
+            default_params={"negative_prompt": "", "reference_image_url": "", "width": 768, "height": 1344, "seed": -1},
             output_nodes={"9": AssetType.IMAGE},
             description="根据分镜画面描述生成竖屏漫剧首帧或分镜图。",
             applicable_scenarios=["分镜首帧", "角色海报", "概念设计"],

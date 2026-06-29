@@ -1365,7 +1365,7 @@ class PlatformService:
         return to_jsonable(shot)
 
     def generate_shot_image(self, project_id: str, shot_id: str, payload: dict[str, Any]) -> dict[str, Any]:
-        _reject_unknown_payload_fields(payload, {"user_id", "workflow_key", "prompt", "negative_prompt", "width", "height", "seed"})
+        _reject_unknown_payload_fields(payload, {"user_id", "workflow_key", "prompt", "negative_prompt", "reference_image_url", "width", "height", "seed"})
         project, shot = self._project_shot(project_id, shot_id)
         self._assert_project_owner(project, payload.get("user_id"))
         workflow_key = str(payload.get("workflow_key") or self._project_workflow_key(project, TaskType.IMAGE, "selfhost/image_flux"))
@@ -1373,6 +1373,7 @@ class PlatformService:
         params = {
             "prompt": payload.get("prompt") or shot.prompt,
             "negative_prompt": payload.get("negative_prompt") or shot.negative_prompt or DEFAULT_NEGATIVE_PROMPT,
+            "reference_image_url": str(payload.get("reference_image_url", "") or ""),
             "width": _coerce_int_param(payload.get("width", default_params.get("width", 768)), "宽度"),
             "height": _coerce_int_param(payload.get("height", default_params.get("height", 1344)), "高度"),
             "seed": _coerce_int_param(payload.get("seed", default_params.get("seed", -1)), "随机种子"),
@@ -2067,6 +2068,7 @@ class PlatformService:
                         "workflow_key": data.get("workflow_key"),
                         "prompt": data.get("prompt") or _first_non_empty(incoming_data, "prompt", "text", "script", "narration"),
                         "negative_prompt": data.get("negative_prompt") or _first_non_empty(incoming_data, "negative_prompt"),
+                        "reference_image_url": data.get("reference_image_url") or _first_non_empty(incoming_data, "image_url", "first_frame_url", "output_url"),
                         "width": data.get("width"),
                         "height": data.get("height"),
                         "seed": data.get("seed"),

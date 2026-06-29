@@ -1213,6 +1213,36 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已保存自定义预设：${title}。`);
   }
 
+  function saveSelectedWorkflowAsPreset() {
+    if (!selectedNodes.length) {
+      setStatus("请先框选或点选节点，再保存选区为预设。");
+      return;
+    }
+    const left = Math.min(...selectedNodes.map((node) => node.position.x));
+    const top = Math.min(...selectedNodes.map((node) => node.position.y));
+    const title = selectedGroupTitles[0] || presetTitle.trim() || `${project?.title || "自定义工作流"} 选区`;
+    const normalizedNodes = selectedNodes.map((node) => fromFlowNode({
+      ...node,
+      position: {
+        x: node.position.x - left,
+        y: node.position.y - top
+      }
+    }));
+    const preset: CustomWorkflowPreset = {
+      key: `custom-selection-${Date.now()}`,
+      title,
+      description: `选区片段：${selectedNodes.length} 个节点、${selectedSelectionEdges.length} 条连线，可在任意项目画布复用。`,
+      nodes: normalizedNodes,
+      edges: selectedSelectionEdges.map(fromFlowEdge),
+      created_at: new Date().toISOString()
+    };
+    const next = [preset, ...customWorkflowPresets].slice(0, 12);
+    setCustomWorkflowPresets(next);
+    window.localStorage.setItem(customPresetStorageKey, JSON.stringify(next));
+    setPresetTitle(title);
+    setStatus(`已保存选区为预设：${title}。`);
+  }
+
   function deleteCustomWorkflowPreset(presetKey: string) {
     const next = customWorkflowPresets.filter((item) => item.key !== presetKey);
     setCustomWorkflowPresets(next);
@@ -2396,6 +2426,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           {selectedNodes.length > 1 ? <>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setNodeContextMenu(null); void runSelectedNodes(); }}>运行选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { copySelectedNodes(); setNodeContextMenu(null); }}>复制选区</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { saveSelectedWorkflowAsPreset(); setNodeContextMenu(null); }}>保存选区为预设</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { duplicateSelectedNodes(); setNodeContextMenu(null); }}>生成选区副本</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { autoLayoutSelectedNodes(); setNodeContextMenu(null); }}>整理选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { groupSelectedNodes(); setNodeContextMenu(null); }}>打组选区</button>
@@ -2465,6 +2496,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <div className="grid grid-cols-2 gap-2">
             <button disabled={busy} className="col-span-2 inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-3 py-2 disabled:opacity-50" onClick={() => void runSelectedNodes()}><Play size={16} />运行选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={copySelectedNodes}><ClipboardCopy size={16} />复制选区</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={saveSelectedWorkflowAsPreset}><Save size={16} />存为预设</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={duplicateSelectedNodes}><Copy size={16} />生成副本</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={pasteCopiedSelection}><ClipboardPaste size={16} />粘贴选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={autoLayoutSelectedNodes}><LayoutGrid size={16} />整理选区</button>

@@ -923,6 +923,10 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /onPaneContextMenu=\{openCanvasContextMenu\}/);
   assert.match(canvasWorkspace, /画布快捷菜单/);
   assert.match(canvasWorkspace, /在此处添加节点或工作流/);
+  assert.match(canvasWorkspace, /快捷创作/);
+  assert.match(canvasWorkspace, /在此处追加 Seedance 2\.0/);
+  assert.match(canvasWorkspace, /在此处追加 TV Show/);
+  assert.match(canvasWorkspace, /在此处追加挑战赛/);
   assert.match(canvasWorkspace, /粘贴到此处/);
   assert.match(canvasWorkspace, /已通过画布右键菜单添加/);
   assert.match(canvasWorkspace, /handleCanvasDrop/);

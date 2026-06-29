@@ -4922,6 +4922,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             { type: "comment", label: "画布批注" }
           ].map((item) => <button key={item.type} className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => addNodeFromCanvasContext(item.type)}>{item.label}</button>)}
           <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => void pasteCopiedSelectionFromCanvasContext()}>粘贴到此处</button>
+          <p className="mt-2 border-t border-white/10 px-2 pt-3 text-[11px] font-medium uppercase text-slate-500">快捷创作</p>
+          <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPresetFromCanvasContext("seedance2_image_video")}>在此处追加 Seedance 2.0</button>
+          <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPresetFromCanvasContext("tv_show_storyboard")}>在此处追加 TV Show</button>
+          <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPresetFromCanvasContext("creator_challenge_entry")}>在此处追加挑战赛</button>
           <p className="mt-2 border-t border-white/10 px-2 pt-3 text-[11px] font-medium uppercase text-slate-500">工作流预设</p>
           {workflowPresets.map((preset) => <button key={preset.key} className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => addWorkflowPresetFromCanvasContext(preset.key)}>
             <span className="block text-slate-100">{preset.title}</span>

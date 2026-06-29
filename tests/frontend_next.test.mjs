@@ -116,6 +116,11 @@ test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
 
 test("Next 前端迁移已拆分组件并提供核心路由", () => {
   assert.match(shell, /href: "\/create"/);
+  assert.match(shell, /quickStartItems/);
+  assert.match(shell, /快捷创作/);
+  assert.match(shell, /\/create\?quick=creator-challenge/);
+  assert.match(shell, /\/create\?quick=seedance2/);
+  assert.match(shell, /\/create\?quick=tv-show/);
   assert.match(shell, /href: "\/templates"/);
   assert.match(shell, /href: "\/billing"/);
   assert.match(shell, /href: "\/account"/);

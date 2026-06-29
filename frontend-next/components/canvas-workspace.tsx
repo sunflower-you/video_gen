@@ -658,6 +658,7 @@ type CanvasViewport = { x: number; y: number; zoom: number };
 type CanvasViewBookmark = { key: string; title: string; viewport: CanvasViewport; created_at: string };
 
 const customPresetStorageKey = "video_gen_canvas_custom_presets";
+const recentNodeStorageKey = "video_gen_canvas_recent_nodes";
 const viewBookmarkStoragePrefix = "video_gen_canvas_view_bookmarks";
 const paletteNodeDragType = "application/x-video-gen-node-type";
 const defaultCanvasViewport: CanvasViewport = { x: 0, y: 0, zoom: 1 };
@@ -687,6 +688,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [outlineIssuesOnly, setOutlineIssuesOnly] = useState(false);
   const [importText, setImportText] = useState("");
   const [customWorkflowPresets, setCustomWorkflowPresets] = useState<CustomWorkflowPreset[]>([]);
+  const [recentNodeTypes, setRecentNodeTypes] = useState<string[]>([]);
   const [presetTitle, setPresetTitle] = useState("自定义工作流");
   const [viewBookmarks, setViewBookmarks] = useState<CanvasViewBookmark[]>([]);
   const [viewBookmarkTitle, setViewBookmarkTitle] = useState("当前视图");
@@ -752,6 +754,12 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       return !keyword || text.includes(keyword);
     });
   }, [paletteQuery]);
+  const recentAddableNodes = useMemo(() => recentNodeTypes.flatMap((type) => {
+    const node = addableNodes.find((item) => item.type === type);
+    if (!node) return [];
+    if (paletteQuery.trim() && !filteredAddableNodes.some((item) => item.type === type)) return [];
+    return [node];
+  }), [filteredAddableNodes, paletteQuery, recentNodeTypes]);
   const viewBookmarkStorageKey = useMemo(() => `${viewBookmarkStoragePrefix}:${projectId}`, [projectId]);
 
   function cloneGraphSnapshot(snapshotNodes = nodes, snapshotEdges = edges, snapshotSelectedNodeId = selectedNodeId, snapshotSelectedEdgeId = selectedEdgeId): GraphHistorySnapshot {
@@ -816,6 +824,16 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       if (Array.isArray(saved)) setCustomWorkflowPresets(saved);
     } catch {
       window.localStorage.removeItem(customPresetStorageKey);
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      const allowed = new Set(addableNodes.map((item) => item.type));
+      const saved = JSON.parse(window.localStorage.getItem(recentNodeStorageKey) || "[]");
+      if (Array.isArray(saved)) setRecentNodeTypes(saved.map(String).filter((type) => allowed.has(type)).slice(0, 6));
+    } catch {
+      window.localStorage.removeItem(recentNodeStorageKey);
     }
   }, []);
 
@@ -1086,11 +1104,21 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     return node;
   }
 
+  function rememberRecentNodeType(type: string) {
+    if (!nodeLabels[type]) return;
+    setRecentNodeTypes((items) => {
+      const next = [type, ...items.filter((item) => item !== type)].slice(0, 6);
+      window.localStorage.setItem(recentNodeStorageKey, JSON.stringify(next));
+      return next;
+    });
+  }
+
   function addNodeAtPosition(type: string, position: { x: number; y: number }, extraData: Record<string, unknown> = {}) {
     const node = createFlowNode(type, position, extraData);
     rememberGraphHistory();
     setNodes((items) => [...items, node]);
     setSelectedNodeId(node.id);
+    rememberRecentNodeType(type);
     return node;
   }
 
@@ -1535,6 +1563,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setSelectedNodeId(node.id);
     setSelectedEdgeId("");
     setEdgeContextMenu(null);
+    rememberRecentNodeType(type);
     setStatus(`已在连线上插入${nodeLabels[type] || "节点"}，原连线已自动拆成两段。`);
   }
 
@@ -2441,6 +2470,21 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <Search size={16} className="text-slate-400" />
           <input className="w-full bg-transparent outline-none placeholder:text-slate-500" placeholder="搜索图片、视频、配音、合成" value={paletteQuery} onChange={(event) => setPaletteQuery(event.target.value)} />
         </label>
+        {!!recentAddableNodes.length && <section className="mt-4 grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-xs font-medium text-slate-400">最近使用节点</h3>
+            <span className="rounded border border-white/10 px-2 py-1 text-[11px] text-slate-400">{recentAddableNodes.length} 个</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {recentAddableNodes.map((item) => {
+              const Icon = item.icon;
+              return <button key={item.type} draggable title={`添加${item.label}`} className="flex items-center gap-2 rounded-md border border-white/10 bg-black/15 px-2 py-2 text-left text-sm text-slate-100 hover:bg-white/10" onClick={() => addNode(item.type)} onDragStart={(event) => handlePaletteNodeDragStart(event, item.type)}>
+                <span className="grid h-7 w-7 shrink-0 place-items-center rounded bg-white/10"><Icon size={15} /></span>
+                <span className="min-w-0 truncate">{item.label}</span>
+              </button>;
+            })}
+          </div>
+        </section>}
         <section className="mt-4 grid gap-2">
           <h3 className="text-xs font-medium text-slate-400">工作流预设</h3>
           {workflowPresets.map((preset) => <button key={preset.key} className="rounded-md border border-blue-400/30 bg-blue-500/10 px-3 py-3 text-left hover:bg-blue-500/20" onClick={() => addWorkflowPreset(preset.key)}>

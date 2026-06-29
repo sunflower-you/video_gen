@@ -12,16 +12,19 @@ const quickStartModes = {
   seedance2: {
     title: "Seedance 2.0 快速体验",
     script: seedanceQuickPrompt,
+    aspectRatio: "9:16",
     status: "已预选 Seedance 2.0 快速体验，可一键创建图生视频画布。"
   },
   "tv-show": {
     title: "TV Show 剧集开场",
     script: tvShowQuickScript,
+    aspectRatio: "16:9",
     status: "已预选 TV Show 剧集开场，可一键创建剧集分镜画布。"
   },
   "creator-challenge": {
     title: "创作者挑战赛参赛片",
     script: creatorChallengeScript,
+    aspectRatio: "9:16",
     status: "已预选创作者挑战赛，可一键创建参赛片画布。"
   }
 };
@@ -92,6 +95,7 @@ export function CreateWorkbench() {
     setActiveQuickMode(modeKey);
     setTitle(mode.title);
     setScript(mode.script);
+    setAspectRatio(mode.aspectRatio);
     setStatus(mode.status);
   }
 

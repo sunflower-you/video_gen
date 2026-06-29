@@ -1171,6 +1171,8 @@ test("Next 创作工作台调用真实项目和生成接口", () => {
   assert.match(createWorkbench, /projectType === "空白项目"/);
   assert.match(createWorkbench, /projectType === "模板复刻"/);
   assert.match(createWorkbench, /quickStartModes/);
+  assert.match(createWorkbench, /aspectRatio: "16:9"/);
+  assert.match(createWorkbench, /aspectRatio: "9:16"/);
   assert.match(createWorkbench, /type QuickModeKey = keyof typeof quickStartModes/);
   assert.match(createWorkbench, /const quickModeOptions/);
   assert.match(createWorkbench, /aria-label="Liblib 快捷创作模式"/);
@@ -1183,6 +1185,7 @@ test("Next 创作工作台调用真实项目和生成接口", () => {
   assert.match(createWorkbench, /已从模板市场预选模板/);
   assert.match(createWorkbench, /const \[activeQuickMode, setActiveQuickMode\]/);
   assert.match(createWorkbench, /function applyQuickMode/);
+  assert.match(createWorkbench, /setAspectRatio\(mode\.aspectRatio\)/);
   assert.match(createWorkbench, /function clearQuickMode/);
   assert.match(createWorkbench, /setStatus\("已切换为普通创建模式/);
   assert.match(createWorkbench, /function primaryCreateLabel/);

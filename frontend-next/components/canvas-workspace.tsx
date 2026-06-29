@@ -674,6 +674,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [importText, setImportText] = useState("");
   const [customWorkflowPresets, setCustomWorkflowPresets] = useState<CustomWorkflowPreset[]>([]);
   const [presetTitle, setPresetTitle] = useState("自定义工作流");
+  const [selectedRenamePrefix, setSelectedRenamePrefix] = useState("镜头节点");
   const [nodeContextMenu, setNodeContextMenu] = useState<{ nodeId: string; x: number; y: number } | null>(null);
   const [edgeContextMenu, setEdgeContextMenu] = useState<{ edgeId: string; x: number; y: number } | null>(null);
   const [graphPast, setGraphPast] = useState<GraphHistorySnapshot[]>([]);
@@ -2008,6 +2009,27 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(markerColor?.value ? `已设置选区颜色标记：${markerColor.label}，共 ${selectedNodes.length} 个节点。` : `已清空选区颜色标记：${selectedNodes.length} 个节点。`);
   }
 
+  function renameSelectedNodesWithPrefix() {
+    if (!selectedNodes.length) return;
+    const prefix = selectedRenamePrefix.trim();
+    if (!prefix) {
+      setStatus("请输入选区批量命名前缀。");
+      return;
+    }
+    const orderedIds = [...selectedNodes]
+      .sort((first, second) => first.position.y - second.position.y || first.position.x - second.position.x)
+      .map((node) => node.id);
+    const indexById = new Map(orderedIds.map((id, index) => [id, index + 1]));
+    const width = String(selectedNodes.length).length < 2 ? 2 : String(selectedNodes.length).length;
+    rememberGraphHistory();
+    setNodes((items) => items.map((node) => {
+      const index = indexById.get(node.id);
+      if (!index) return node;
+      return { ...node, data: { ...(node.data as Record<string, unknown>), title: `${prefix} ${String(index).padStart(width, "0")}` } };
+    }));
+    setStatus(`已按前缀 ${prefix} 重命名选区：${selectedNodes.length} 个节点。`);
+  }
+
   function setSelectedSelectionEdgesDisabled(disabled: boolean) {
     if (!selectedSelectionEdges.length) {
       setStatus("当前选区没有内部连线可批量操作。");
@@ -2536,6 +2558,13 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <span className="text-xs text-slate-400">分组名称</span>
             <input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" placeholder={selectedGroupTitles.length > 1 ? "多个分组，将统一改名" : "输入分组名称"} value={selectedGroupTitleValue} onFocus={rememberGraphHistory} onChange={(event) => updateSelectedGroupTitle(event.target.value)} onBlur={(event) => updateSelectedGroupTitle(event.target.value, true)} />
           </label>}
+          <section className="grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">
+            <span className="text-xs text-slate-400">选区批量命名</span>
+            <div className="grid grid-cols-[1fr_auto] gap-2">
+              <input className="min-w-0 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" placeholder="输入节点标题前缀" value={selectedRenamePrefix} onChange={(event) => setSelectedRenamePrefix(event.target.value)} />
+              <button disabled={busy || !selectedRenamePrefix.trim()} className="inline-flex items-center justify-center rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={renameSelectedNodesWithPrefix}>应用</button>
+            </div>
+          </section>
           <section className="grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">
             <span className="text-xs text-slate-400">选区颜色标记</span>
             <div className="grid grid-cols-3 gap-2">

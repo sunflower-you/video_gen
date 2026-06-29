@@ -311,6 +311,11 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /选区颜色标记/);
   assert.match(canvasWorkspace, /标记：/);
   assert.match(canvasWorkspace, /已设置选区颜色标记/);
+  assert.match(canvasWorkspace, /selectedRenamePrefix/);
+  assert.match(canvasWorkspace, /renameSelectedNodesWithPrefix/);
+  assert.match(canvasWorkspace, /选区批量命名/);
+  assert.match(canvasWorkspace, /请输入选区批量命名前缀/);
+  assert.match(canvasWorkspace, /已按前缀/);
   assert.match(canvasWorkspace, /setSelectedSelectionEdgesDisabled/);
   assert.match(canvasWorkspace, /setSelectedSelectionEdgesColor/);
   assert.match(canvasWorkspace, /选区内部连线/);

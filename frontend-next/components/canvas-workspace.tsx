@@ -1711,6 +1711,15 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     selectCanvasNodesByIds([selectedNode.id, ...downstreamNodeIds(selectedNode.id, edges)], "当前下游链路");
   }
 
+  function selectSelectedGroups() {
+    if (!selectedGroupIds.size) {
+      setStatus("当前选区没有已打组节点。");
+      return;
+    }
+    const groupNodes = nodes.filter((node) => selectedGroupIds.has(String((node.data as Record<string, unknown>).group_id || "")));
+    selectCanvasNodesByIds(groupNodes.map((node) => node.id), selectedGroupIds.size > 1 ? "当前多个分组" : "当前分组");
+  }
+
   function selectAllCanvasNodes() {
     if (!nodes.length) {
       setStatus("画布暂无节点，无法全选。");
@@ -2757,6 +2766,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { autoLayoutSelectedNodes(); setNodeContextMenu(null); }}>整理选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { connectSelectedNodesInOrder(); setNodeContextMenu(null); }}>串联选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { groupSelectedNodes(); setNodeContextMenu(null); }}>打组选区</button>
+            <button disabled={busy || !selectedGroupIds.size} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSelectedGroups(); setNodeContextMenu(null); }}>选中同组节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { ungroupSelectedNodes(); setNodeContextMenu(null); }}>取消分组</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesDisabled(true); setNodeContextMenu(null); }}>禁用选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesDisabled(false); setNodeContextMenu(null); }}>启用选区</button>
@@ -2859,6 +2869,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={autoLayoutSelectedNodes}><LayoutGrid size={16} />整理选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={connectSelectedNodesInOrder}><GitBranch size={16} />串联选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={groupSelectedNodes}><Boxes size={16} />打组选区</button>
+            <button disabled={busy || !selectedGroupIds.size} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={selectSelectedGroups}><Boxes size={16} />选中同组</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={ungroupSelectedNodes}><Boxes size={16} />取消分组</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesDisabled(true)}><Ban size={16} />禁用选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesDisabled(false)}><Play size={16} />启用选区</button>

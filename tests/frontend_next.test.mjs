@@ -318,8 +318,13 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /selectedGroupIds/);
   assert.match(canvasWorkspace, /selectedGroupTitleValue/);
   assert.match(canvasWorkspace, /updateSelectedGroupTitle/);
+  assert.match(canvasWorkspace, /selectSelectedGroups/);
   assert.match(canvasWorkspace, /分组名称/);
   assert.match(canvasWorkspace, /多个分组，将统一改名/);
+  assert.match(canvasWorkspace, /选中同组节点/);
+  assert.match(canvasWorkspace, /选中同组/);
+  assert.match(canvasWorkspace, /当前分组/);
+  assert.match(canvasWorkspace, /当前多个分组/);
   assert.match(canvasWorkspace, /已更新分组名称/);
   assert.match(canvasWorkspace, /payload\.note/);
   assert.match(canvasWorkspace, /data\.note/);

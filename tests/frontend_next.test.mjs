@@ -248,13 +248,16 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /selectSelectedUpstreamChain/);
   assert.match(canvasWorkspace, /selectSelectedDownstreamChain/);
   assert.match(canvasWorkspace, /selectSameTypeNodes/);
+  assert.match(canvasWorkspace, /selectSameStatusNodes/);
   assert.match(canvasWorkspace, /选中当前结果/);
   assert.match(canvasWorkspace, /选中问题节点/);
   assert.match(canvasWorkspace, /链路选择/);
   assert.match(canvasWorkspace, /选中上游链路/);
   assert.match(canvasWorkspace, /选中下游链路/);
   assert.match(canvasWorkspace, /选中同类型节点/);
+  assert.match(canvasWorkspace, /选中同状态节点/);
   assert.match(canvasWorkspace, /同类型/);
+  assert.match(canvasWorkspace, /同状态/);
   assert.match(canvasWorkspace, /当前下游链路/);
   assert.match(canvasWorkspace, /可继续整理、打组、复制或运行链路/);
   assert.match(canvasWorkspace, /没有匹配的大纲节点/);

@@ -1469,6 +1469,18 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已通过画布右键菜单添加${nodeLabels[String(node.data.nodeType)] || "节点"}。`);
   }
 
+  function addWorkflowPresetFromCanvasContext(presetKey: string) {
+    if (!canvasContextMenu) return;
+    addWorkflowPreset(presetKey, canvasContextMenu.position);
+    setCanvasContextMenu(null);
+  }
+
+  function addCustomWorkflowPresetFromCanvasContext(presetKey: string) {
+    if (!canvasContextMenu) return;
+    addCustomWorkflowPreset(presetKey, canvasContextMenu.position);
+    setCanvasContextMenu(null);
+  }
+
   function addFirstFilteredPaletteNode() {
     const nodeType = activePaletteNode?.type;
     if (!nodeType) {
@@ -1638,13 +1650,13 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     addDroppedAssetNode(type, url.trim(), position);
   }
 
-  function addWorkflowPreset(presetKey: string) {
+  function addWorkflowPreset(presetKey: string, basePosition?: { x: number; y: number }) {
     const preset = workflowPresets.find((item) => item.key === presetKey);
     if (!preset) return;
     const firstShotId = shotOptions[0]?.id || "";
     const timestamp = Date.now();
-    const baseX = 180 + nodes.length * 28;
-    const baseY = 140 + nodes.length * 18;
+    const baseX = basePosition?.x ?? 180 + nodes.length * 28;
+    const baseY = basePosition?.y ?? 140 + nodes.length * 18;
     const createdNodes = preset.nodes.map((item, index) => {
       const id = `preset-${preset.key}-${timestamp}-${index}`;
       const generationData = item.type.includes("generation") && item.type !== "compose_generation" ? { shot_id: firstShotId } : {};
@@ -1669,14 +1681,20 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setEdges((items) => [...items, ...createdEdges]);
     setSelectedNodeId(createdNodes[0]?.id || "");
     setShowPalette(false);
-    setStatus(`已添加工作流预设：${preset.title}。`);
+    setStatus(basePosition ? `已在画布当前位置添加工作流预设：${preset.title}。` : `已添加工作流预设：${preset.title}。`);
   }
 
-  function addCustomWorkflowPreset(presetKey: string) {
+  function addCustomWorkflowPreset(presetKey: string, basePosition?: { x: number; y: number }) {
     const preset = customWorkflowPresets.find((item) => item.key === presetKey);
     if (!preset) return;
+    if (!preset.nodes.length) {
+      setStatus(`自定义预设 ${preset.title} 暂无节点，无法添加到画布。`);
+      return;
+    }
     const timestamp = Date.now();
     const idMap = new Map<string, string>();
+    const minX = Math.min(...preset.nodes.map((item) => Number(item.position?.x || 160)));
+    const minY = Math.min(...preset.nodes.map((item) => Number(item.position?.y || 120)));
     const importedNodes = preset.nodes.map((item, index) => {
       const id = `custom-${preset.key}-${timestamp}-${index}`;
       idMap.set(item.id, id);
@@ -1684,8 +1702,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         ...item,
         id,
         position: {
-          x: Number(item.position?.x || 160) + 80 + nodes.length * 12,
-          y: Number(item.position?.y || 120) + 80 + nodes.length * 8
+          x: basePosition ? basePosition.x + Number(item.position?.x || 160) - minX : Number(item.position?.x || 160) + 80 + nodes.length * 12,
+          y: basePosition ? basePosition.y + Number(item.position?.y || 120) - minY : Number(item.position?.y || 120) + 80 + nodes.length * 8
         },
         status: "draft",
         data: { ...(item.data || {}), graphNodeId: id }
@@ -1709,7 +1727,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setEdges((items) => [...items, ...importedEdges]);
     setSelectedNodeId(importedNodes[0]?.id || "");
     setShowPalette(false);
-    setStatus(`已添加自定义预设：${preset.title}。`);
+    setStatus(basePosition ? `已在画布当前位置添加自定义预设：${preset.title}。` : `已添加自定义预设：${preset.title}。`);
   }
 
   function saveCurrentWorkflowAsPreset() {
@@ -4164,14 +4182,15 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       </ReactFlow>
 
       {canvasContextMenu && <div
-        className="fixed z-40 w-56 rounded-lg border border-white/10 bg-slate-950/95 p-2 text-sm text-slate-200 shadow-2xl backdrop-blur"
+        className="fixed z-40 max-h-[min(620px,calc(100vh-32px))] w-72 overflow-y-auto rounded-lg border border-white/10 bg-slate-950/95 p-2 text-sm text-slate-200 shadow-2xl backdrop-blur"
         style={{ left: canvasContextMenu.x, top: canvasContextMenu.y }}
       >
         <div className="border-b border-white/10 px-2 pb-2">
           <p className="text-xs text-slate-500">画布快捷菜单</p>
-          <strong className="mt-1 block text-white">在此处添加节点</strong>
+          <strong className="mt-1 block text-white">在此处添加节点或工作流</strong>
         </div>
         <div className="mt-2 grid gap-1">
+          <p className="px-2 pt-1 text-[11px] font-medium uppercase text-slate-500">节点</p>
           {[
             { type: "text", label: "文本节点" },
             { type: "image_generation", label: "分镜图生成" },
@@ -4181,6 +4200,18 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             { type: "image", label: "图片素材" },
             { type: "comment", label: "画布批注" }
           ].map((item) => <button key={item.type} className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => addNodeFromCanvasContext(item.type)}>{item.label}</button>)}
+          <p className="mt-2 border-t border-white/10 px-2 pt-3 text-[11px] font-medium uppercase text-slate-500">工作流预设</p>
+          {workflowPresets.map((preset) => <button key={preset.key} className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => addWorkflowPresetFromCanvasContext(preset.key)}>
+            <span className="block text-slate-100">{preset.title}</span>
+            <span className="mt-0.5 block text-xs text-slate-500">{preset.description}</span>
+          </button>)}
+          {customWorkflowPresets.length > 0 && <>
+            <p className="mt-2 border-t border-white/10 px-2 pt-3 text-[11px] font-medium uppercase text-slate-500">我的工作流</p>
+            {customWorkflowPresets.slice(0, 4).map((preset) => <button key={preset.key} className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => addCustomWorkflowPresetFromCanvasContext(preset.key)}>
+              <span className="block truncate text-slate-100">{preset.title}</span>
+              <span className="mt-0.5 block line-clamp-2 text-xs text-slate-500">{preset.description}</span>
+            </button>)}
+          </>}
           <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => { setShowPalette(true); setCanvasContextMenu(null); }}>打开节点面板</button>
         </div>
       </div>}

@@ -692,6 +692,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [taskQuery, setTaskQuery] = useState("");
   const [shotStatusFilter, setShotStatusFilter] = useState("all");
   const [shotQuery, setShotQuery] = useState("");
+  const [shotSort, setShotSort] = useState("index-asc");
   const [importText, setImportText] = useState("");
   const [customWorkflowPresets, setCustomWorkflowPresets] = useState<CustomWorkflowPreset[]>([]);
   const [recentNodeTypes, setRecentNodeTypes] = useState<string[]>([]);
@@ -755,13 +756,23 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const shotStatusFilterOptions = useMemo(() => ["all", ...Object.keys(shotStatusCounts).sort()], [shotStatusCounts]);
   const filteredShots = useMemo(() => {
     const keyword = shotQuery.trim().toLowerCase();
-    return shotOptions.filter((shot) => {
+    const statusRank: Record<string, number> = { failed: 0, running: 1, pending: 2, draft: 3, completed: 4, cancelled: 5 };
+    const result = shotOptions.filter((shot) => {
       const shotStatus = shot.generation_status || "draft";
       const matchesStatus = shotStatusFilter === "all" || shotStatus === shotStatusFilter;
       const text = `${shot.index} ${shot.id} ${shot.narration || ""} ${shot.visual_description || ""} ${shot.prompt || ""} ${shot.negative_prompt || ""} ${(shot.characters || []).join(" ")}`.toLowerCase();
       return matchesStatus && (!keyword || text.includes(keyword));
     });
-  }, [shotOptions, shotQuery, shotStatusFilter]);
+    return [...result].sort((left, right) => {
+      if (shotSort === "index-desc") return right.index - left.index;
+      if (shotSort === "status") {
+        const leftRank = statusRank[left.generation_status || "draft"] ?? 99;
+        const rightRank = statusRank[right.generation_status || "draft"] ?? 99;
+        return leftRank === rightRank ? left.index - right.index : leftRank - rightRank;
+      }
+      return left.index - right.index;
+    });
+  }, [shotOptions, shotQuery, shotSort, shotStatusFilter]);
   const filteredAssets = useMemo(() => {
     const keyword = assetQuery.trim().toLowerCase();
     return assets.filter((asset) => {
@@ -3442,6 +3453,14 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         <label className="mt-3 flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm">
           <Search size={15} className="text-slate-400" />
           <input className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-slate-500" placeholder="搜索分镜描述、旁白、角色" value={shotQuery} onChange={(event) => setShotQuery(event.target.value)} />
+        </label>
+        <label className="mt-3 grid gap-1 text-xs text-slate-400">
+          分镜排序
+          <select className="rounded-md border border-white/10 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none" value={shotSort} onChange={(event) => setShotSort(event.target.value)}>
+            <option value="index-asc">按分镜序号升序</option>
+            <option value="index-desc">按分镜序号降序</option>
+            <option value="status">按生成状态优先</option>
+          </select>
         </label>
         <button disabled={!filteredShots.length} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border border-blue-400/40 bg-blue-500/10 px-3 py-2 text-sm text-white hover:bg-blue-500/20 disabled:opacity-50" onClick={addAllShotWorkflows}><GitBranch size={15} />添加当前分镜链路</button>
         <div className="mt-3 grid gap-2 text-sm">

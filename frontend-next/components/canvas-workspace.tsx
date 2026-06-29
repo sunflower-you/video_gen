@@ -1236,6 +1236,51 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus("连线已删除。");
   }
 
+  function insertNodeOnSelectedEdge(type: string) {
+    if (!selectedEdge) return;
+    const sourceNode = nodes.find((node) => node.id === selectedEdge.source);
+    const targetNode = nodes.find((node) => node.id === selectedEdge.target);
+    if (!sourceNode || !targetNode) {
+      setStatus("连线两端节点已丢失，暂不能插入节点。");
+      return;
+    }
+    const position = {
+      x: Math.round((sourceNode.position.x + targetNode.position.x) / 2),
+      y: Math.round((sourceNode.position.y + targetNode.position.y) / 2)
+    };
+    const node = createFlowNode(type, position, { title: `插入${nodeLabels[type] || "节点"}` });
+    const timestamp = Date.now();
+    const edgeData = { ...((selectedEdge.data as Record<string, unknown> | undefined) || {}) };
+    const inheritedLabel = String(edgeData.label || "");
+    rememberGraphHistory();
+    setNodes((items) => [...items.map((item) => ({ ...item, selected: false })), { ...node, selected: true }]);
+    setEdges((items) => [
+      ...items.filter((edge) => edge.id !== selectedEdge.id),
+      edgeWithDefaultHandles({
+        id: `edge-insert-a-${timestamp}`,
+        source: selectedEdge.source,
+        target: node.id,
+        sourceHandle: selectedEdge.sourceHandle || "output",
+        targetHandle: "input",
+        label: inheritedLabel,
+        data: { ...edgeData, label: inheritedLabel }
+      } satisfies Edge),
+      edgeWithDefaultHandles({
+        id: `edge-insert-b-${timestamp}`,
+        source: node.id,
+        target: selectedEdge.target,
+        sourceHandle: "output",
+        targetHandle: selectedEdge.targetHandle || "input",
+        label: inheritedLabel,
+        data: { ...edgeData, label: inheritedLabel }
+      } satisfies Edge)
+    ]);
+    setSelectedNodeId(node.id);
+    setSelectedEdgeId("");
+    setEdgeContextMenu(null);
+    setStatus(`已在连线上插入${nodeLabels[type] || "节点"}，原连线已自动拆成两段。`);
+  }
+
   function focusEdgeNode(direction: "source" | "target") {
     if (!selectedEdge) return;
     const nodeId = direction === "source" ? selectedEdge.source : selectedEdge.target;
@@ -1954,6 +1999,9 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         </div>
         <div className="mt-2 grid gap-1">
           <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => { toggleSelectedEdgeDisabled(); setEdgeContextMenu(null); }}>{selectedEdgeDisabled ? "启用连线" : "禁用连线"}</button>
+          <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => insertNodeOnSelectedEdge("text")}>插入文本节点</button>
+          <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => insertNodeOnSelectedEdge("image_generation")}>插入分镜图节点</button>
+          <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => insertNodeOnSelectedEdge("tts_generation")}>插入配音节点</button>
           <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => focusEdgeNode("source")}>定位起点节点</button>
           <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => focusEdgeNode("target")}>定位终点节点</button>
           <button className="rounded px-2 py-2 text-left text-red-100 hover:bg-red-500/10" onClick={deleteSelectedEdge}>删除连线</button>
@@ -2145,6 +2193,17 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <input type="checkbox" checked={selectedEdgeDisabled} onChange={toggleSelectedEdgeDisabled} />
           </label>
           <label className="grid gap-1"><span className="text-slate-400">连线标签</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" placeholder="例如：提示词、首帧、配音输入" value={selectedEdgeLabel} onChange={(event) => updateSelectedEdgeLabel(event.target.value)} /></label>
+          <section className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+            <p className="text-xs text-slate-400">插入节点</p>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              <button className="rounded-md border border-white/10 px-2 py-2 text-xs text-slate-200 hover:bg-white/10" onClick={() => insertNodeOnSelectedEdge("text")}>文本</button>
+              <button className="rounded-md border border-white/10 px-2 py-2 text-xs text-slate-200 hover:bg-white/10" onClick={() => insertNodeOnSelectedEdge("image_generation")}>分镜图</button>
+              <button className="rounded-md border border-white/10 px-2 py-2 text-xs text-slate-200 hover:bg-white/10" onClick={() => insertNodeOnSelectedEdge("video_generation")}>视频</button>
+              <button className="rounded-md border border-white/10 px-2 py-2 text-xs text-slate-200 hover:bg-white/10" onClick={() => insertNodeOnSelectedEdge("tts_generation")}>配音</button>
+              <button className="rounded-md border border-white/10 px-2 py-2 text-xs text-slate-200 hover:bg-white/10" onClick={() => insertNodeOnSelectedEdge("compose_generation")}>合成</button>
+              <button className="rounded-md border border-white/10 px-2 py-2 text-xs text-slate-200 hover:bg-white/10" onClick={() => insertNodeOnSelectedEdge("demo")}>演示</button>
+            </div>
+          </section>
           <div className="grid grid-cols-2 gap-2">
             <button className="rounded-md border border-white/10 px-3 py-2 text-slate-200 hover:bg-white/10" onClick={() => focusEdgeNode("source")}>定位起点</button>
             <button className="rounded-md border border-white/10 px-3 py-2 text-slate-200 hover:bg-white/10" onClick={() => focusEdgeNode("target")}>定位终点</button>

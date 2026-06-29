@@ -151,6 +151,11 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /连线规则冲突/);
   assert.match(canvasWorkspace, /sourceHandle: connection\.sourceHandle \|\| "output"/);
   assert.match(canvasWorkspace, /targetHandle: connection\.targetHandle \|\| "input"/);
+  assert.match(canvasWorkspace, /insertNodeOnSelectedEdge/);
+  assert.match(canvasWorkspace, /插入节点/);
+  assert.match(canvasWorkspace, /插入文本节点/);
+  assert.match(canvasWorkspace, /edge-insert-a/);
+  assert.match(canvasWorkspace, /edge-insert-b/);
   assert.match(canvasWorkspace, /nodeTypes/);
   assert.match(canvasWorkspace, /文本节点/);
   assert.match(canvasWorkspace, /图片节点/);

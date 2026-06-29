@@ -197,6 +197,14 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /添加节点/);
   assert.match(canvasWorkspace, /搜索图片、视频、配音、合成/);
   assert.match(canvasWorkspace, /工作流预设/);
+  assert.match(canvasWorkspace, /我的工作流预设/);
+  assert.match(canvasWorkspace, /保存当前画布为预设/);
+  assert.match(canvasWorkspace, /CustomWorkflowPreset/);
+  assert.match(canvasWorkspace, /customPresetStorageKey/);
+  assert.match(canvasWorkspace, /customWorkflowPresets/);
+  assert.match(canvasWorkspace, /saveCurrentWorkflowAsPreset/);
+  assert.match(canvasWorkspace, /addCustomWorkflowPreset/);
+  assert.match(canvasWorkspace, /deleteCustomWorkflowPreset/);
   assert.match(canvasWorkspace, /脚本拆解分镜/);
   assert.match(canvasWorkspace, /首帧图生视频/);
   assert.match(canvasWorkspace, /旁白字幕合成/);

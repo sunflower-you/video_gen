@@ -259,6 +259,17 @@ const workflowPresets = [
   }
 ];
 
+type CustomWorkflowPreset = {
+  key: string;
+  title: string;
+  description: string;
+  nodes: ProjectGraphNode[];
+  edges: ProjectGraph["edges"];
+  created_at: string;
+};
+
+const customPresetStorageKey = "video_gen_canvas_custom_presets";
+
 export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [project, setProject] = useState<Project | null>(null);
   const [nodes, setNodes] = useState<Node[]>([]);
@@ -276,6 +287,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [showPalette, setShowPalette] = useState(true);
   const [paletteQuery, setPaletteQuery] = useState("");
   const [importText, setImportText] = useState("");
+  const [customWorkflowPresets, setCustomWorkflowPresets] = useState<CustomWorkflowPreset[]>([]);
+  const [presetTitle, setPresetTitle] = useState("自定义工作流");
   const [busy, setBusy] = useState(false);
 
   const selectedNode = useMemo(() => nodes.find((item) => item.id === selectedNodeId) || null, [nodes, selectedNodeId]);
@@ -300,6 +313,15 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   useEffect(() => {
     void refreshAll();
   }, [projectId]);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(customPresetStorageKey) || "[]");
+      if (Array.isArray(saved)) setCustomWorkflowPresets(saved);
+    } catch {
+      window.localStorage.removeItem(customPresetStorageKey);
+    }
+  }, []);
 
   useEffect(() => {
     const handleCanvasKeyDown = (event: KeyboardEvent) => {
@@ -527,6 +549,73 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setSelectedNodeId(createdNodes[0]?.id || "");
     setShowPalette(false);
     setStatus(`已添加工作流预设：${preset.title}。`);
+  }
+
+  function addCustomWorkflowPreset(presetKey: string) {
+    const preset = customWorkflowPresets.find((item) => item.key === presetKey);
+    if (!preset) return;
+    const timestamp = Date.now();
+    const idMap = new Map<string, string>();
+    const importedNodes = preset.nodes.map((item, index) => {
+      const id = `custom-${preset.key}-${timestamp}-${index}`;
+      idMap.set(item.id, id);
+      return toFlowNode({
+        ...item,
+        id,
+        position: {
+          x: Number(item.position?.x || 160) + 80 + nodes.length * 12,
+          y: Number(item.position?.y || 120) + 80 + nodes.length * 8
+        },
+        status: "draft",
+        data: { ...(item.data || {}), graphNodeId: id }
+      });
+    });
+    const importedEdges = preset.edges.flatMap((edge, index) => {
+      const source = idMap.get(String(edge.source));
+      const target = idMap.get(String(edge.target));
+      if (!source || !target) return [];
+      return [{
+        id: `edge-custom-${preset.key}-${timestamp}-${index}`,
+        source,
+        target,
+        sourceHandle: edge.sourceHandle || undefined,
+        targetHandle: edge.targetHandle || undefined,
+        data: edge.data || {}
+      } satisfies Edge];
+    });
+    setNodes((items) => [...items, ...importedNodes]);
+    setEdges((items) => [...items, ...importedEdges]);
+    setSelectedNodeId(importedNodes[0]?.id || "");
+    setShowPalette(false);
+    setStatus(`已添加自定义预设：${preset.title}。`);
+  }
+
+  function saveCurrentWorkflowAsPreset() {
+    if (!nodes.length) {
+      setStatus("画布暂无节点，无法保存为预设。");
+      return;
+    }
+    const title = presetTitle.trim() || `${project?.title || "自定义工作流"} 预设`;
+    const preset: CustomWorkflowPreset = {
+      key: `custom-${Date.now()}`,
+      title,
+      description: `${nodes.length} 个节点、${edges.length} 条连线，可在任意项目画布复用。`,
+      nodes: nodes.map(fromFlowNode),
+      edges: edges.map(fromFlowEdge),
+      created_at: new Date().toISOString()
+    };
+    const next = [preset, ...customWorkflowPresets].slice(0, 12);
+    setCustomWorkflowPresets(next);
+    window.localStorage.setItem(customPresetStorageKey, JSON.stringify(next));
+    setPresetTitle(title);
+    setStatus(`已保存自定义预设：${title}。`);
+  }
+
+  function deleteCustomWorkflowPreset(presetKey: string) {
+    const next = customWorkflowPresets.filter((item) => item.key !== presetKey);
+    setCustomWorkflowPresets(next);
+    window.localStorage.setItem(customPresetStorageKey, JSON.stringify(next));
+    setStatus("自定义预设已删除。");
   }
 
   function buildShotWorkflow(shot: StoryboardShot, timestamp: number, baseX: number, baseY: number) {
@@ -919,6 +1008,25 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <span className="block text-sm font-medium text-white">{preset.title}</span>
             <span className="mt-1 block text-xs leading-5 text-slate-300">{preset.description}</span>
           </button>)}
+        </section>
+        <section className="mt-4 grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-xs font-medium text-slate-400">我的工作流预设</h3>
+            <span className="rounded border border-white/10 px-2 py-1 text-[11px] text-slate-400">{customWorkflowPresets.length} 个</span>
+          </div>
+          <label className="grid gap-1 text-xs text-slate-400">
+            预设名称
+            <input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none" value={presetTitle} onChange={(event) => setPresetTitle(event.target.value)} />
+          </label>
+          <button disabled={!nodes.length} className="rounded-md border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-left text-sm text-white hover:bg-blue-500/20 disabled:opacity-50" onClick={saveCurrentWorkflowAsPreset}>保存当前画布为预设</button>
+          {customWorkflowPresets.map((preset) => <article key={preset.key} className="rounded-md border border-white/10 bg-black/15 p-2">
+            <button className="w-full text-left" onClick={() => addCustomWorkflowPreset(preset.key)}>
+              <span className="block text-sm font-medium text-white">{preset.title}</span>
+              <span className="mt-1 block text-xs leading-5 text-slate-400">{preset.description}</span>
+            </button>
+            <button className="mt-2 rounded border border-red-400/30 px-2 py-1 text-xs text-red-100" onClick={() => deleteCustomWorkflowPreset(preset.key)}>删除预设</button>
+          </article>)}
+          {!customWorkflowPresets.length && <p className="rounded border border-white/10 px-2 py-2 text-xs text-slate-400">暂无自定义预设，可先搭建画布后保存。</p>}
         </section>
         <div className="mt-4 grid gap-4">
           {["平台生成", "素材节点", "基础节点"].map((category) => {

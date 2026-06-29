@@ -63,6 +63,14 @@ function isNodeDisabled(node: Node) {
   return (node.data as Record<string, unknown>).disabled === true;
 }
 
+function isEdgeDisabled(edge: Edge) {
+  return (edge.data as Record<string, unknown> | undefined)?.disabled === true;
+}
+
+function activeGraphEdges(edges: Edge[]) {
+  return edges.filter((edge) => !isEdgeDisabled(edge));
+}
+
 function mediaUrlFromData(data: Record<string, unknown>) {
   return String(data.image_url || data.video_url || data.audio_url || data.first_frame_url || data.output_url || data.result_url || data.final_video_url || "");
 }
@@ -143,6 +151,7 @@ function fromFlowNode(item: Node): ProjectGraphNode {
 function toFlowEdge(edge: ProjectGraph["edges"][number]): Edge {
   const data = edge.data || {};
   const label = typeof data.label === "string" ? data.label : "";
+  const disabled = data.disabled === true;
   return {
     id: edge.id,
     source: edge.source,
@@ -150,7 +159,9 @@ function toFlowEdge(edge: ProjectGraph["edges"][number]): Edge {
     sourceHandle: edge.sourceHandle || undefined,
     targetHandle: edge.targetHandle || undefined,
     label,
-    data
+    data,
+    animated: !disabled,
+    style: disabled ? { strokeDasharray: "6 4", opacity: 0.45 } : undefined
   };
 }
 
@@ -166,9 +177,10 @@ function fromFlowEdge(edge: Edge): ProjectGraph["edges"][number] {
 }
 
 function upstreamNodeIds(targetId: string, edges: Edge[]) {
+  const activeEdges = activeGraphEdges(edges);
   const visited = new Set<string>();
   const walk = (nodeId: string) => {
-    for (const edge of edges) {
+    for (const edge of activeEdges) {
       if (edge.target !== nodeId || visited.has(edge.source)) continue;
       visited.add(edge.source);
       walk(edge.source);
@@ -179,13 +191,14 @@ function upstreamNodeIds(targetId: string, edges: Edge[]) {
 }
 
 function orderedChainNodes(targetId: string, nodes: Node[], edges: Edge[]) {
+  const activeEdges = activeGraphEdges(edges);
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
   const visited = new Set<string>();
   const ordered: Node[] = [];
   const walk = (nodeId: string) => {
     if (visited.has(nodeId)) return;
     visited.add(nodeId);
-    for (const edge of edges) {
+    for (const edge of activeEdges) {
       if (edge.target === nodeId) walk(edge.source);
     }
     const node = nodeById.get(nodeId);
@@ -196,7 +209,7 @@ function orderedChainNodes(targetId: string, nodes: Node[], edges: Edge[]) {
 }
 
 function terminalNodeIds(nodes: Node[], edges: Edge[]) {
-  const sourceIds = new Set(edges.map((edge) => edge.source));
+  const sourceIds = new Set(activeGraphEdges(edges).map((edge) => edge.source));
   return nodes.filter((node) => !sourceIds.has(node.id)).map((node) => node.id);
 }
 
@@ -215,9 +228,10 @@ function orderedGraphNodes(nodes: Node[], edges: Edge[]) {
 }
 
 function layoutGraphNodes(nodes: Node[], edges: Edge[]) {
+  const activeEdges = activeGraphEdges(edges);
   const incoming = new Map<string, string[]>();
   const outgoing = new Map<string, string[]>();
-  for (const edge of edges) {
+  for (const edge of activeEdges) {
     incoming.set(edge.target, [...(incoming.get(edge.target) || []), edge.source]);
     outgoing.set(edge.source, [...(outgoing.get(edge.source) || []), edge.target]);
   }
@@ -248,7 +262,7 @@ function layoutGraphNodes(nodes: Node[], edges: Edge[]) {
 
 function incomingNodeData(nodeId: string, nodes: Node[], edges: Edge[]) {
   const dataById = new Map(nodes.map((node) => [node.id, node.data as Record<string, unknown>]));
-  return edges
+  return activeGraphEdges(edges)
     .filter((edge) => edge.target === nodeId)
     .map((edge) => dataById.get(edge.source))
     .filter((data): data is Record<string, unknown> => Boolean(data));
@@ -312,8 +326,17 @@ type GraphValidationIssue = {
 
 function validateCanvasGraph(nodes: Node[], edges: Edge[]) {
   const nodeIds = new Set(nodes.map((node) => node.id));
+  const activeEdges = activeGraphEdges(edges);
   const issues: GraphValidationIssue[] = [];
   for (const edge of edges) {
+    if (isEdgeDisabled(edge)) {
+      issues.push({
+        id: `disabled-edge-${edge.id}`,
+        level: "warning",
+        title: "连线已禁用",
+        detail: `连线 ${edge.id} 会保留在画布中，但不会参与上游输入、整理和运行。`
+      });
+    }
     if (!nodeIds.has(edge.source) || !nodeIds.has(edge.target)) {
       issues.push({
         id: `edge-${edge.id}`,
@@ -326,10 +349,10 @@ function validateCanvasGraph(nodes: Node[], edges: Edge[]) {
   for (const node of nodes) {
     const data = node.data as Record<string, unknown>;
     const type = String(data.nodeType || "text");
-    const incoming = incomingNodeData(node.id, nodes, edges);
+    const incoming = incomingNodeData(node.id, nodes, activeEdges);
     const title = String(data.title || nodeLabels[type] || node.id);
-    const hasIncoming = edges.some((edge) => edge.target === node.id);
-    const hasOutgoing = edges.some((edge) => edge.source === node.id);
+    const hasIncoming = activeEdges.some((edge) => edge.target === node.id);
+    const hasOutgoing = activeEdges.some((edge) => edge.source === node.id);
     if (data.disabled === true) {
       issues.push({ id: `disabled-${node.id}`, level: "warning", nodeId: node.id, title: "节点已禁用", detail: `${title} 会保留在画布中，但运行链路和全图时会跳过。` });
       continue;
@@ -470,6 +493,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     counts[task.status] = (counts[task.status] || 0) + 1;
     return counts;
   }, {}), [tasks]);
+  const activeEdges = useMemo(() => activeGraphEdges(edges), [edges]);
   const graphValidation = useMemo(() => validateCanvasGraph(nodes, edges), [nodes, edges]);
   const graphOutlineNodes = useMemo(() => orderedGraphNodes(nodes, edges), [nodes, edges]);
   const terminalNodeIdSet = useMemo(() => new Set(terminalNodeIds(nodes, edges)), [nodes, edges]);
@@ -1009,6 +1033,19 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(label.trim() ? "连线标签已更新。" : "连线标签已清空。");
   }
 
+  function toggleSelectedEdgeDisabled() {
+    if (!selectedEdge) return;
+    const nextDisabled = !isEdgeDisabled(selectedEdge);
+    rememberGraphHistory();
+    setEdges((items) => items.map((edge) => edge.id === selectedEdge.id ? {
+      ...edge,
+      animated: !nextDisabled,
+      style: nextDisabled ? { strokeDasharray: "6 4", opacity: 0.45 } : undefined,
+      data: { ...(edge.data as Record<string, unknown> | undefined), disabled: nextDisabled }
+    } : edge));
+    setStatus(nextDisabled ? "连线已禁用，运行和上游输入会跳过这条连线。" : "连线已启用，可继续参与上游输入和运行。");
+  }
+
   function deleteSelectedEdge() {
     if (!selectedEdge) return;
     const edgeId = selectedEdge.id;
@@ -1373,6 +1410,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const selectedEdgeSource = selectedEdge ? nodes.find((node) => node.id === selectedEdge.source) || null : null;
   const selectedEdgeTarget = selectedEdge ? nodes.find((node) => node.id === selectedEdge.target) || null : null;
   const selectedEdgeLabel = String((selectedEdge?.data as Record<string, unknown> | undefined)?.label || "");
+  const selectedEdgeDisabled = selectedEdge ? isEdgeDisabled(selectedEdge) : false;
 
   return (
     <main className="h-screen overflow-hidden bg-[#0b1020] text-white">
@@ -1415,8 +1453,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           {graphOutlineNodes.map((node, index) => {
             const data = node.data as Record<string, unknown>;
             const type = String(data.nodeType || "text");
-            const incomingCount = edges.filter((edge) => edge.target === node.id).length;
-            const outgoingCount = edges.filter((edge) => edge.source === node.id).length;
+            const incomingCount = activeEdges.filter((edge) => edge.target === node.id).length;
+            const outgoingCount = activeEdges.filter((edge) => edge.source === node.id).length;
             const taskId = String(data.task_id || "");
             const task = taskId ? taskById.get(taskId) : null;
             return <article key={node.id} className={`rounded-md border px-3 py-2 ${selectedNodeId === node.id ? "border-blue-400/50 bg-blue-500/10" : "border-white/10 bg-white/[0.03]"}`}>
@@ -1587,6 +1625,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <strong className="mt-1 block truncate text-white">{selectedEdgeSource ? String((selectedEdgeSource.data as Record<string, unknown>).title || selectedEdgeSource.id) : selectedEdge.source} → {selectedEdgeTarget ? String((selectedEdgeTarget.data as Record<string, unknown>).title || selectedEdgeTarget.id) : selectedEdge.target}</strong>
         </div>
         <div className="mt-2 grid gap-1">
+          <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => { toggleSelectedEdgeDisabled(); setEdgeContextMenu(null); }}>{selectedEdgeDisabled ? "启用连线" : "禁用连线"}</button>
           <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => focusEdgeNode("source")}>定位起点节点</button>
           <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => focusEdgeNode("target")}>定位终点节点</button>
           <button className="rounded px-2 py-2 text-left text-red-100 hover:bg-red-500/10" onClick={deleteSelectedEdge}>删除连线</button>
@@ -1726,8 +1765,12 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <section className="rounded-md border border-white/10 bg-white/[0.03] p-3">
             <p className="text-xs text-slate-400">连线编辑</p>
             <h3 className="mt-1 truncate font-semibold text-white">{selectedEdgeSource ? String((selectedEdgeSource.data as Record<string, unknown>).title || selectedEdgeSource.id) : selectedEdge.source} → {selectedEdgeTarget ? String((selectedEdgeTarget.data as Record<string, unknown>).title || selectedEdgeTarget.id) : selectedEdge.target}</h3>
-            <p className="mt-2 text-xs leading-5 text-slate-400">为连线添加用途说明，保存后会随工作流 JSON 和项目画布持久化。</p>
+            <p className="mt-2 text-xs leading-5 text-slate-400">{selectedEdgeDisabled ? "这条连线已禁用，不参与上游输入、整理和运行。" : "为连线添加用途说明，保存后会随工作流 JSON 和项目画布持久化。"}</p>
           </section>
+          <label className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
+            <span className="text-slate-300">禁用这条连线</span>
+            <input type="checkbox" checked={selectedEdgeDisabled} onChange={toggleSelectedEdgeDisabled} />
+          </label>
           <label className="grid gap-1"><span className="text-slate-400">连线标签</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" placeholder="例如：提示词、首帧、配音输入" value={selectedEdgeLabel} onChange={(event) => updateSelectedEdgeLabel(event.target.value)} /></label>
           <div className="grid grid-cols-2 gap-2">
             <button className="rounded-md border border-white/10 px-3 py-2 text-slate-200 hover:bg-white/10" onClick={() => focusEdgeNode("source")}>定位起点</button>

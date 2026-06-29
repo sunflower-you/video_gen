@@ -1,10 +1,11 @@
 import type { Template, Work } from "./api";
 
-export const categories = ["全部", "创作者挑战赛", "TV Show", "精选画布", "短片剧集", "AI 漫剧", "动画短片", "概念设计", "经典衍生", "广告短片"];
+export const categories = ["全部", "创作者挑战赛", "Seedance 2.0", "TV Show", "精选画布", "短片剧集", "AI 漫剧", "动画短片", "概念设计", "经典衍生", "广告短片"];
 
 export const fallbackWorks: Work[] = [
   { id: "demo_1", title: "雨夜车站", category: "AI 漫剧", author_id: "青禾工作室", cover_url: "/storage/covers/rain-station.jpg", video_url: "/storage/final/rain-station.mp4", template_name: "Flux 分镜图生成", tags: ["悬疑", "雨夜", "漫剧"], view_count: 28000, like_count: 310, favorite_count: 88 },
   { id: "demo_challenge", title: "十五秒反转挑战", category: "创作者挑战赛", author_id: "挑战赛精选", cover_url: "/storage/covers/challenge-reversal.jpg", video_url: "/storage/final/challenge-reversal.mp4", template_name: "创作者挑战赛参赛片", tags: ["挑战赛", "反转", "短片"], view_count: 33000, like_count: 428, favorite_count: 126 },
+  { id: "demo_seedance", title: "Seedance 雨夜回眸", category: "Seedance 2.0", author_id: "Seedance 体验官", cover_url: "/storage/covers/seedance-rain.jpg", video_url: "/storage/final/seedance-rain.mp4", template_name: "Seedance 2.0 快速体验", tags: ["Seedance", "图生视频", "运镜"], view_count: 36000, like_count: 512, favorite_count: 144 },
   { id: "demo_2", title: "赛博巷口", category: "概念设计", author_id: "镜头实验室", cover_url: "/storage/covers/cyber-alley.jpg", video_url: "/storage/final/cyber-alley.mp4", template_name: "Wan2.1 镜头视频生成", tags: ["赛博", "霓虹", "短片"], view_count: 14000, like_count: 176, favorite_count: 52 },
   { id: "demo_3", title: "山海旧梦", category: "经典衍生", author_id: "神话改编组", cover_url: "/storage/covers/shanhai-dream.jpg", template_name: "中文旁白配音", tags: ["神话", "国风", "旁白"], view_count: 19000, like_count: 238, favorite_count: 76 }
 ];

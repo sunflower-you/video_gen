@@ -15,9 +15,10 @@ export type WorkQuery = {
 };
 
 const channelShortcuts = [
-  { label: "全部", category: "全部" },
-  { label: "创作者挑战赛", category: "创作者挑战赛" },
-  { label: "TV Show", category: "TV Show" }
+  { label: "全部", category: "全部", quickHref: "/create" },
+  { label: "创作者挑战赛", category: "创作者挑战赛", quickHref: "/create?quick=creator-challenge" },
+  { label: "Seedance 2.0", category: "Seedance 2.0", quickHref: "/create?quick=seedance2" },
+  { label: "TV Show", category: "TV Show", quickHref: "/create?quick=tv-show" }
 ];
 
 function fallbackFilter(works: Work[], query: WorkQuery): Work[] {
@@ -44,6 +45,7 @@ export function PlatformDashboard() {
   const [workQuery, setWorkQuery] = useState<WorkQuery>({ category: "全部", keyword: "", sortBy: "latest" });
   const [workStatus, setWorkStatus] = useState("正在读取作品广场...");
   const [templates, setTemplates] = useState<Template[]>(fallbackTemplates);
+  const activeChannel = channelShortcuts.find((item) => item.category === workQuery.category) || channelShortcuts[0];
 
   useEffect(() => {
     void loadTemplates();
@@ -106,7 +108,7 @@ export function PlatformDashboard() {
             {item.label}
           </button>
         ))}
-        <a className="rounded-md border border-line px-3 py-2 hover:border-accent" href="/create?quick=seedance2">Seedance 2.0</a>
+        <a className="rounded-md border border-line px-3 py-2 hover:border-accent" href={activeChannel.quickHref}>{activeChannel.category === "全部" ? "开始创作" : `创作${activeChannel.label}`}</a>
       </nav>
       <section className="grid grid-cols-[minmax(0,1.35fr)_420px] gap-4">
         <WorkGallery works={works} query={workQuery} status={workStatus} onQueryChange={setWorkQuery} />

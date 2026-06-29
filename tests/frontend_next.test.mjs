@@ -84,10 +84,16 @@ test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
   assert.match(dashboard, /apiFetch\(`\/api\/works\?\$\{params\.toString\(\)\}`\)/);
   assert.match(dashboard, /apiFetch\("\/api\/templates"\)/);
   assert.match(dashboard, /channelShortcuts/);
+  assert.match(dashboard, /category: "Seedance 2\.0"/);
+  assert.match(dashboard, /quickHref: "\/create\?quick=seedance2"/);
+  assert.match(dashboard, /activeChannel/);
+  assert.match(dashboard, /创作\$\{activeChannel\.label\}/);
   assert.match(dashboard, /href="\/create\?quick=creator-challenge"/);
   assert.match(dashboard, /href="\/create\?quick=seedance2"/);
   assert.match(dashboard, /href="\/create\?quick=tv-show"/);
   assert.match(dashboard, /setWorkQuery\(\(query\) => \(\{ \.\.\.query, category: item\.category \}\)\)/);
+  assert.match(fallbackData, /category: "Seedance 2\.0"/);
+  assert.match(fallbackData, /Seedance 雨夜回眸/);
   assert.match(workspace, /"use client"/);
   assert.match(workspace, /apiFetch\(`\/api\/projects\?owner_id=/);
   assert.match(workspace, /postJson<Project>\("\/api\/projects"/);

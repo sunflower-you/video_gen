@@ -20,7 +20,7 @@ import {
   type NodeProps,
   type ReactFlowInstance
 } from "@xyflow/react";
-import { AlertTriangle, AlignHorizontalDistributeCenter, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, AlignHorizontalJustifyStart, AlignVerticalDistributeCenter, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, Ban, Boxes, BringToFront, CheckSquare, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, Focus, GitBranch, Image, LayoutGrid, Library, ListTree, Lock, Map as MapIcon, Maximize2, Minimize2, Music, Play, Plus, Redo2, RefreshCcw, RotateCcw, Save, Scissors, Search, SendToBack, Sparkles, Trash2, Undo2, Unlock, Upload, Video, Wand2, XSquare, ZoomIn, ZoomOut } from "lucide-react";
+import { AlertTriangle, AlignHorizontalDistributeCenter, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, AlignHorizontalJustifyStart, AlignVerticalDistributeCenter, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, Ban, Boxes, BringToFront, CheckSquare, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, Focus, GitBranch, Image, LayoutGrid, Library, ListTree, Lock, Map as MapIcon, Maximize2, Minimize2, Music, Play, Plus, Redo2, RefreshCcw, RotateCcw, Save, Scissors, Search, SendToBack, Sparkles, StickyNote, Trash2, Undo2, Unlock, Upload, Video, Wand2, XSquare, ZoomIn, ZoomOut } from "lucide-react";
 import { apiFetch, currentUserId, deleteJson, postJson, type Asset, type GenerationTask, type Project, type ProjectGraph, type ProjectGraphNode, type StoryboardShot } from "../lib/api";
 
 const nodeLabels: Record<string, string> = {
@@ -28,6 +28,7 @@ const nodeLabels: Record<string, string> = {
   image: "图片节点",
   video: "视频节点",
   audio: "音频节点",
+  comment: "画布批注",
   script: "脚本 Beta",
   image_generation: "分镜图生成",
   video_generation: "镜头视频生成",
@@ -41,6 +42,7 @@ const nodeColors: Record<string, string> = {
   image: "border-emerald-400 bg-emerald-950/80",
   video: "border-violet-400 bg-violet-950/80",
   audio: "border-amber-400 bg-amber-950/80",
+  comment: "border-yellow-300 bg-yellow-950/85",
   script: "border-pink-400 bg-pink-950/80",
   image_generation: "border-blue-400 bg-blue-950/80",
   video_generation: "border-purple-400 bg-purple-950/80",
@@ -117,6 +119,7 @@ function semanticPortsForType(type: string): NodePort[] {
       { id: "input", label: "参考", side: "input", tone: "audio" },
       { id: "output", label: "音频", side: "output", tone: "audio" }
     ],
+    comment: [],
     script: [
       { id: "input", label: "参考", side: "input", tone: "text" },
       { id: "output", label: "脚本", side: "output", tone: "text" }
@@ -174,6 +177,14 @@ function isNodeDisabled(node: Node) {
 
 function isEdgeDisabled(edge: Edge) {
   return (edge.data as Record<string, unknown> | undefined)?.disabled === true;
+}
+
+function isCommentNode(node: Node) {
+  return String((node.data as Record<string, unknown>).nodeType || "") === "comment";
+}
+
+function isRunnableNode(node: Node) {
+  return !isNodeDisabled(node) && !isCommentNode(node);
 }
 
 function activeGraphEdges(edges: Edge[]) {
@@ -282,6 +293,7 @@ function PlatformNode({ data, selected }: NodeProps) {
           className={`!h-4 !w-4 !border-2 !border-white ${portColors[port.tone || "default"]}`}
         />
       ))}
+      {type === "comment" && <p className="mb-2 inline-flex rounded border border-yellow-200/30 bg-yellow-400/10 px-2 py-1 text-[11px] text-yellow-50">批注</p>}
       <div className="flex items-center justify-between gap-2">
         <strong className="truncate text-sm">{title}</strong>
         <span className="inline-flex items-center gap-1 rounded bg-black/30 px-2 py-1 text-[11px]">{disabled ? <Ban size={11} /> : locked ? <Lock size={11} /> : null}{disabled ? "已禁用" : statusText(status)}</span>
@@ -292,14 +304,14 @@ function PlatformNode({ data, selected }: NodeProps) {
       {!collapsed && mediaUrlFromData(payload) && <div className="mt-2 overflow-hidden rounded-md border border-white/10 bg-black/30"><MediaPreview data={payload} title={title} compact /></div>}
       {!collapsed && <p className="mt-2 line-clamp-3 text-xs text-slate-200">{summary}</p>}
       {!collapsed && note && <p className="mt-2 line-clamp-2 rounded border border-white/10 bg-white/10 px-2 py-1 text-[11px] text-slate-100">备注：{note}</p>}
-      <div className="mt-3 grid grid-cols-2 gap-2 border-t border-white/10 pt-2 text-[10px] text-slate-200">
+      {!!ports.length && <div className="mt-3 grid grid-cols-2 gap-2 border-t border-white/10 pt-2 text-[10px] text-slate-200">
         <div className="flex min-w-0 flex-wrap gap-1">
           {inputPorts.map((port) => <span key={port.id} className="rounded bg-black/25 px-1.5 py-0.5">{port.label}</span>)}
         </div>
         <div className="flex min-w-0 flex-wrap justify-end gap-1">
           {outputPorts.map((port) => <span key={port.id} className="rounded bg-white/10 px-1.5 py-0.5">{port.label}</span>)}
         </div>
-      </div>
+      </div>}
       {String(payload.task_id || "") && <p className="mt-2 truncate text-[11px] text-slate-300">任务：{String(payload.task_id)}</p>}
     </div>
   );
@@ -561,6 +573,7 @@ function validateCanvasGraph(nodes: Node[], edges: Edge[]) {
     const title = String(data.title || nodeLabels[type] || node.id);
     const hasIncoming = activeEdges.some((edge) => edge.target === node.id);
     const hasOutgoing = activeEdges.some((edge) => edge.source === node.id);
+    if (type === "comment") continue;
     if (data.disabled === true) {
       issues.push({ id: `disabled-${node.id}`, level: "warning", nodeId: node.id, title: "节点已禁用", detail: `${title} 会保留在画布中，但运行链路和全图时会跳过。` });
       continue;
@@ -596,6 +609,7 @@ const addableNodes = [
   { type: "image", label: "图片", category: "素材节点", description: "放入参考图或生成图。", icon: Image },
   { type: "video", label: "视频", category: "素材节点", description: "放入镜头视频或成片。", icon: Video },
   { type: "audio", label: "音频", category: "素材节点", description: "放入配音和音效素材。", icon: Music },
+  { type: "comment", label: "批注", category: "基础节点", description: "记录制作意图、审核意见和修改点。", icon: StickyNote },
   { type: "script", label: "脚本 Beta", category: "平台生成", description: "分析脚本并生成分镜。", icon: Clapperboard },
   { type: "image_generation", label: "分镜图", category: "平台生成", description: "按分镜生成画面。", icon: Wand2 },
   { type: "video_generation", label: "镜头视频", category: "平台生成", description: "由首帧图生成视频。", icon: Video },
@@ -1334,15 +1348,17 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           ? { title: "视频节点", video_url: "" }
           : type === "audio"
             ? { title: "音频节点", audio_url: "" }
-            : type === "image_generation"
-              ? { title: nodeLabels[type], prompt: "输入生成提示词", shot_id: firstShotId, width: "768", height: "1344", seed: "-1" }
-              : type === "video_generation"
-                ? { title: nodeLabels[type], prompt: "输入镜头视频提示词", shot_id: firstShotId, first_frame_url: "", duration: "4", fps: "16" }
-                : type === "tts_generation"
-                  ? { title: nodeLabels[type], text: "输入旁白文本", shot_id: firstShotId, voice: "zh-CN-XiaoxiaoNeural", rate: "1" }
-                  : type === "compose_generation"
-                    ? { title: nodeLabels[type], subtitle: true }
-                    : { title: nodeLabels[type], text: "输入内容" };
+            : type === "comment"
+              ? { title: "画布批注", text: "记录制作意图、审核意见或后续修改点。", node_color: "amber" }
+              : type === "image_generation"
+                ? { title: nodeLabels[type], prompt: "输入生成提示词", shot_id: firstShotId, width: "768", height: "1344", seed: "-1" }
+                : type === "video_generation"
+                  ? { title: nodeLabels[type], prompt: "输入镜头视频提示词", shot_id: firstShotId, first_frame_url: "", duration: "4", fps: "16" }
+                  : type === "tts_generation"
+                    ? { title: nodeLabels[type], text: "输入旁白文本", shot_id: firstShotId, voice: "zh-CN-XiaoxiaoNeural", rate: "1" }
+                    : type === "compose_generation"
+                      ? { title: nodeLabels[type], subtitle: true }
+                      : { title: nodeLabels[type], text: "输入内容" };
   }
 
   function createFlowNode(type: string, position: { x: number; y: number }, extraData: Record<string, unknown> = {}) {
@@ -1383,6 +1399,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function addConnectedNodeFromSelected(type: string) {
     if (!selectedNode) return;
+    const selectedType = String((selectedNode.data as Record<string, unknown>).nodeType || "text");
+    const canConnect = semanticPortsForType(selectedType).some((port) => port.side === "output") && semanticPortsForType(type).some((port) => port.side === "input");
     const outgoingCount = edges.filter((edge) => edge.source === selectedNode.id).length;
     const position = {
       x: selectedNode.position.x + 320,
@@ -1391,25 +1409,29 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const node = createFlowNode(type, position, { title: `下游${nodeLabels[type] || "节点"}` });
     rememberGraphHistory();
     setNodes((items) => [...items.map((item) => ({ ...item, selected: false })), { ...node, selected: true }]);
-    setEdges((items) => addEdge(edgeWithDefaultHandles({
-      id: `edge-downstream-${selectedNode.id}-${node.id}`,
-      source: selectedNode.id,
-      target: node.id,
-      sourceHandle: "output",
-      targetHandle: "input",
-      animated: true,
-      data: { label: "下游节点" }
-    } satisfies Edge), items));
+    if (canConnect) {
+      setEdges((items) => addEdge(edgeWithDefaultHandles({
+        id: `edge-downstream-${selectedNode.id}-${node.id}`,
+        source: selectedNode.id,
+        target: node.id,
+        sourceHandle: "output",
+        targetHandle: "input",
+        animated: true,
+        data: { label: "下游节点" }
+      } satisfies Edge), items));
+    }
     setSelectedNodeId(node.id);
     setSelectedEdgeId("");
     setNodeContextMenu(null);
     setShowPalette(false);
     rememberRecentNodeType(type);
-    setStatus(`已从当前节点添加并连接${nodeLabels[type] || "下游节点"}。`);
+    setStatus(canConnect ? `已从当前节点添加并连接${nodeLabels[type] || "下游节点"}。` : `已从当前节点添加${nodeLabels[type] || "下游节点"}，批注节点不会自动连线。`);
   }
 
   function addUpstreamNodeForSelected(type: string) {
     if (!selectedNode) return;
+    const selectedType = String((selectedNode.data as Record<string, unknown>).nodeType || "text");
+    const canConnect = semanticPortsForType(type).some((port) => port.side === "output") && semanticPortsForType(selectedType).some((port) => port.side === "input");
     const incomingCount = edges.filter((edge) => edge.target === selectedNode.id).length;
     const position = {
       x: selectedNode.position.x - 320,
@@ -1418,21 +1440,23 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const node = createFlowNode(type, position, { title: `上游${nodeLabels[type] || "节点"}` });
     rememberGraphHistory();
     setNodes((items) => [...items.map((item) => ({ ...item, selected: false })), { ...node, selected: true }]);
-    setEdges((items) => addEdge(edgeWithDefaultHandles({
-      id: `edge-upstream-${node.id}-${selectedNode.id}`,
-      source: node.id,
-      target: selectedNode.id,
-      sourceHandle: "output",
-      targetHandle: "input",
-      animated: true,
-      data: { label: "上游输入" }
-    } satisfies Edge), items));
+    if (canConnect) {
+      setEdges((items) => addEdge(edgeWithDefaultHandles({
+        id: `edge-upstream-${node.id}-${selectedNode.id}`,
+        source: node.id,
+        target: selectedNode.id,
+        sourceHandle: "output",
+        targetHandle: "input",
+        animated: true,
+        data: { label: "上游输入" }
+      } satisfies Edge), items));
+    }
     setSelectedNodeId(node.id);
     setSelectedEdgeId("");
     setNodeContextMenu(null);
     setShowPalette(false);
     rememberRecentNodeType(type);
-    setStatus(`已为当前节点添加并连接${nodeLabels[type] || "上游节点"}。`);
+    setStatus(canConnect ? `已为当前节点添加并连接${nodeLabels[type] || "上游节点"}。` : `已为当前节点添加${nodeLabels[type] || "上游节点"}，批注节点不会自动连线。`);
   }
 
   function handlePaletteNodeDragStart(event: ReactDragEvent, type: string) {
@@ -1447,7 +1471,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function handleCanvasDoubleClick(event: ReactMouseEvent) {
     if ((event.target as HTMLElement | null)?.closest(".react-flow__node, .react-flow__controls, .react-flow__minimap")) return;
-    const node = addNodeAtPosition("text", flowPositionFromEvent(event), { title: "新建文本节点", text: "输入提示词、旁白或备注。" });
+    const node = addNodeAtPosition("comment", flowPositionFromEvent(event), { title: "画布批注", text: "记录制作意图、审核意见或后续修改点。" });
     setShowPalette(false);
     setStatus(`已在画布空白处创建${nodeLabels[String(node.data.nodeType)]}。`);
   }
@@ -2531,6 +2555,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       setStatus("节点已禁用，请先启用再运行。");
       return;
     }
+    if (isCommentNode(selectedNode)) {
+      setStatus("画布批注仅用于说明和协作，不会提交生成任务。");
+      return;
+    }
     if (showRunBlockingIssue(blockingValidationIssues([selectedNode.id]), "运行节点")) return;
     await saveGraph();
     setBusy(true);
@@ -2568,14 +2596,14 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const orderedNodes = orderedChainNodes(nodeId, nodes, edges);
     if (showRunBlockingIssue(blockingValidationIssues(orderedNodes.map((node) => node.id)), "运行链路")) return;
     await saveGraph();
-    const runnableNodes = orderedNodes.filter((node) => !isNodeDisabled(node));
+    const runnableNodes = orderedNodes.filter(isRunnableNode);
     const skippedCount = orderedNodes.length - runnableNodes.length;
     if (!runnableNodes.length) {
-      setStatus("当前链路节点均已禁用，未执行运行。");
+      setStatus("当前链路没有可运行节点，已跳过禁用节点和批注节点。");
       return;
     }
     setBusy(true);
-    setStatus(`正在运行链路，上游 ${upstream.size} 个，共 ${runnableNodes.length} 个节点${skippedCount ? `，跳过 ${skippedCount} 个禁用节点` : ""}...`);
+    setStatus(`正在运行链路，上游 ${upstream.size} 个，共 ${runnableNodes.length} 个节点${skippedCount ? `，跳过 ${skippedCount} 个禁用节点或批注节点` : ""}...`);
     try {
       for (const node of runnableNodes) {
         const response = await postJson<{ node?: ProjectGraphNode; task?: GenerationTask; message?: string }>(`/api/projects/${projectId}/graph/nodes/${node.id}/run`, {
@@ -2585,7 +2613,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           setNodes((items) => items.map((item) => item.id === node.id ? toFlowNode(response.node as ProjectGraphNode) : item));
         }
       }
-      setStatus(`链路运行完成：${runnableNodes.length} 个节点已处理${skippedCount ? `，已跳过 ${skippedCount} 个禁用节点` : ""}。`);
+      setStatus(`链路运行完成：${runnableNodes.length} 个节点已处理${skippedCount ? `，已跳过 ${skippedCount} 个禁用节点或批注节点` : ""}。`);
       await refreshAll();
     } catch (error) {
       setStatus(error instanceof Error ? `链路运行失败：${error.message}` : "链路运行失败。请检查节点参数后重试。");
@@ -2603,15 +2631,15 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const selectedEdges = activeEdges.filter((edge) => selectedIds.has(edge.source) && selectedIds.has(edge.target));
     const orderedNodes = orderedGraphNodes(selectedNodes, selectedEdges);
     if (showRunBlockingIssue(blockingValidationIssues(orderedNodes.map((node) => node.id)), "运行选区")) return;
-    const runnableNodes = orderedNodes.filter((node) => !isNodeDisabled(node));
+    const runnableNodes = orderedNodes.filter(isRunnableNode);
     const skippedCount = orderedNodes.length - runnableNodes.length;
     if (!runnableNodes.length) {
-      setStatus("选区节点均已禁用，未执行运行。");
+      setStatus("选区没有可运行节点，已跳过禁用节点和批注节点。");
       return;
     }
     await saveGraph();
     setBusy(true);
-    setStatus(`正在运行选区：${runnableNodes.length} 个节点${skippedCount ? `，跳过 ${skippedCount} 个禁用节点` : ""}...`);
+    setStatus(`正在运行选区：${runnableNodes.length} 个节点${skippedCount ? `，跳过 ${skippedCount} 个禁用节点或批注节点` : ""}...`);
     try {
       for (const node of runnableNodes) {
         const response = await postJson<{ node?: ProjectGraphNode; task?: GenerationTask; message?: string }>(`/api/projects/${projectId}/graph/nodes/${node.id}/run`, {
@@ -2621,7 +2649,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           setNodes((items) => items.map((item) => item.id === node.id ? toFlowNode(response.node as ProjectGraphNode) : item));
         }
       }
-      setStatus(`选区运行完成：${runnableNodes.length} 个节点已按依赖顺序处理${skippedCount ? `，已跳过 ${skippedCount} 个禁用节点` : ""}。`);
+      setStatus(`选区运行完成：${runnableNodes.length} 个节点已按依赖顺序处理${skippedCount ? `，已跳过 ${skippedCount} 个禁用节点或批注节点` : ""}。`);
       await refreshAll();
     } catch (error) {
       setStatus(error instanceof Error ? `选区运行失败：${error.message}` : "选区运行失败。请检查节点参数后重试。");
@@ -2634,19 +2662,19 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     if (showRunBlockingIssue(graphValidation.issues.filter((issue) => issue.level === "error"), "运行全图")) return;
     const orderedNodes = orderedGraphNodes(nodes, edges);
     const terminals = terminalNodeIds(nodes, edges);
-    const runnableNodes = orderedNodes.filter((node) => !isNodeDisabled(node));
+    const runnableNodes = orderedNodes.filter(isRunnableNode);
     const skippedCount = orderedNodes.length - runnableNodes.length;
     if (!orderedNodes.length) {
       setStatus("画布暂无可运行节点，请先添加节点或工作流。");
       return;
     }
     if (!runnableNodes.length) {
-      setStatus("画布节点均已禁用，未执行运行。");
+      setStatus("画布没有可运行节点，已跳过禁用节点和批注节点。");
       return;
     }
     await saveGraph();
     setBusy(true);
-    setStatus(`正在运行全画布：${terminals.length || 1} 条终点链路，共 ${runnableNodes.length} 个节点${skippedCount ? `，跳过 ${skippedCount} 个禁用节点` : ""}...`);
+    setStatus(`正在运行全画布：${terminals.length || 1} 条终点链路，共 ${runnableNodes.length} 个节点${skippedCount ? `，跳过 ${skippedCount} 个禁用节点或批注节点` : ""}...`);
     try {
       for (const node of runnableNodes) {
         const response = await postJson<{ node?: ProjectGraphNode; task?: GenerationTask; message?: string }>(`/api/projects/${projectId}/graph/nodes/${node.id}/run`, {
@@ -2656,7 +2684,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           setNodes((items) => items.map((item) => item.id === node.id ? toFlowNode(response.node as ProjectGraphNode) : item));
         }
       }
-      setStatus(`全画布运行完成：${runnableNodes.length} 个节点已按依赖顺序处理${skippedCount ? `，已跳过 ${skippedCount} 个禁用节点` : ""}。`);
+      setStatus(`全画布运行完成：${runnableNodes.length} 个节点已按依赖顺序处理${skippedCount ? `，已跳过 ${skippedCount} 个禁用节点或批注节点` : ""}。`);
       await refreshAll();
     } catch (error) {
       setStatus(error instanceof Error ? `全画布运行失败：${error.message}` : "全画布运行失败。请检查节点参数后重试。");
@@ -4114,7 +4142,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <section className="grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">
             <p className="text-xs text-slate-400">快速添加上游</p>
             <div className="grid grid-cols-2 gap-2">
-              {addableNodes.filter((item) => ["text", "image", "video", "audio", "script"].includes(item.type)).map((item) => {
+              {addableNodes.filter((item) => ["text", "image", "video", "audio", "comment", "script"].includes(item.type)).map((item) => {
                 const Icon = item.icon;
                 return <button key={item.type} disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-2 py-2 text-xs text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={() => addUpstreamNodeForSelected(item.type)}><Icon size={14} />{item.label}</button>;
               })}
@@ -4162,6 +4190,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             {nodeMarkerColors.map((item) => <option key={item.value || "default"} value={item.value}>{item.label}</option>)}
           </select></label>
           <label className="grid gap-1"><span className="text-slate-400">节点备注</span><textarea className="min-h-20 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" placeholder="记录节点用途、模型选择或后续修改点。" onFocus={rememberSelectedNodeEdit} value={String(selectedData.note || "")} onChange={(event) => updateSelectedData("note", event.target.value)} /></label>
+          {selectedType === "comment" && <label className="grid gap-1"><span className="text-slate-400">批注内容</span><textarea className="min-h-32 rounded-md border border-yellow-200/20 bg-yellow-500/10 px-3 py-2 outline-none placeholder:text-yellow-100/50" placeholder="记录制作意图、审核意见或后续修改点。" onFocus={rememberSelectedNodeEdit} value={String(selectedData.text || "")} onChange={(event) => updateSelectedData("text", event.target.value)} /></label>}
           {(selectedType === "text" || selectedType === "demo") && <label className="grid gap-1"><span className="text-slate-400">文本内容</span><textarea className="min-h-28 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.text || "")} onChange={(event) => updateSelectedData("text", event.target.value)} /></label>}
           {selectedType === "script" && <label className="grid gap-1"><span className="text-slate-400">脚本</span><textarea className="min-h-40 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.script || "")} onChange={(event) => updateSelectedData("script", event.target.value)} /></label>}
           {(selectedType === "image_generation" || selectedType === "video_generation") && <label className="grid gap-1"><span className="text-slate-400">提示词</span><textarea className="min-h-28 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.prompt || "")} onChange={(event) => updateSelectedData("prompt", event.target.value)} /></label>}

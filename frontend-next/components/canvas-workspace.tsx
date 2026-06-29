@@ -2459,6 +2459,35 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已复制链路：${chainNodes.length} 个节点、${chainEdges.length} 条连线。`);
   }
 
+  async function copyTextToSystemClipboard(text: string, fallbackKey: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      window.localStorage.setItem(fallbackKey, text);
+      return false;
+    }
+  }
+
+  async function copySelectedNodeId() {
+    if (!selectedNode) {
+      setStatus("请先选择一个节点，再复制节点 ID。");
+      return;
+    }
+    const copiedToClipboard = await copyTextToSystemClipboard(selectedNode.id, `project_graph_node_id_${projectId}`);
+    setStatus(copiedToClipboard ? "已复制节点 ID 到系统剪贴板。" : "浏览器剪贴板不可用，已把节点 ID 暂存到本地。");
+  }
+
+  async function copySelectedNodeParams() {
+    if (!selectedNode) {
+      setStatus("请先选择一个节点，再复制节点参数 JSON。");
+      return;
+    }
+    const payload = JSON.stringify(fromFlowNode(selectedNode), null, 2);
+    const copiedToClipboard = await copyTextToSystemClipboard(payload, `project_graph_node_params_${projectId}`);
+    setStatus(copiedToClipboard ? "已复制节点参数 JSON 到系统剪贴板。" : "浏览器剪贴板不可用，已把节点参数 JSON 暂存到本地。");
+  }
+
   function pasteCopiedSelection() {
     let cached = copiedSelection;
     if (!cached) {
@@ -3289,6 +3318,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy || !selectedUpstreamInputs.length} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { fillSelectedFromUpstream(); setNodeContextMenu(null); }}>填充上游参数</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setNodeContextMenu(null); void cutSelectedNodes(); }}>剪切节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { duplicateSelectedNode(); setNodeContextMenu(null); }}>复制节点</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { void copySelectedNodeId(); setNodeContextMenu(null); }}>复制节点 ID</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { void copySelectedNodeParams(); setNodeContextMenu(null); }}>复制节点参数 JSON</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesLayer("front"); setNodeContextMenu(null); }}>置顶节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesLayer("back"); setNodeContextMenu(null); }}>置底节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => addUpstreamNodeForSelected("text")}>添加上游文本</button>
@@ -3590,6 +3621,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void runSelectedChain()}><GitBranch size={16} />运行链路</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={duplicateSelectedNode}><Copy size={16} />复制节点</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void cutSelectedNodes()}><Scissors size={16} />剪切节点</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void copySelectedNodeId()}><ClipboardCopy size={16} />复制 ID</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void copySelectedNodeParams()}><FileText size={16} />复制参数</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={copySelectedChain}><ClipboardCopy size={16} />复制链路</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={pasteCopiedSelection}><ClipboardPaste size={16} />粘贴链路</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesLayer("front")}><BringToFront size={16} />置顶节点</button>

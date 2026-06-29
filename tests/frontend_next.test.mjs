@@ -546,6 +546,13 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /运行链路/);
   assert.match(canvasWorkspace, /复制节点/);
   assert.match(canvasWorkspace, /剪切节点/);
+  assert.match(canvasWorkspace, /copySelectedNodeId/);
+  assert.match(canvasWorkspace, /copySelectedNodeParams/);
+  assert.match(canvasWorkspace, /复制节点 ID/);
+  assert.match(canvasWorkspace, /复制节点参数 JSON/);
+  assert.match(canvasWorkspace, /已复制节点 ID 到系统剪贴板/);
+  assert.match(canvasWorkspace, /已复制节点参数 JSON 到系统剪贴板/);
+  assert.match(canvasWorkspace, /浏览器剪贴板不可用，已把节点参数 JSON 暂存到本地/);
   assert.match(canvasWorkspace, /置顶节点/);
   assert.match(canvasWorkspace, /置底节点/);
   assert.match(canvasWorkspace, /复制链路/);

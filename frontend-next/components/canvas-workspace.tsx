@@ -359,10 +359,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已添加工作流预设：${preset.title}。`);
   }
 
-  function addShotWorkflow(shot: StoryboardShot) {
-    const timestamp = Date.now();
-    const baseX = 220 + nodes.length * 28;
-    const baseY = 140 + nodes.length * 18;
+  function buildShotWorkflow(shot: StoryboardShot, timestamp: number, baseX: number, baseY: number) {
     const specs = [
       { type: "text", offset: { x: 0, y: 0 }, data: { title: `分镜 ${shot.index}`, text: shot.visual_description, narration: shot.narration, shot_id: shot.id } },
       { type: "image_generation", offset: { x: 300, y: -80 }, data: { title: `分镜 ${shot.index} 画面`, prompt: shot.prompt || shot.visual_description, shot_id: shot.id, width: "768", height: "1344", seed: "-1" } },
@@ -385,11 +382,30 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       source: createdNodes[sourceIndex].id,
       target: createdNodes[targetIndex].id
     }));
+    return { createdNodes, createdEdges };
+  }
+
+  function addShotWorkflow(shot: StoryboardShot) {
+    const timestamp = Date.now();
+    const { createdNodes, createdEdges } = buildShotWorkflow(shot, timestamp, 220 + nodes.length * 28, 140 + nodes.length * 18);
     setNodes((items) => [...items, ...createdNodes]);
     setEdges((items) => [...items, ...createdEdges]);
     setSelectedNodeId(createdNodes[0]?.id || "");
     setShowShots(false);
     setStatus(`已为分镜 ${shot.index} 添加生成链路。`);
+  }
+
+  function addAllShotWorkflows() {
+    if (!shotOptions.length) return;
+    const timestamp = Date.now();
+    const groups = shotOptions.map((shot, index) => buildShotWorkflow(shot, timestamp + index, 220, 120 + index * 280));
+    const createdNodes = groups.flatMap((group) => group.createdNodes);
+    const createdEdges = groups.flatMap((group) => group.createdEdges);
+    setNodes((items) => [...items, ...createdNodes]);
+    setEdges((items) => [...items, ...createdEdges]);
+    setSelectedNodeId(createdNodes[0]?.id || "");
+    setShowShots(false);
+    setStatus(`已为 ${shotOptions.length} 个分镜添加生成链路。`);
   }
 
   function updateSelectedData(key: string, value: string | boolean) {
@@ -633,6 +649,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           </div>
           <span className="rounded border border-white/10 px-2 py-1 text-xs text-slate-400">{shotOptions.length} 个</span>
         </div>
+        <button disabled={!shotOptions.length} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border border-blue-400/40 bg-blue-500/10 px-3 py-2 text-sm text-white hover:bg-blue-500/20 disabled:opacity-50" onClick={addAllShotWorkflows}><GitBranch size={15} />添加全部分镜链路</button>
         <div className="mt-3 grid gap-2 text-sm">
           {shotOptions.map((shot) => <article key={shot.id} className="rounded-md border border-white/10 bg-white/[0.03] p-3">
             <div className="flex items-start justify-between gap-3">

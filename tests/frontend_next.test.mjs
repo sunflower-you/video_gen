@@ -150,7 +150,10 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /项目分镜/);
   assert.match(canvasWorkspace, /分镜生成链路/);
   assert.match(canvasWorkspace, /添加分镜链路/);
+  assert.match(canvasWorkspace, /添加全部分镜链路/);
   assert.match(canvasWorkspace, /addShotWorkflow/);
+  assert.match(canvasWorkspace, /addAllShotWorkflows/);
+  assert.match(canvasWorkspace, /buildShotWorkflow/);
   assert.match(canvasWorkspace, /保存画布/);
   assert.match(canvasWorkspace, /运行节点/);
   assert.match(canvasWorkspace, /运行链路/);

@@ -2410,6 +2410,8 @@ class PlatformServiceTest(unittest.TestCase):
             )
         with self.assertRaisesRegex(WorkflowValidationError, "语速.*数字"):
             service.generate_shot_tts(project["id"], shot["id"], {"user_id": "author_001", "rate": True})
+        with self.assertRaisesRegex(WorkflowValidationError, "音调"):
+            service.generate_shot_tts(project["id"], shot["id"], {"user_id": "author_001", "pitch": 24})
 
     def test_workspace_numeric_fields_reject_invalid_values(self) -> None:
         service = self.make_service()
@@ -2451,11 +2453,17 @@ class PlatformServiceTest(unittest.TestCase):
                 {"script": "主角低声说出真相。", "user_id": "author_001"},
             )
             shot = result["shots"][0]
-            task = service.generate_shot_tts(project["id"], shot["id"], {"user_id": "author_001", "voice": "zh-CN-YunxiNeural"})
+            task = service.generate_shot_tts(
+                project["id"],
+                shot["id"],
+                {"user_id": "author_001", "voice": "zh-CN-YunxiNeural", "emotion": "sad", "pitch": -2},
+            )
             self.assertEqual(task["task_type"], "tts")
             self.assertEqual(task["workflow_key"], "selfhost/tts_edge")
             self.assertEqual(task["input_params"]["text"], shot["narration"])
             self.assertEqual(task["input_params"]["voice"], "zh-CN-YunxiNeural")
+            self.assertEqual(task["input_params"]["emotion"], "sad")
+            self.assertEqual(task["input_params"]["pitch"], -2.0)
 
             archived = service.archive_output(task["id"], source, "6")
             assets = service.list_project_assets(project["id"])
@@ -2471,13 +2479,16 @@ class PlatformServiceTest(unittest.TestCase):
         service.analyze_script(project["id"], {"script": "镜头一。镜头二。", "user_id": "author_001"})
         result = service.batch_generate_project(
             project["id"],
-            {"user_id": "author_001", "task_types": ["image", "tts"], "voice": "zh-CN-YunxiNeural"},
+            {"user_id": "author_001", "task_types": ["image", "tts"], "voice": "zh-CN-YunxiNeural", "emotion": "cheerful", "pitch": 1},
         )
         self.assertEqual(result["shot_count"], 2)
         self.assertEqual(result["task_count"], 4)
         self.assertEqual([item["task_type"] for item in result["tasks"]].count("image"), 2)
         self.assertEqual([item["task_type"] for item in result["tasks"]].count("tts"), 2)
         self.assertTrue(all(item["status"] == "pending" for item in result["tasks"]))
+        tts_tasks = [item for item in result["tasks"] if item["task_type"] == "tts"]
+        self.assertTrue(all(item["input_params"]["emotion"] == "cheerful" for item in tts_tasks))
+        self.assertTrue(all(item["input_params"]["pitch"] == 1.0 for item in tts_tasks))
         self.assertEqual(service.get_project(project["id"])["current_step"], "batch")
         project_tasks = service.list_project_tasks(project["id"])
         self.assertEqual(len(project_tasks), 5)

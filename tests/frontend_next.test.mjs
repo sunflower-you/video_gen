@@ -361,6 +361,8 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /batch_size/);
   assert.match(canvasWorkspace, /camera_motion/);
   assert.match(canvasWorkspace, /motion_strength/);
+  assert.match(canvasWorkspace, /emotion/);
+  assert.match(canvasWorkspace, /pitch/);
   assert.match(canvasWorkspace, /clearShotSelection/);
   assert.match(canvasWorkspace, /focusShotWorkflow/);
   assert.match(canvasWorkspace, /selectedShotBindingNodes/);
@@ -407,6 +409,8 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /生成数量/);
   assert.match(canvasWorkspace, /运镜方式/);
   assert.match(canvasWorkspace, /运动强度/);
+  assert.match(canvasWorkspace, /情绪/);
+  assert.match(canvasWorkspace, /音调/);
   assert.match(canvasWorkspace, /生成选区节点变体/);
   assert.match(canvasWorkspace, /生成变体/);
   assert.match(canvasWorkspace, /已生成 .*个生成节点变体/);

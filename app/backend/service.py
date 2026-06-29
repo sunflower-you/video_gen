@@ -1430,7 +1430,7 @@ class PlatformService:
         return task
 
     def generate_shot_tts(self, project_id: str, shot_id: str, payload: dict[str, Any]) -> dict[str, Any]:
-        _reject_unknown_payload_fields(payload, {"user_id", "workflow_key", "text", "voice", "rate"})
+        _reject_unknown_payload_fields(payload, {"user_id", "workflow_key", "text", "voice", "emotion", "pitch", "rate"})
         project, shot = self._project_shot(project_id, shot_id)
         self._assert_project_owner(project, payload.get("user_id"))
         text = str(payload.get("text") or shot.narration).strip()
@@ -1441,6 +1441,8 @@ class PlatformService:
         params = {
             "text": text,
             "voice": str(payload.get("voice", default_params.get("voice", "zh-CN-XiaoxiaoNeural"))),
+            "emotion": str(payload.get("emotion", default_params.get("emotion", "neutral")) or "neutral"),
+            "pitch": _coerce_float_range_param(payload.get("pitch", default_params.get("pitch", 0)), "音调", -12, 12),
             "rate": _coerce_float_param(payload.get("rate", default_params.get("rate", 1.0)), "语速"),
         }
         task = self.create_generation_task(
@@ -1467,6 +1469,8 @@ class PlatformService:
                 "height",
                 "seed",
                 "voice",
+                "emotion",
+                "pitch",
                 "rate",
                 "submit",
                 "workflow_payload",
@@ -1506,7 +1510,7 @@ class PlatformService:
                     "user_id": payload.get("user_id"),
                     "workflow_key": payload.get("tts_workflow_key", ""),
                 }
-                for key in ("voice", "rate"):
+                for key in ("voice", "emotion", "pitch", "rate"):
                     if key in payload:
                         tts_payload[key] = payload[key]
                 tasks.append(
@@ -2101,6 +2105,8 @@ class PlatformService:
                         "workflow_key": data.get("workflow_key"),
                         "text": data.get("text") or _first_non_empty(incoming_data, "narration", "text", "script"),
                         "voice": data.get("voice"),
+                        "emotion": data.get("emotion"),
+                        "pitch": data.get("pitch"),
                         "rate": data.get("rate"),
                     })
                     task = self.generate_shot_tts(project_id, shot_id, tts_payload)
@@ -2159,7 +2165,7 @@ class PlatformService:
                 (f"shot-{shot.id}", "text", {"title": f"分镜 {shot.index}", "text": shot.visual_description, "narration": shot.narration, "shot_id": shot.id}, 120),
                 (f"image-gen-{shot.id}", "image_generation", {"title": "分镜图生成", "prompt": shot.prompt, "negative_prompt": shot.negative_prompt, "reference_image_url": "", "model_key": "", "style_prompt": "", "shot_id": shot.id, "batch_size": "1"}, 300),
                 (f"video-gen-{shot.id}", "video_generation", {"title": "镜头视频生成", "prompt": shot.visual_description, "shot_id": shot.id, "camera_motion": "缓慢推进", "motion_strength": "0.5"}, 480),
-                (f"tts-gen-{shot.id}", "tts_generation", {"title": "旁白配音", "text": shot.narration, "shot_id": shot.id}, 660),
+                (f"tts-gen-{shot.id}", "tts_generation", {"title": "旁白配音", "text": shot.narration, "shot_id": shot.id, "voice": "zh-CN-XiaoxiaoNeural", "emotion": "neutral", "pitch": "0", "rate": "1"}, 660),
             ]
             for node_id, node_type, data, y in node_specs:
                 if node_id not in existing_ids:

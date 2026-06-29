@@ -123,7 +123,7 @@ const sameShotSyncKeysByType: Record<string, string[]> = {
   audio: ["audio_url"],
   image_generation: ["workflow_key", "prompt", "negative_prompt", "reference_image_url", "model_key", "style_prompt", "width", "height", "seed", "batch_size"],
   video_generation: ["workflow_key", "prompt", "negative_prompt", "first_frame_url", "camera_motion", "motion_strength", "duration", "fps"],
-  tts_generation: ["workflow_key", "text", "voice", "rate"],
+  tts_generation: ["workflow_key", "text", "voice", "emotion", "pitch", "rate"],
   compose_generation: ["workflow_key", "subtitle"]
 };
 
@@ -708,7 +708,7 @@ const workflowPresets = [
     nodes: [
       { type: "script", offset: { x: 0, y: 0 }, data: { title: "脚本 Beta", script: "输入短视频脚本，运行后生成角色和分镜。" } },
       { type: "image_generation", offset: { x: 300, y: -70 }, data: { title: "分镜图生成", workflow_key: "", prompt: "根据脚本分镜生成关键画面", negative_prompt: "", reference_image_url: "", model_key: "", style_prompt: "", width: "768", height: "1344", seed: "-1", batch_size: "1" } },
-      { type: "tts_generation", offset: { x: 300, y: 150 }, data: { title: "旁白配音", workflow_key: "", text: "从脚本或分镜旁白生成配音", voice: "zh-CN-XiaoxiaoNeural", rate: "1" } },
+      { type: "tts_generation", offset: { x: 300, y: 150 }, data: { title: "旁白配音", workflow_key: "", text: "从脚本或分镜旁白生成配音", voice: "zh-CN-XiaoxiaoNeural", emotion: "neutral", pitch: "0", rate: "1" } },
       { type: "compose_generation", offset: { x: 620, y: 40 }, data: { title: "成片合成", workflow_key: "", subtitle: true } }
     ],
     edges: [[0, 1], [0, 2], [1, 3], [2, 3]]
@@ -730,7 +730,7 @@ const workflowPresets = [
     description: "文本旁白连到配音节点，再连接成片合成。",
     nodes: [
       { type: "text", offset: { x: 0, y: 0 }, data: { title: "旁白文案", text: "输入需要配音的中文旁白。" } },
-      { type: "tts_generation", offset: { x: 300, y: 0 }, data: { title: "旁白配音", workflow_key: "", voice: "zh-CN-XiaoxiaoNeural", rate: "1" } },
+      { type: "tts_generation", offset: { x: 300, y: 0 }, data: { title: "旁白配音", workflow_key: "", voice: "zh-CN-XiaoxiaoNeural", emotion: "neutral", pitch: "0", rate: "1" } },
       { type: "compose_generation", offset: { x: 610, y: 0 }, data: { title: "成片合成", workflow_key: "", subtitle: true } }
     ],
     edges: [[0, 1], [1, 2]]
@@ -1495,7 +1495,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
                 : type === "video_generation"
                   ? { title: nodeLabels[type], prompt: "输入镜头视频提示词", negative_prompt: "", shot_id: firstShotId, first_frame_url: "", camera_motion: "缓慢推进", motion_strength: "0.5", duration: "4", fps: "16" }
                   : type === "tts_generation"
-                    ? { title: nodeLabels[type], text: "输入旁白文本", shot_id: firstShotId, voice: "zh-CN-XiaoxiaoNeural", rate: "1" }
+                    ? { title: nodeLabels[type], text: "输入旁白文本", shot_id: firstShotId, voice: "zh-CN-XiaoxiaoNeural", emotion: "neutral", pitch: "0", rate: "1" }
                     : type === "compose_generation"
                       ? { title: nodeLabels[type], subtitle: true }
                       : { title: nodeLabels[type], text: "输入内容" };
@@ -1953,7 +1953,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       { type: "text", offset: { x: 0, y: 0 }, data: { title: `分镜 ${shot.index}`, text: shot.visual_description, narration: shot.narration, shot_id: shot.id } },
       { type: "image_generation", offset: { x: 300, y: -80 }, data: { title: `分镜 ${shot.index} 画面`, workflow_key: "", prompt: shot.prompt || shot.visual_description, negative_prompt: shot.negative_prompt || "", reference_image_url: "", model_key: "", style_prompt: "", shot_id: shot.id, width: "768", height: "1344", seed: "-1", batch_size: "1" } },
       { type: "video_generation", offset: { x: 610, y: -80 }, data: { title: `分镜 ${shot.index} 视频`, workflow_key: "", prompt: shot.visual_description, negative_prompt: shot.negative_prompt || "", shot_id: shot.id, first_frame_url: "", camera_motion: "缓慢推进", motion_strength: "0.5", duration: "4", fps: "16" } },
-      { type: "tts_generation", offset: { x: 300, y: 150 }, data: { title: `分镜 ${shot.index} 配音`, workflow_key: "", text: shot.narration, shot_id: shot.id, voice: "zh-CN-XiaoxiaoNeural", rate: "1" } },
+      { type: "tts_generation", offset: { x: 300, y: 150 }, data: { title: `分镜 ${shot.index} 配音`, workflow_key: "", text: shot.narration, shot_id: shot.id, voice: "zh-CN-XiaoxiaoNeural", emotion: "neutral", pitch: "0", rate: "1" } },
       { type: "compose_generation", offset: { x: 920, y: 30 }, data: { title: `分镜 ${shot.index} 合成`, workflow_key: "", subtitle: true } }
     ];
     const createdNodes = specs.map((item, index) => {
@@ -3684,6 +3684,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       return createFlowNode("tts_generation", { x: node.position.x + 360, y: node.position.y + index * 18 }, {
         title: `${sourceTitle} 旁白配音`,
         text: text || "输入旁白文本",
+        voice: "zh-CN-XiaoxiaoNeural",
+        emotion: "neutral",
+        pitch: "0",
+        rate: "1",
         shot_id: String(sourceData.shot_id || ""),
         status: "draft"
       });
@@ -5236,12 +5240,19 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <label className="grid gap-1"><span className="text-slate-400">时长</span><input type="number" step="0.5" className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.duration || "4")} onChange={(event) => updateSelectedData("duration", event.target.value)} /></label>
             <label className="grid gap-1"><span className="text-slate-400">帧率</span><input type="number" className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.fps || "16")} onChange={(event) => updateSelectedData("fps", event.target.value)} /></label>
           </div>}
-          {selectedType === "tts_generation" && <div className="grid grid-cols-2 gap-2">
+          {selectedType === "tts_generation" && <div className="grid grid-cols-4 gap-2">
             <label className="grid gap-1"><span className="text-slate-400">音色</span><select className="rounded-md border border-white/10 bg-slate-900 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.voice || "zh-CN-XiaoxiaoNeural")} onChange={(event) => updateSelectedData("voice", event.target.value)}>
               <option value="zh-CN-XiaoxiaoNeural">晓晓</option>
               <option value="zh-CN-YunxiNeural">云希</option>
               <option value="zh-CN-XiaoyiNeural">晓伊</option>
             </select></label>
+            <label className="grid gap-1"><span className="text-slate-400">情绪</span><select className="rounded-md border border-white/10 bg-slate-900 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.emotion || "neutral")} onChange={(event) => updateSelectedData("emotion", event.target.value)}>
+              <option value="neutral">平稳</option>
+              <option value="cheerful">轻快</option>
+              <option value="sad">低落</option>
+              <option value="angry">激烈</option>
+            </select></label>
+            <label className="grid gap-1"><span className="text-slate-400">音调</span><input type="number" min="-12" max="12" step="1" className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.pitch || "0")} onChange={(event) => updateSelectedData("pitch", event.target.value)} /></label>
             <label className="grid gap-1"><span className="text-slate-400">语速</span><input type="number" step="0.1" className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.rate || "1")} onChange={(event) => updateSelectedData("rate", event.target.value)} /></label>
           </div>}
           {selectedType === "compose_generation" && <label className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/5 px-3 py-2"><span className="text-slate-300">合成字幕</span><input type="checkbox" checked={selectedData.subtitle !== false} onFocus={rememberSelectedNodeEdit} onChange={(event) => updateSelectedData("subtitle", event.target.checked)} /></label>}

@@ -9,10 +9,14 @@
   "input_schema": {
     "text": {"type": "string", "required": true, "label": "旁白文本"},
     "voice": {"type": "string", "required": true, "label": "音色"},
+    "emotion": {"type": "string", "required": false, "label": "情绪"},
+    "pitch": {"type": "number", "required": false, "label": "音调"},
     "rate": {"type": "number", "required": false, "label": "语速"}
   },
   "default_params": {
     "voice": "zh-CN-XiaoxiaoNeural",
+    "emotion": "neutral",
+    "pitch": 0,
     "rate": 1.0
   },
   "output_nodes": {

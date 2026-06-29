@@ -169,9 +169,11 @@ def default_registry() -> WorkflowRegistry:
             input_schema={
                 "text": {"type": "string", "required": True, "label": "旁白文本"},
                 "voice": {"type": "string", "required": True, "label": "音色"},
+                "emotion": {"type": "string", "required": False, "label": "情绪"},
+                "pitch": {"type": "number", "required": False, "label": "音调"},
                 "rate": {"type": "number", "required": False, "label": "语速"},
             },
-            default_params={"voice": "zh-CN-XiaoxiaoNeural", "rate": 1.0},
+            default_params={"voice": "zh-CN-XiaoxiaoNeural", "emotion": "neutral", "pitch": 0, "rate": 1.0},
             output_nodes={"6": AssetType.AUDIO},
             description="为分镜旁白生成中文音频。",
             applicable_scenarios=["旁白配音", "字幕口播", "角色独白"],

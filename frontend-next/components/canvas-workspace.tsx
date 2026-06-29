@@ -1224,6 +1224,12 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setNodes((items) => items.map((node) => node.id === selectedNode.id ? { ...node, data: { ...node.data, [key]: value } } : node));
   }
 
+  function applySelectedNodePreset(label: string, patch: Record<string, string | boolean>) {
+    if (!selectedNode) return;
+    setNodes((items) => items.map((node) => node.id === selectedNode.id ? { ...node, data: { ...node.data, ...patch } } : node));
+    setStatus(`已应用参数预设：${label}。`);
+  }
+
   function updateSelectedNodeType(nextType: string) {
     if (!selectedNode || nextType === selectedType || !nodeLabels[nextType]) return;
     const currentData = selectedNode.data as Record<string, unknown>;
@@ -2241,6 +2247,38 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           {selectedType === "script" && <label className="grid gap-1"><span className="text-slate-400">脚本</span><textarea className="min-h-40 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.script || "")} onChange={(event) => updateSelectedData("script", event.target.value)} /></label>}
           {(selectedType === "image_generation" || selectedType === "video_generation") && <label className="grid gap-1"><span className="text-slate-400">提示词</span><textarea className="min-h-28 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.prompt || "")} onChange={(event) => updateSelectedData("prompt", event.target.value)} /></label>}
           {selectedType === "tts_generation" && <label className="grid gap-1"><span className="text-slate-400">旁白文本</span><textarea className="min-h-28 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.text || "")} onChange={(event) => updateSelectedData("text", event.target.value)} /></label>}
+          {selectedType === "image_generation" && <section className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+            <p className="text-xs text-slate-400">分镜图参数预设</p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <button className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodePreset("竖屏 9:16", { width: "768", height: "1344" })}>竖屏 9:16</button>
+              <button className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodePreset("横屏 16:9", { width: "1344", height: "768" })}>横屏 16:9</button>
+              <button className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodePreset("方图 1:1", { width: "1024", height: "1024" })}>方图 1:1</button>
+              <button className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodePreset("随机 seed", { seed: String(Math.floor(Math.random() * 100000000)) })}>随机 seed</button>
+            </div>
+          </section>}
+          {selectedType === "video_generation" && <section className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+            <p className="text-xs text-slate-400">镜头视频参数预设</p>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              <button className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodePreset("快切 3 秒", { duration: "3", fps: "16" })}>快切 3 秒</button>
+              <button className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodePreset("标准 5 秒", { duration: "5", fps: "16" })}>标准 5 秒</button>
+              <button className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodePreset("流畅 24fps", { fps: "24" })}>流畅 24fps</button>
+            </div>
+          </section>}
+          {selectedType === "tts_generation" && <section className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+            <p className="text-xs text-slate-400">配音参数预设</p>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              <button className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodePreset("女声常速", { voice: "zh-CN-XiaoxiaoNeural", rate: "1" })}>女声常速</button>
+              <button className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodePreset("男声常速", { voice: "zh-CN-YunxiNeural", rate: "1" })}>男声常速</button>
+              <button className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodePreset("慢速旁白", { rate: "0.85" })}>慢速旁白</button>
+            </div>
+          </section>}
+          {selectedType === "compose_generation" && <section className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+            <p className="text-xs text-slate-400">合成参数预设</p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <button className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodePreset("带字幕成片", { subtitle: true })}>带字幕成片</button>
+              <button className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodePreset("无字幕成片", { subtitle: false })}>无字幕成片</button>
+            </div>
+          </section>}
           {selectedType === "image" && <label className="grid gap-1"><span className="text-slate-400">图片 URL</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.image_url || "")} onChange={(event) => updateSelectedData("image_url", event.target.value)} /></label>}
           {selectedType === "video" && <label className="grid gap-1"><span className="text-slate-400">视频 URL</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.video_url || "")} onChange={(event) => updateSelectedData("video_url", event.target.value)} /></label>}
           {selectedType === "audio" && <label className="grid gap-1"><span className="text-slate-400">音频 URL</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.audio_url || "")} onChange={(event) => updateSelectedData("audio_url", event.target.value)} /></label>}

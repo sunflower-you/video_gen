@@ -156,6 +156,16 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /首帧/);
   assert.match(canvasWorkspace, /参考图/);
   assert.match(canvasWorkspace, /成片/);
+  assert.match(canvasWorkspace, /applySelectedNodePreset/);
+  assert.match(canvasWorkspace, /分镜图参数预设/);
+  assert.match(canvasWorkspace, /镜头视频参数预设/);
+  assert.match(canvasWorkspace, /配音参数预设/);
+  assert.match(canvasWorkspace, /合成参数预设/);
+  assert.match(canvasWorkspace, /竖屏 9:16/);
+  assert.match(canvasWorkspace, /随机 seed/);
+  assert.match(canvasWorkspace, /标准 5 秒/);
+  assert.match(canvasWorkspace, /女声常速/);
+  assert.match(canvasWorkspace, /带字幕成片/);
   assert.match(canvasWorkspace, /id=\{port\.id\}/);
   assert.match(canvasWorkspace, /port\.side === "input"/);
   assert.match(canvasWorkspace, /edgeWithDefaultHandles/);

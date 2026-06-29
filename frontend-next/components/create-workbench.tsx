@@ -5,6 +5,7 @@ import { apiFetch, currentUserId, postJson, type Character, type GenerationTask,
 import { fallbackTemplates } from "../lib/fallback-data";
 
 const defaultScript = "女主在雨夜车站等待失联多年的哥哥，一辆旧出租车停下，车窗里出现熟悉的护身符。";
+const seedanceQuickPrompt = "电影感雨夜车站，主角回头，镜头缓慢推进，霓虹雨滴划过画面。";
 type ProjectAnalysis = {
   characters: Character[];
   shots: StoryboardShot[];
@@ -73,6 +74,27 @@ export function CreateWorkbench() {
       window.location.href = `/workspace/${created.id}`;
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "项目创建失败，请稍后重试。");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function createSeedanceQuickProject() {
+    setBusy(true);
+    setStatus("正在创建 Seedance 2.0 快速体验项目...");
+    try {
+      const created = await postJson<Project>("/api/projects", {
+        title: title.trim() || "Seedance 2.0 快速体验",
+        project_type: "Seedance 2.0 快速体验",
+        aspect_ratio: aspectRatio,
+        owner_id: currentUserId()
+      });
+      setProject(created);
+      setScript(seedanceQuickPrompt);
+      setStatus("Seedance 2.0 快速体验项目已创建，正在进入全画幅节点画布...");
+      window.location.href = `/workspace/${created.id}?preset=seedance2_image_video`;
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Seedance 2.0 快速体验创建失败，请稍后重试。");
     } finally {
       setBusy(false);
     }
@@ -176,6 +198,9 @@ export function CreateWorkbench() {
           <textarea className="min-h-32 rounded-md border border-line px-3 py-2" value={script} onChange={(event) => setScript(event.target.value)} />
           <button disabled={busy} className="rounded-md bg-accent px-4 py-2 text-white disabled:opacity-60" onClick={createProjectFlow}>
             {projectType === "空白项目" ? "创建空白项目" : projectType === "模板复刻" ? "复刻模板并生成分镜草稿" : "创建项目并生成分镜草稿"}
+          </button>
+          <button disabled={busy} className="rounded-md border border-line px-4 py-2 text-sm disabled:opacity-50" onClick={createSeedanceQuickProject}>
+            快速体验 Seedance 2.0
           </button>
           <div className="rounded-md border border-line bg-canvas px-3 py-2 text-sm text-muted">{status}</div>
           <p className="text-xs text-muted">若提示积分余额不足，请联系运营充值或切换低成本生成任务。</p>

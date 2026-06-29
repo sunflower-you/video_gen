@@ -725,6 +725,18 @@ const workflowPresets = [
     edges: [[0, 1], [1, 2]]
   },
   {
+    key: "seedance2_image_video",
+    title: "Seedance 2.0 快速体验",
+    description: "参考图和动作提示词接入图生视频，再进入成片合成。",
+    nodes: [
+      { type: "image", offset: { x: 0, y: 0 }, data: { title: "参考图", image_url: "/storage/reference/hero.png" } },
+      { type: "text", offset: { x: 0, y: 190 }, data: { title: "动作提示词", text: "电影感雨夜车站，主角回头，镜头缓慢推进，霓虹雨滴划过画面。" } },
+      { type: "video_generation", offset: { x: 330, y: 60 }, data: { title: "Seedance 2.0 图生视频", workflow_key: "", prompt: "电影感雨夜车站，主角回头，镜头缓慢推进，霓虹雨滴划过画面", negative_prompt: "", first_frame_url: "", camera_motion: "缓慢推进", motion_strength: "0.7", duration: "5", fps: "24" } },
+      { type: "compose_generation", offset: { x: 660, y: 60 }, data: { title: "成片合成", workflow_key: "", duration_per_shot: "5", subtitle_style: "底部白字黑描边", transition: "fade", subtitle: true, voice: "zh-CN-XiaoxiaoNeural", bgm_url: "" } }
+    ],
+    edges: [[0, 2], [1, 2], [2, 3]]
+  },
+  {
     key: "voice_compose",
     title: "旁白字幕合成",
     description: "文本旁白连到配音节点，再连接成片合成。",
@@ -829,6 +841,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [linkedNodeIdHandled, setLinkedNodeIdHandled] = useState("");
   const [linkedEdgeIdHandled, setLinkedEdgeIdHandled] = useState("");
   const [linkedViewHandled, setLinkedViewHandled] = useState("");
+  const [linkedPresetHandled, setLinkedPresetHandled] = useState("");
   const [busy, setBusy] = useState(false);
 
   const selectedNode = useMemo(() => nodes.find((item) => item.id === selectedNodeId) || null, [nodes, selectedNodeId]);
@@ -1062,7 +1075,25 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setLinkedNodeIdHandled("");
     setLinkedEdgeIdHandled("");
     setLinkedViewHandled("");
+    setLinkedPresetHandled("");
   }, [projectId]);
+
+  useEffect(() => {
+    if (!project) return;
+    const params = new URLSearchParams(window.location.search);
+    const presetKey = params.get("preset") || "";
+    if (!presetKey || presetKey === linkedPresetHandled) return;
+    setLinkedPresetHandled(presetKey);
+    const preset = workflowPresets.find((item) => item.key === presetKey);
+    if (!preset) {
+      setStatus("画布预设不存在，请从左侧工作流预设重新选择。");
+      return;
+    }
+    addWorkflowPreset(preset.key, { x: 140, y: 140 });
+    params.delete("preset");
+    const nextQuery = params.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`);
+  }, [linkedPresetHandled, project]);
 
   useEffect(() => {
     if (!flowInstance) return;

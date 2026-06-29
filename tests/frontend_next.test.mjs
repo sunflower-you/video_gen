@@ -69,7 +69,7 @@ test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
   assert.match(layout, /lang="zh-CN"/);
   assert.match(layout, /漫剧工坊/);
   assert.match(page, /PlatformDashboard/);
-  for (const text of ["作品广场", "开始创作", "模板市场", "脚本成片", "创建空白项目", "刷新草稿", "暂无项目草稿", "全画幅创作入口", "快速体验模板"]) {
+  for (const text of ["作品广场", "开始创作", "模板市场", "脚本成片", "Seedance 2.0", "创建空白项目", "刷新草稿", "暂无项目草稿", "全画幅创作入口", "快速体验 Seedance 2.0", "快速体验模板"]) {
     assert.match(`${dashboard}\n${shell}\n${gallery}\n${workspace}\n${templates}`, new RegExp(text));
   }
   assert.doesNotMatch(shell, /发布审核/);
@@ -940,6 +940,11 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /脚本拆解分镜/);
   assert.match(canvasWorkspace, /首帧图生视频/);
   assert.match(canvasWorkspace, /旁白字幕合成/);
+  assert.match(canvasWorkspace, /seedance2_image_video/);
+  assert.match(canvasWorkspace, /Seedance 2\.0 快速体验/);
+  assert.match(canvasWorkspace, /Seedance 2\.0 图生视频/);
+  assert.match(canvasWorkspace, /params\.get\("preset"\)/);
+  assert.match(canvasWorkspace, /window\.history\.replaceState/);
   assert.match(canvasWorkspace, /addWorkflowPreset/);
   assert.match(canvasWorkspace, /平台生成/);
   assert.match(canvasWorkspace, /素材节点/);
@@ -1055,6 +1060,9 @@ test("Next 创作工作台调用真实项目和生成接口", () => {
   assert.match(createWorkbench, /reference_image_url: projectType === "图片成片" \? referenceImageUrl : ""/);
   assert.match(createWorkbench, /projectType === "空白项目"/);
   assert.match(createWorkbench, /projectType === "模板复刻"/);
+  assert.match(createWorkbench, /createSeedanceQuickProject/);
+  assert.match(createWorkbench, /project_type: "Seedance 2\.0 快速体验"/);
+  assert.match(createWorkbench, /preset=seedance2_image_video/);
   assert.match(createWorkbench, /setProject\(\{ \.\.\.created, characters: analyzed\.characters, shots: analyzed\.shots/);
   assert.match(createWorkbench, /generate-image/);
   assert.match(createWorkbench, /batch-generate/);
@@ -1062,7 +1070,7 @@ test("Next 创作工作台调用真实项目和生成接口", () => {
   assert.match(createWorkbench, /compose/);
   assert.match(createWorkbench, /href=\{`\/workspace\/\$\{project\.id\}`\}/);
   assert.match(createWorkbench, /window\.location\.href = `\/workspace\/\$\{created\.id\}`/);
-  for (const text of ["创建项目并生成分镜草稿", "复刻模板并生成分镜草稿", "模板复刻项目已继承", "9:16 竖屏短视频", "16:9 横屏短片", "1:1 方形画布", "创建空白项目", "参考图 URL", "批量生成素材", "生成时间线", "合成成片", "任务队列", "积分余额不足", "进入项目工作台"]) {
+  for (const text of ["创建项目并生成分镜草稿", "复刻模板并生成分镜草稿", "模板复刻项目已继承", "Seedance 2.0 快速体验", "9:16 竖屏短视频", "16:9 横屏短片", "1:1 方形画布", "创建空白项目", "参考图 URL", "批量生成素材", "生成时间线", "合成成片", "任务队列", "积分余额不足", "进入项目工作台"]) {
     assert.match(createWorkbench, new RegExp(text));
   }
 });

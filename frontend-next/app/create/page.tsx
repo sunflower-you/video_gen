@@ -1,7 +1,7 @@
 import { AppShell } from "../../components/app-shell";
 import { CreateWorkbench } from "../../components/create-workbench";
 
-const workflowSteps = ["创建项目", "编辑脚本", "生成分镜", "批量生成素材", "时间线与字幕", "合成导出"];
+const workflowSteps = ["创建项目", "快速体验 Seedance 2.0", "编辑脚本", "生成分镜", "批量生成素材", "合成导出"];
 
 export default function CreatePage() {
   return (

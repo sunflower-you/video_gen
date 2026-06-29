@@ -84,6 +84,7 @@ export function PlatformDashboard() {
         </div>
         <div className="flex gap-2">
           <a className="rounded-md bg-accent px-4 py-2 text-white" href="/create">开始创作</a>
+          <a className="rounded-md border border-line px-4 py-2" href="/create">快速体验 Seedance 2.0</a>
           <a className="rounded-md border border-line px-4 py-2" href="/templates">快速体验模板</a>
         </div>
       </header>

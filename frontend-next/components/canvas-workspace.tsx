@@ -825,6 +825,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const selectedParameterPresetNodes = useMemo(() => selectedNodes.filter((node) => nodeParameterPresets.some((preset) => preset.nodeTypes.includes(String((node.data as Record<string, unknown>).nodeType || "")))), [selectedNodes]);
   const selectedShotBindingNodes = useMemo(() => selectedNodes.filter((node) => shotBindableNodeTypes.has(String((node.data as Record<string, unknown>).nodeType || ""))), [selectedNodes]);
   const selectedVariantNodes = useMemo(() => selectedNodes.filter((node) => variantNodeTypes.has(String((node.data as Record<string, unknown>).nodeType || ""))), [selectedNodes]);
+  const selectedGenerationNodes = selectedVariantNodes;
   const selectedImageGenerationNodes = useMemo(() => selectedNodes.filter((node) => String((node.data as Record<string, unknown>).nodeType || "") === "image_generation"), [selectedNodes]);
   const selectedGroupTitles = useMemo(() => {
     const titles = new Set(selectedNodes.map((node) => String((node.data as Record<string, unknown>).group_title || "")).filter(Boolean));
@@ -3760,6 +3761,34 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已为 ${selectedImageGenerationNodes.length} 个分镜图生成节点随机 seed，并清空旧任务与输出状态。`);
   }
 
+  function clearSelectedGenerationOutputs() {
+    if (!selectedGenerationNodes.length) {
+      setStatus("请先选择分镜图、视频、配音或合成生成节点，再清空生成结果。");
+      return;
+    }
+    const generationNodeIds = new Set(selectedGenerationNodes.map((node) => node.id));
+    rememberGraphHistory();
+    setNodes((items) => items.map((node) => {
+      if (!generationNodeIds.has(node.id)) return node;
+      return {
+        ...node,
+        data: {
+          ...(node.data as Record<string, unknown>),
+          status: "draft",
+          task_id: "",
+          prompt_id: "",
+          output_url: "",
+          image_url: "",
+          video_url: "",
+          audio_url: "",
+          error_message: "",
+          retry_advice: ""
+        }
+      };
+    }));
+    setStatus(`已清空 ${selectedGenerationNodes.length} 个生成节点的任务、输出和错误状态，可重新运行。`);
+  }
+
   function renameSelectedNodesWithPrefix() {
     if (!selectedNodes.length) return;
     const prefix = selectedRenamePrefix.trim();
@@ -4189,6 +4218,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     { key: "collect-selection-compose", title: "选区汇聚到合成节点", description: "在选区右侧创建合成节点并连接选区末端分支", disabled: !selectedNodes.length, run: collectSelectedNodesToCompose },
     { key: "connect-existing-compose", title: "选区接入已有合成节点", description: "把选区末端素材按媒体类型连接到选中的合成节点", disabled: !selectedNodes.length, run: connectSelectedNodesToExistingCompose },
     { key: "create-node-variants", title: "生成选区节点变体", description: "复制选区内生成节点并保留上游参考输入，用于快速试多个版本", disabled: !selectedVariantNodes.length, run: createSelectedNodeVariants },
+    { key: "clear-generation-outputs", title: "清空选区生成结果", description: "清除选区内生成节点的任务、输出和错误状态，便于调参后重跑", disabled: !selectedGenerationNodes.length, run: clearSelectedGenerationOutputs },
     { key: "randomize-image-seeds", title: "选区分镜图随机 seed", description: "批量刷新选区内分镜图生成节点 seed，并清空旧任务输出用于重跑", disabled: !selectedImageGenerationNodes.length, run: randomizeSelectedImageSeeds },
     { key: "selection-preset-portrait", title: "选区参数预设：竖屏 9:16", description: "批量设置选区内分镜图生成节点尺寸", disabled: !selectedParameterPresetNodes.length, run: () => applySelectedNodesParameterPreset(parameterPresetByKey("image-portrait")) },
     { key: "selection-preset-video-standard", title: "选区参数预设：标准 5 秒", description: "批量设置选区内镜头视频生成节点时长和帧率", disabled: !selectedParameterPresetNodes.length, run: () => applySelectedNodesParameterPreset(parameterPresetByKey("video-standard")) },
@@ -4790,6 +4820,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy || !selectedParameterPresetNodes.length} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { applySelectedNodesParameterPreset(parameterPresetByKey("video-standard")); setNodeContextMenu(null); }}>选区套用标准 5 秒</button>
             <button disabled={busy || !selectedParameterPresetNodes.length} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { applySelectedNodesParameterPreset(parameterPresetByKey("tts-female")); setNodeContextMenu(null); }}>选区套用女声常速</button>
             <button disabled={busy || !selectedParameterPresetNodes.length} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { applySelectedNodesParameterPreset(parameterPresetByKey("compose-subtitle")); setNodeContextMenu(null); }}>选区套用带字幕成片</button>
+            <button disabled={busy || !selectedGenerationNodes.length} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { clearSelectedGenerationOutputs(); setNodeContextMenu(null); }}>清空选区生成结果</button>
             <button disabled={busy || !selectedShotIds.length || !selectedShotBindingNodes.length} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { bindSelectedShotsToSelectedNodes(); setNodeContextMenu(null); }}>绑定选中分镜</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { groupSelectedNodes(); setNodeContextMenu(null); }}>打组选区</button>
             <button disabled={busy || !selectedGroupIds.size} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSelectedGroups(); setNodeContextMenu(null); }}>选中同组节点</button>
@@ -4810,6 +4841,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy || !selectedUpstreamInputs.length} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { fillSelectedFromUpstream(); setNodeContextMenu(null); }}>填充上游参数</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setNodeContextMenu(null); void cutSelectedNodes(); }}>剪切节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { duplicateSelectedNode(); setNodeContextMenu(null); }}>复制节点</button>
+            <button disabled={busy || !selectedGenerationNodes.length} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { clearSelectedGenerationOutputs(); setNodeContextMenu(null); }}>清空生成结果</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { void copySelectedNodeId(); setNodeContextMenu(null); }}>复制节点 ID</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { void copySelectedNodeParams(); setNodeContextMenu(null); }}>复制节点参数 JSON</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { void copySelectedNodeLink(); setNodeContextMenu(null); }}>复制节点定位链接</button>
@@ -4888,6 +4920,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <div className="grid grid-cols-2 gap-2">
               {nodeParameterPresets.map((preset) => <button key={preset.key} disabled={busy || !selectedNodes.some((node) => preset.nodeTypes.includes(String((node.data as Record<string, unknown>).nodeType || "")))} className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={() => applySelectedNodesParameterPreset(preset)}>{preset.label}</button>)}
             </div>
+            <button disabled={busy || !selectedGenerationNodes.length} className="inline-flex items-center justify-center gap-2 rounded-md border border-amber-400/30 px-3 py-2 text-xs text-amber-50 disabled:opacity-50" onClick={clearSelectedGenerationOutputs}><RotateCcw size={14} />清空生成结果</button>
             <button disabled={busy || !selectedImageGenerationNodes.length} className="inline-flex items-center justify-center gap-2 rounded-md border border-blue-400/30 px-3 py-2 text-xs text-blue-50 disabled:opacity-50" onClick={randomizeSelectedImageSeeds}><RefreshCcw size={14} />随机 seed 重跑分镜图</button>
           </section>
           <section className="grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">
@@ -5128,6 +5161,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void runSelectedChain()}><GitBranch size={16} />运行链路</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={duplicateSelectedNode}><Copy size={16} />复制节点</button>
             <button disabled={busy || !selectedVariantNodes.length} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={createSelectedNodeVariants}><Copy size={16} />生成变体</button>
+            <button disabled={busy || !selectedGenerationNodes.length} className="inline-flex items-center justify-center gap-2 rounded-md border border-amber-400/30 px-3 py-2 text-amber-50 disabled:opacity-50" onClick={clearSelectedGenerationOutputs}><RotateCcw size={16} />清空结果</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void cutSelectedNodes()}><Scissors size={16} />剪切节点</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void copySelectedNodeId()}><ClipboardCopy size={16} />复制 ID</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void copySelectedNodeParams()}><FileText size={16} />复制参数</button>

@@ -6,6 +6,7 @@ import { fallbackTemplates } from "../lib/fallback-data";
 
 const defaultScript = "女主在雨夜车站等待失联多年的哥哥，一辆旧出租车停下，车窗里出现熟悉的护身符。";
 const seedanceQuickPrompt = "电影感雨夜车站，主角回头，镜头缓慢推进，霓虹雨滴划过画面。";
+const tvShowQuickScript = "冷开场：女主持走入未来新闻演播厅，灯光依次亮起，屏幕出现本集主题。第一幕：嘉宾在雨夜城市连线，抛出悬念问题。";
 type ProjectAnalysis = {
   characters: Character[];
   shots: StoryboardShot[];
@@ -95,6 +96,27 @@ export function CreateWorkbench() {
       window.location.href = `/workspace/${created.id}?preset=seedance2_image_video`;
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Seedance 2.0 快速体验创建失败，请稍后重试。");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function createTvShowProject() {
+    setBusy(true);
+    setStatus("正在创建 TV Show 剧集项目...");
+    try {
+      const created = await postJson<Project>("/api/projects", {
+        title: title.trim() || "TV Show 剧集开场",
+        project_type: "TV Show",
+        aspect_ratio: aspectRatio,
+        owner_id: currentUserId()
+      });
+      setProject(created);
+      setScript(tvShowQuickScript);
+      setStatus("TV Show 剧集项目已创建，正在进入全画幅节点画布...");
+      window.location.href = `/workspace/${created.id}?preset=tv_show_storyboard`;
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "TV Show 剧集项目创建失败，请稍后重试。");
     } finally {
       setBusy(false);
     }
@@ -201,6 +223,9 @@ export function CreateWorkbench() {
           </button>
           <button disabled={busy} className="rounded-md border border-line px-4 py-2 text-sm disabled:opacity-50" onClick={createSeedanceQuickProject}>
             快速体验 Seedance 2.0
+          </button>
+          <button disabled={busy} className="rounded-md border border-line px-4 py-2 text-sm disabled:opacity-50" onClick={createTvShowProject}>
+            创建 TV Show
           </button>
           <div className="rounded-md border border-line bg-canvas px-3 py-2 text-sm text-muted">{status}</div>
           <p className="text-xs text-muted">若提示积分余额不足，请联系运营充值或切换低成本生成任务。</p>

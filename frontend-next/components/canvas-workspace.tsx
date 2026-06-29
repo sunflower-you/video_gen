@@ -714,6 +714,19 @@ const workflowPresets = [
     edges: [[0, 1], [0, 2], [1, 3], [2, 3]]
   },
   {
+    key: "tv_show_storyboard",
+    title: "TV Show 剧集开场",
+    description: "剧集脚本拆成分镜图、镜头视频、角色旁白和合成链路。",
+    nodes: [
+      { type: "script", offset: { x: 0, y: 0 }, data: { title: "TV Show 剧集脚本", script: "冷开场：女主持走入未来新闻演播厅，灯光依次亮起，屏幕出现本集主题。第一幕：嘉宾在雨夜城市连线，抛出悬念问题。" } },
+      { type: "image_generation", offset: { x: 320, y: -120 }, data: { title: "剧集关键画面", workflow_key: "", prompt: "未来新闻演播厅，女主持，冷开场，电影级灯光，竖屏构图", negative_prompt: "", reference_image_url: "", model_key: "", style_prompt: "高质感 TV Show 片头，干净布光，真实摄影", width: "768", height: "1344", seed: "-1", batch_size: "1" } },
+      { type: "video_generation", offset: { x: 640, y: -120 }, data: { title: "剧集开场镜头", workflow_key: "", prompt: "女主持走入未来新闻演播厅，灯光依次亮起，镜头缓慢推进", negative_prompt: "", first_frame_url: "", camera_motion: "缓慢推进", motion_strength: "0.6", duration: "6", fps: "24" } },
+      { type: "tts_generation", offset: { x: 320, y: 150 }, data: { title: "主持人口播", workflow_key: "", text: "欢迎来到本期 TV Show。今晚，我们从一通雨夜连线开始，追踪一个正在发酵的城市悬念。", voice: "zh-CN-XiaoxiaoNeural", emotion: "neutral", pitch: "0", rate: "1" } },
+      { type: "compose_generation", offset: { x: 960, y: 20 }, data: { title: "TV Show 成片合成", workflow_key: "", duration_per_shot: "6", subtitle_style: "底部白字黑描边", transition: "fade", subtitle: true, voice: "zh-CN-XiaoxiaoNeural", bgm_url: "" } }
+    ],
+    edges: [[0, 1], [1, 2], [0, 3], [2, 4], [3, 4]]
+  },
+  {
     key: "image_to_video",
     title: "首帧图生视频",
     description: "参考图连到镜头视频节点，再进入成片合成。",

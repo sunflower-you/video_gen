@@ -1,6 +1,6 @@
 import type { Template, Work } from "./api";
 
-export const categories = ["全部", "精选画布", "短片剧集", "AI 漫剧", "动画短片", "概念设计", "经典衍生", "广告短片"];
+export const categories = ["全部", "TV Show", "精选画布", "短片剧集", "AI 漫剧", "动画短片", "概念设计", "经典衍生", "广告短片"];
 
 export const fallbackWorks: Work[] = [
   { id: "demo_1", title: "雨夜车站", category: "AI 漫剧", author_id: "青禾工作室", cover_url: "/storage/covers/rain-station.jpg", video_url: "/storage/final/rain-station.mp4", template_name: "Flux 分镜图生成", tags: ["悬疑", "雨夜", "漫剧"], view_count: 28000, like_count: 310, favorite_count: 88 },

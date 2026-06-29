@@ -18,7 +18,7 @@ import {
   type NodeProps
 } from "@xyflow/react";
 import { Boxes, Clapperboard, Copy, FileText, GitBranch, Image, Library, Music, Play, Plus, RefreshCcw, Save, Search, Sparkles, Trash2, Video, Wand2 } from "lucide-react";
-import { apiFetch, currentUserId, deleteJson, postJson, type Asset, type GenerationTask, type Project, type ProjectGraph, type ProjectGraphNode } from "../lib/api";
+import { apiFetch, currentUserId, deleteJson, postJson, type Asset, type GenerationTask, type Project, type ProjectGraph, type ProjectGraphNode, type StoryboardShot } from "../lib/api";
 
 const nodeLabels: Record<string, string> = {
   text: "文本节点",
@@ -217,6 +217,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [status, setStatus] = useState("正在加载全画幅创作画布...");
   const [showAssets, setShowAssets] = useState(false);
   const [showTasks, setShowTasks] = useState(false);
+  const [showShots, setShowShots] = useState(false);
   const [showPalette, setShowPalette] = useState(true);
   const [paletteQuery, setPaletteQuery] = useState("");
   const [busy, setBusy] = useState(false);
@@ -358,6 +359,39 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已添加工作流预设：${preset.title}。`);
   }
 
+  function addShotWorkflow(shot: StoryboardShot) {
+    const timestamp = Date.now();
+    const baseX = 220 + nodes.length * 28;
+    const baseY = 140 + nodes.length * 18;
+    const specs = [
+      { type: "text", offset: { x: 0, y: 0 }, data: { title: `分镜 ${shot.index}`, text: shot.visual_description, narration: shot.narration, shot_id: shot.id } },
+      { type: "image_generation", offset: { x: 300, y: -80 }, data: { title: `分镜 ${shot.index} 画面`, prompt: shot.prompt || shot.visual_description, shot_id: shot.id, width: "768", height: "1344", seed: "-1" } },
+      { type: "video_generation", offset: { x: 610, y: -80 }, data: { title: `分镜 ${shot.index} 视频`, prompt: shot.visual_description, shot_id: shot.id, first_frame_url: "", duration: "4", fps: "16" } },
+      { type: "tts_generation", offset: { x: 300, y: 150 }, data: { title: `分镜 ${shot.index} 配音`, text: shot.narration, shot_id: shot.id, voice: "zh-CN-XiaoxiaoNeural", rate: "1" } },
+      { type: "compose_generation", offset: { x: 920, y: 30 }, data: { title: `分镜 ${shot.index} 合成`, subtitle: true } }
+    ];
+    const createdNodes = specs.map((item, index) => {
+      const id = `shot-${shot.id}-${timestamp}-${index}`;
+      return {
+        id,
+        type: "platform",
+        position: { x: baseX + item.offset.x, y: baseY + item.offset.y },
+        data: { ...item.data, nodeType: item.type, graphNodeId: id, status: "draft" }
+      } satisfies Node;
+    });
+    const edgePairs = [[0, 1], [1, 2], [0, 3], [2, 4], [3, 4]];
+    const createdEdges = edgePairs.map(([sourceIndex, targetIndex], index) => ({
+      id: `edge-shot-${shot.id}-${timestamp}-${index}`,
+      source: createdNodes[sourceIndex].id,
+      target: createdNodes[targetIndex].id
+    }));
+    setNodes((items) => [...items, ...createdNodes]);
+    setEdges((items) => [...items, ...createdEdges]);
+    setSelectedNodeId(createdNodes[0]?.id || "");
+    setShowShots(false);
+    setStatus(`已为分镜 ${shot.index} 添加生成链路。`);
+  }
+
   function updateSelectedData(key: string, value: string | boolean) {
     if (!selectedNode) return;
     setNodes((items) => items.map((node) => node.id === selectedNode.id ? { ...node, data: { ...node.data, [key]: value } } : node));
@@ -473,6 +507,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
       <aside className="absolute left-4 top-28 z-20 grid gap-2 rounded-lg border border-white/10 bg-slate-950/85 p-2 shadow-2xl backdrop-blur">
         <button title="添加节点" className="grid h-10 w-10 place-items-center rounded-md bg-blue-600 text-white hover:bg-blue-500" onClick={() => setShowPalette((value) => !value)}><Plus size={18} /></button>
+        <button title="分镜列表" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowShots((value) => !value)}><Clapperboard size={18} /></button>
         <button title="素材库" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowAssets((value) => !value)}><Library size={18} /></button>
         <button title="任务队列" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowTasks((value) => !value)}><Boxes size={18} /></button>
       </aside>
@@ -587,6 +622,30 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         <div className="mt-3 grid gap-2 text-sm">
           {assets.map((asset) => <button key={asset.id} className="rounded-md border border-white/10 px-3 py-2 text-left text-slate-300 hover:bg-white/10" onClick={() => addAssetNode(asset)}>{asset.asset_type} · {asset.url || asset.id}</button>)}
           {!assets.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">暂无素材，可先运行生成节点。</p>}
+        </div>
+      </aside>}
+
+      {showShots && <aside className="absolute bottom-6 left-24 z-20 max-h-[420px] w-[440px] overflow-auto rounded-lg border border-white/10 bg-slate-950/90 p-4 shadow-2xl backdrop-blur">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs text-slate-400">项目分镜</p>
+            <h2 className="font-semibold">分镜生成链路</h2>
+          </div>
+          <span className="rounded border border-white/10 px-2 py-1 text-xs text-slate-400">{shotOptions.length} 个</span>
+        </div>
+        <div className="mt-3 grid gap-2 text-sm">
+          {shotOptions.map((shot) => <article key={shot.id} className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <strong className="block text-white">分镜 {shot.index}</strong>
+                <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-300">{shot.visual_description || "暂无画面描述"}</p>
+                <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-400">{shot.narration || "暂无旁白"}</p>
+              </div>
+              <span className="shrink-0 rounded bg-black/30 px-2 py-1 text-[11px] text-slate-300">{statusText(shot.generation_status || "draft")}</span>
+            </div>
+            <button className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-xs text-white hover:bg-blue-500" onClick={() => addShotWorkflow(shot)}><GitBranch size={14} />添加分镜链路</button>
+          </article>)}
+          {!shotOptions.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">暂无分镜，请先从创作入口生成脚本分镜。</p>}
         </div>
       </aside>}
 

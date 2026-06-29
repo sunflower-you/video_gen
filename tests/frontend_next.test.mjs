@@ -495,6 +495,14 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /节点已折叠/);
   assert.match(canvasWorkspace, /节点已展开/);
   assert.match(canvasWorkspace, /alignSelectedNodes/);
+  assert.match(canvasWorkspace, /nudgeSelectedNodes/);
+  assert.match(canvasWorkspace, /ArrowLeft/);
+  assert.match(canvasWorkspace, /ArrowRight/);
+  assert.match(canvasWorkspace, /ArrowUp/);
+  assert.match(canvasWorkspace, /ArrowDown/);
+  assert.match(canvasWorkspace, /请先选择节点，再用方向键微调位置/);
+  assert.match(canvasWorkspace, /选区节点均已锁定，请先解锁再移动/);
+  assert.match(canvasWorkspace, /已向\$\{direction\}微调选区/);
   assert.match(canvasWorkspace, /对齐与分布/);
   assert.match(canvasWorkspace, /左对齐选区/);
   assert.match(canvasWorkspace, /水平居中对齐选区/);

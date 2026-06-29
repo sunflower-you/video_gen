@@ -1009,6 +1009,15 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         fitSelectedNodeView();
         return;
       }
+      if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) {
+        event.preventDefault();
+        const step = event.shiftKey ? 32 : snapToGrid ? 24 : 8;
+        nudgeSelectedNodes(
+          event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0,
+          event.key === "ArrowUp" ? -step : event.key === "ArrowDown" ? step : 0
+        );
+        return;
+      }
       if ((event.key === "Delete" || event.key === "Backspace") && selectedNodes.length > 1) {
         event.preventDefault();
         void deleteSelectedNodes();
@@ -2587,6 +2596,23 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setNodes((items) => items.map((node) => nextPositionById.has(node.id) ? { ...node, position: nextPositionById.get(node.id) || node.position } : node));
     const label = mode === "left" ? "左对齐" : mode === "centerX" ? "水平居中对齐" : mode === "right" ? "右对齐" : mode === "top" ? "顶部对齐" : mode === "centerY" ? "垂直居中对齐" : mode === "bottom" ? "底部对齐" : mode === "horizontal" ? "水平等距分布" : "垂直等距分布";
     setStatus(`已${label}选区：${selectedNodes.length} 个节点。`);
+  }
+
+  function nudgeSelectedNodes(deltaX: number, deltaY: number) {
+    if (!selectedNodes.length) {
+      setStatus("请先选择节点，再用方向键微调位置。");
+      return;
+    }
+    const movableIds = new Set(selectedNodes.filter((node) => (node.data as Record<string, unknown>).locked !== true).map((node) => node.id));
+    if (!movableIds.size) {
+      setStatus("选区节点均已锁定，请先解锁再移动。");
+      return;
+    }
+    rememberGraphHistory();
+    setNodes((items) => items.map((node) => movableIds.has(node.id) ? { ...node, position: { x: node.position.x + deltaX, y: node.position.y + deltaY } } : node));
+    const direction = deltaX < 0 ? "左" : deltaX > 0 ? "右" : deltaY < 0 ? "上" : "下";
+    const distance = Math.abs(deltaX || deltaY);
+    setStatus(`已向${direction}微调选区 ${distance}px：${movableIds.size} 个节点${movableIds.size < selectedNodes.length ? "，已跳过锁定节点" : ""}。`);
   }
 
   function setSelectedNodesLocked(locked: boolean) {

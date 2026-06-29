@@ -151,6 +151,11 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /删除节点/);
   assert.match(canvasWorkspace, /添加节点/);
   assert.match(canvasWorkspace, /搜索图片、视频、配音、合成/);
+  assert.match(canvasWorkspace, /工作流预设/);
+  assert.match(canvasWorkspace, /脚本拆解分镜/);
+  assert.match(canvasWorkspace, /首帧图生视频/);
+  assert.match(canvasWorkspace, /旁白字幕合成/);
+  assert.match(canvasWorkspace, /addWorkflowPreset/);
   assert.match(canvasWorkspace, /平台生成/);
   assert.match(canvasWorkspace, /素材节点/);
   assert.match(canvasWorkspace, /绑定分镜/);

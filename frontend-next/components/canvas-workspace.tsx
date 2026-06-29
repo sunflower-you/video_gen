@@ -140,6 +140,43 @@ const addableNodes = [
   { type: "demo", label: "演示", category: "基础节点", description: "验证画布运行状态。", icon: Boxes }
 ];
 
+const workflowPresets = [
+  {
+    key: "script_to_storyboard",
+    title: "脚本拆解分镜",
+    description: "脚本 Beta 连到分镜图、配音和合成节点。",
+    nodes: [
+      { type: "script", offset: { x: 0, y: 0 }, data: { title: "脚本 Beta", script: "输入短视频脚本，运行后生成角色和分镜。" } },
+      { type: "image_generation", offset: { x: 300, y: -70 }, data: { title: "分镜图生成", prompt: "根据脚本分镜生成关键画面", width: "768", height: "1344", seed: "-1" } },
+      { type: "tts_generation", offset: { x: 300, y: 150 }, data: { title: "旁白配音", text: "从脚本或分镜旁白生成配音", voice: "zh-CN-XiaoxiaoNeural", rate: "1" } },
+      { type: "compose_generation", offset: { x: 620, y: 40 }, data: { title: "成片合成", subtitle: true } }
+    ],
+    edges: [[0, 1], [0, 2], [1, 3], [2, 3]]
+  },
+  {
+    key: "image_to_video",
+    title: "首帧图生视频",
+    description: "参考图连到镜头视频节点，再进入成片合成。",
+    nodes: [
+      { type: "image", offset: { x: 0, y: 0 }, data: { title: "首帧图片", image_url: "" } },
+      { type: "video_generation", offset: { x: 310, y: 0 }, data: { title: "镜头视频生成", prompt: "描述镜头运动和角色动作", first_frame_url: "", duration: "4", fps: "16" } },
+      { type: "compose_generation", offset: { x: 620, y: 0 }, data: { title: "成片合成", subtitle: true } }
+    ],
+    edges: [[0, 1], [1, 2]]
+  },
+  {
+    key: "voice_compose",
+    title: "旁白字幕合成",
+    description: "文本旁白连到配音节点，再连接成片合成。",
+    nodes: [
+      { type: "text", offset: { x: 0, y: 0 }, data: { title: "旁白文案", text: "输入需要配音的中文旁白。" } },
+      { type: "tts_generation", offset: { x: 300, y: 0 }, data: { title: "旁白配音", voice: "zh-CN-XiaoxiaoNeural", rate: "1" } },
+      { type: "compose_generation", offset: { x: 610, y: 0 }, data: { title: "成片合成", subtitle: true } }
+    ],
+    edges: [[0, 1], [1, 2]]
+  }
+];
+
 export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [project, setProject] = useState<Project | null>(null);
   const [nodes, setNodes] = useState<Node[]>([]);
@@ -262,6 +299,35 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已添加${nodeLabels[type] || "节点"}。`);
   }
 
+  function addWorkflowPreset(presetKey: string) {
+    const preset = workflowPresets.find((item) => item.key === presetKey);
+    if (!preset) return;
+    const firstShotId = shotOptions[0]?.id || "";
+    const timestamp = Date.now();
+    const baseX = 180 + nodes.length * 28;
+    const baseY = 140 + nodes.length * 18;
+    const createdNodes = preset.nodes.map((item, index) => {
+      const id = `preset-${preset.key}-${timestamp}-${index}`;
+      const generationData = item.type.includes("generation") && item.type !== "compose_generation" ? { shot_id: firstShotId } : {};
+      return {
+        id,
+        type: "platform",
+        position: { x: baseX + item.offset.x, y: baseY + item.offset.y },
+        data: { ...item.data, ...generationData, nodeType: item.type, graphNodeId: id, status: "draft" }
+      } satisfies Node;
+    });
+    const createdEdges = preset.edges.map(([sourceIndex, targetIndex], index) => ({
+      id: `edge-${preset.key}-${timestamp}-${index}`,
+      source: createdNodes[sourceIndex].id,
+      target: createdNodes[targetIndex].id
+    }));
+    setNodes((items) => [...items, ...createdNodes]);
+    setEdges((items) => [...items, ...createdEdges]);
+    setSelectedNodeId(createdNodes[0]?.id || "");
+    setShowPalette(false);
+    setStatus(`已添加工作流预设：${preset.title}。`);
+  }
+
   function updateSelectedData(key: string, value: string | boolean) {
     if (!selectedNode) return;
     setNodes((items) => items.map((node) => node.id === selectedNode.id ? { ...node, data: { ...node.data, [key]: value } } : node));
@@ -353,6 +419,13 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <Search size={16} className="text-slate-400" />
           <input className="w-full bg-transparent outline-none placeholder:text-slate-500" placeholder="搜索图片、视频、配音、合成" value={paletteQuery} onChange={(event) => setPaletteQuery(event.target.value)} />
         </label>
+        <section className="mt-4 grid gap-2">
+          <h3 className="text-xs font-medium text-slate-400">工作流预设</h3>
+          {workflowPresets.map((preset) => <button key={preset.key} className="rounded-md border border-blue-400/30 bg-blue-500/10 px-3 py-3 text-left hover:bg-blue-500/20" onClick={() => addWorkflowPreset(preset.key)}>
+            <span className="block text-sm font-medium text-white">{preset.title}</span>
+            <span className="mt-1 block text-xs leading-5 text-slate-300">{preset.description}</span>
+          </button>)}
+        </section>
         <div className="mt-4 grid gap-4">
           {["平台生成", "素材节点", "基础节点"].map((category) => {
             const items = filteredAddableNodes.filter((item) => item.category === category);

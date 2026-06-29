@@ -356,6 +356,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /selectedVariantNodes/);
   assert.match(canvasWorkspace, /variantDataForNode/);
   assert.match(canvasWorkspace, /createSelectedNodeVariants/);
+  assert.match(canvasWorkspace, /arrangeSelectedNodesAsGrid/);
   assert.match(canvasWorkspace, /shotPatchForNode/);
   assert.match(canvasWorkspace, /filteredShots/);
   assert.match(canvasWorkspace, /搜索分镜描述、旁白、角色/);
@@ -375,6 +376,9 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /生成变体/);
   assert.match(canvasWorkspace, /已生成 .*个生成节点变体/);
   assert.match(canvasWorkspace, /请先选择分镜图、视频、配音或合成生成节点，再生成变体/);
+  assert.match(canvasWorkspace, /选区网格排列/);
+  assert.match(canvasWorkspace, /网格排列选区/);
+  assert.match(canvasWorkspace, /已把选区按 .*列网格排列/);
   assert.match(canvasWorkspace, /已清空分镜选择/);
   assert.match(canvasWorkspace, /全部链路/);
   assert.match(canvasWorkspace, /未铺设/);

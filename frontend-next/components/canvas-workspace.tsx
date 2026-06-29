@@ -3390,6 +3390,29 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已整理选区：${selectedNodes.length} 个节点。`);
   }
 
+  function arrangeSelectedNodesAsGrid() {
+    if (selectedNodes.length <= 1) {
+      setStatus("请先框选多个节点，再网格排列选区。");
+      return;
+    }
+    const ordered = [...selectedNodes].sort((first, second) => first.position.y - second.position.y || first.position.x - second.position.x);
+    const left = Math.min(...ordered.map((node) => node.position.x));
+    const top = Math.min(...ordered.map((node) => node.position.y));
+    const columns = Math.max(2, Math.ceil(Math.sqrt(ordered.length)));
+    const cellWidth = 320;
+    const cellHeight = 210;
+    const nextPositionById = new Map<string, { x: number; y: number }>();
+    ordered.forEach((node, index) => {
+      nextPositionById.set(node.id, {
+        x: left + (index % columns) * cellWidth,
+        y: top + Math.floor(index / columns) * cellHeight
+      });
+    });
+    rememberGraphHistory();
+    setNodes((items) => items.map((node) => nextPositionById.has(node.id) ? { ...node, position: nextPositionById.get(node.id) || node.position } : node));
+    setStatus(`已把选区按 ${columns} 列网格排列：${ordered.length} 个节点，适合对比变体或批量素材。`);
+  }
+
   function connectSelectedNodesInOrder() {
     if (selectedNodes.length <= 1) {
       setStatus("请先框选多个节点，再串联选区。");
@@ -4144,6 +4167,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     { key: "clear-selection", title: "清空当前选区", description: "取消节点和连线选择", shortcut: "Esc", disabled: !selectedNodes.length && !selectedEdge, run: clearCanvasSelection },
     { key: "fit-graph", title: "适配全部节点", description: "把完整节点图适配到当前视图", shortcut: "Ctrl/⌘ 1", disabled: !nodes.length, run: fitGraphView },
     { key: "fit-selection", title: "适配选中节点", description: "把当前选区适配到视图中心", shortcut: "Ctrl/⌘ 2", disabled: !selectedNodes.length, run: fitSelectedNodeView },
+    { key: "arrange-selection-grid", title: "选区网格排列", description: "把选区节点按行列排开，便于对比变体、素材和分镜链路", disabled: selectedNodes.length <= 1, run: arrangeSelectedNodesAsGrid },
     { key: "reset-view", title: "重置画布视口", description: "恢复默认缩放和平移", shortcut: "Ctrl/⌘ 0", run: resetCanvasViewport },
     { key: "copy-view-link", title: "复制当前视图链接", description: "分享当前画布缩放和平移位置", run: () => void copyCurrentViewLink() },
     { key: "view-bookmark", title: "打开画布视图书签", description: "保存和恢复常用画布视角", run: () => setShowViewBookmarks(true) }
@@ -4724,6 +4748,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { void exportSelectedWorkflowJson(); setNodeContextMenu(null); }}>导出选区 JSON</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { duplicateSelectedNodes(); setNodeContextMenu(null); }}>生成选区副本</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { autoLayoutSelectedNodes(); setNodeContextMenu(null); }}>整理选区</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { arrangeSelectedNodesAsGrid(); setNodeContextMenu(null); }}>网格排列选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesLayer("front"); setNodeContextMenu(null); }}>置顶选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesLayer("back"); setNodeContextMenu(null); }}>置底选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { connectSelectedNodesInOrder(); setNodeContextMenu(null); }}>串联选区</button>
@@ -4875,6 +4900,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={duplicateSelectedNodes}><Copy size={16} />生成副本</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void pasteCopiedSelection()}><ClipboardPaste size={16} />粘贴选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={autoLayoutSelectedNodes}><LayoutGrid size={16} />整理选区</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={arrangeSelectedNodesAsGrid}><LayoutGrid size={16} />网格排列</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesLayer("front")}><BringToFront size={16} />置顶选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesLayer("back")}><SendToBack size={16} />置底选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={connectSelectedNodesInOrder}><GitBranch size={16} />串联选区</button>

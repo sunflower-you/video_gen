@@ -740,12 +740,14 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /setSelectedNodesDisabled/);
   assert.match(canvasWorkspace, /copySelectedChain/);
   assert.match(canvasWorkspace, /pasteCopiedSelection/);
+  assert.match(canvasWorkspace, /pasteCopiedSelectionFromCanvasContext/);
   assert.match(canvasWorkspace, /currentViewportCenter/);
   assert.match(canvasWorkspace, /offsetX/);
   assert.match(canvasWorkspace, /已复制选区到系统剪贴板/);
   assert.match(canvasWorkspace, /已复制选区到本地画布剪贴板/);
   assert.match(canvasWorkspace, /已复制链路到系统剪贴板/);
   assert.match(canvasWorkspace, /已粘贴链路到当前视图中心/);
+  assert.match(canvasWorkspace, /已粘贴链路到画布右键位置/);
   assert.match(canvasWorkspace, /CanvasEventLogEntry/);
   assert.match(canvasWorkspace, /eventLogStoragePrefix/);
   assert.match(canvasWorkspace, /canvasEventLog/);
@@ -781,6 +783,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /onPaneContextMenu=\{openCanvasContextMenu\}/);
   assert.match(canvasWorkspace, /画布快捷菜单/);
   assert.match(canvasWorkspace, /在此处添加节点或工作流/);
+  assert.match(canvasWorkspace, /粘贴到此处/);
   assert.match(canvasWorkspace, /已通过画布右键菜单添加/);
   assert.match(canvasWorkspace, /handleCanvasDrop/);
   assert.match(canvasWorkspace, /handleCanvasKeyDown/);

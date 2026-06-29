@@ -1481,6 +1481,13 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setCanvasContextMenu(null);
   }
 
+  async function pasteCopiedSelectionFromCanvasContext() {
+    if (!canvasContextMenu) return;
+    const position = canvasContextMenu.position;
+    setCanvasContextMenu(null);
+    await pasteCopiedSelection(position);
+  }
+
   function addFirstFilteredPaletteNode() {
     const nodeType = activePaletteNode?.type;
     if (!nodeType) {
@@ -3069,7 +3076,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(copiedToClipboard ? "已复制连线定位链接到系统剪贴板。" : "浏览器剪贴板不可用，已把连线定位链接暂存到本地。");
   }
 
-  async function pasteCopiedSelection() {
+  async function pasteCopiedSelection(targetPosition?: { x: number; y: number }) {
     let cached: { nodes: Node[]; edges: Edge[] } | null = null;
     try {
       cached = parseClipboardGraphSnapshot(await navigator.clipboard.readText()) || null;
@@ -3095,7 +3102,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const right = Math.max(...cachedNodes.map((node) => node.position.x));
     const top = Math.min(...cachedNodes.map((node) => node.position.y));
     const bottom = Math.max(...cachedNodes.map((node) => node.position.y));
-    const center = currentViewportCenter();
+    const center = targetPosition || currentViewportCenter();
     const offsetX = Number.isFinite(left) && Number.isFinite(right) ? center.x - (left + right) / 2 : 72;
     const offsetY = Number.isFinite(top) && Number.isFinite(bottom) ? center.y - (top + bottom) / 2 : 72;
     const pastedNodes = cachedNodes.map((node, index) => {
@@ -3126,7 +3133,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setNodes((items) => [...items, ...pastedNodes]);
     setEdges((items) => [...items, ...pastedEdges]);
     setSelectedNodeId(pastedNodes[pastedNodes.length - 1]?.id || "");
-    setStatus(`已粘贴链路到当前视图中心：${pastedNodes.length} 个节点、${pastedEdges.length} 条连线。`);
+    setStatus(targetPosition ? `已粘贴链路到画布右键位置：${pastedNodes.length} 个节点、${pastedEdges.length} 条连线。` : `已粘贴链路到当前视图中心：${pastedNodes.length} 个节点、${pastedEdges.length} 条连线。`);
   }
 
   function autoLayoutSelectedNodes() {
@@ -4200,6 +4207,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             { type: "image", label: "图片素材" },
             { type: "comment", label: "画布批注" }
           ].map((item) => <button key={item.type} className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => addNodeFromCanvasContext(item.type)}>{item.label}</button>)}
+          <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => void pasteCopiedSelectionFromCanvasContext()}>粘贴到此处</button>
           <p className="mt-2 border-t border-white/10 px-2 pt-3 text-[11px] font-medium uppercase text-slate-500">工作流预设</p>
           {workflowPresets.map((preset) => <button key={preset.key} className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => addWorkflowPresetFromCanvasContext(preset.key)}>
             <span className="block text-slate-100">{preset.title}</span>

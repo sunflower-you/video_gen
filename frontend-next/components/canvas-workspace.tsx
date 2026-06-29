@@ -620,6 +620,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [showOutline, setShowOutline] = useState(false);
   const [showPalette, setShowPalette] = useState(true);
   const [paletteQuery, setPaletteQuery] = useState("");
+  const [outlineQuery, setOutlineQuery] = useState("");
+  const [outlineIssuesOnly, setOutlineIssuesOnly] = useState(false);
   const [importText, setImportText] = useState("");
   const [customWorkflowPresets, setCustomWorkflowPresets] = useState<CustomWorkflowPreset[]>([]);
   const [presetTitle, setPresetTitle] = useState("自定义工作流");
@@ -658,6 +660,18 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const graphValidation = useMemo(() => validateCanvasGraph(nodes, edges), [nodes, edges]);
   const selectedRunBlockingIssues = useMemo(() => selectedNode ? graphValidation.issues.filter((issue) => issue.level === "error" && issue.nodeId === selectedNode.id) : [], [graphValidation, selectedNode]);
   const graphOutlineNodes = useMemo(() => orderedGraphNodes(nodes, edges), [nodes, edges]);
+  const outlineIssueNodeIds = useMemo(() => new Set(graphValidation.issues.map((issue) => issue.nodeId || "").filter(Boolean)), [graphValidation]);
+  const filteredGraphOutlineNodes = useMemo(() => {
+    const keyword = outlineQuery.trim().toLowerCase();
+    return graphOutlineNodes.filter((node) => {
+      const data = node.data as Record<string, unknown>;
+      const type = String(data.nodeType || "text");
+      const text = `${data.title || ""} ${nodeLabels[type] || type} ${data.status || ""} ${data.group_title || ""}`.toLowerCase();
+      const matchesKeyword = !keyword || text.includes(keyword);
+      const matchesIssues = !outlineIssuesOnly || outlineIssueNodeIds.has(node.id);
+      return matchesKeyword && matchesIssues;
+    });
+  }, [graphOutlineNodes, outlineIssueNodeIds, outlineIssuesOnly, outlineQuery]);
   const terminalNodeIdSet = useMemo(() => new Set(terminalNodeIds(nodes, edges)), [nodes, edges]);
   const filteredAddableNodes = useMemo(() => {
     const keyword = paletteQuery.trim().toLowerCase();
@@ -1944,16 +1958,25 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <p className="text-xs text-slate-400">流程导航</p>
             <h2 className="font-semibold">节点大纲</h2>
           </div>
-          <span className="rounded border border-white/10 px-2 py-1 text-xs text-slate-400">{nodes.length} 个节点</span>
+          <span className="rounded border border-white/10 px-2 py-1 text-xs text-slate-400">{filteredGraphOutlineNodes.length}/{nodes.length} 个节点</span>
         </div>
+        <label className="mt-3 flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm">
+          <Search size={16} className="text-slate-400" />
+          <input className="w-full bg-transparent outline-none placeholder:text-slate-500" placeholder="搜索节点标题、类型、状态" value={outlineQuery} onChange={(event) => setOutlineQuery(event.target.value)} />
+        </label>
+        <label className="mt-2 flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-slate-300">
+          <span>只看问题节点</span>
+          <input type="checkbox" checked={outlineIssuesOnly} onChange={(event) => setOutlineIssuesOnly(event.target.checked)} />
+        </label>
         <div className="mt-3 grid gap-2 text-sm">
-          {graphOutlineNodes.map((node, index) => {
+          {filteredGraphOutlineNodes.map((node, index) => {
             const data = node.data as Record<string, unknown>;
             const type = String(data.nodeType || "text");
             const incomingCount = activeEdges.filter((edge) => edge.target === node.id).length;
             const outgoingCount = activeEdges.filter((edge) => edge.source === node.id).length;
             const taskId = String(data.task_id || "");
             const task = taskId ? taskById.get(taskId) : null;
+            const issueCount = graphValidation.issues.filter((issue) => issue.nodeId === node.id).length;
             return <article key={node.id} className={`rounded-md border px-3 py-2 ${selectedNodeId === node.id ? "border-blue-400/50 bg-blue-500/10" : "border-white/10 bg-white/[0.03]"}`}>
               <button className="w-full text-left" onClick={() => focusCanvasNode(node.id)}>
                 <div className="flex items-start justify-between gap-3">
@@ -1965,7 +1988,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
                 </div>
               </button>
               <div className="mt-2 flex items-center justify-between gap-2 text-xs">
-                <span className="text-slate-500">{terminalNodeIdSet.has(node.id) ? "终点节点" : incomingCount ? "链路中节点" : "起点节点"}</span>
+                <span className={issueCount ? "text-amber-100" : "text-slate-500"}>{issueCount ? `问题 ${issueCount}` : terminalNodeIdSet.has(node.id) ? "终点节点" : incomingCount ? "链路中节点" : "起点节点"}</span>
                 <div className="flex gap-1">
                   <button className="rounded border border-white/10 px-2 py-1 text-slate-200 hover:bg-white/10" onClick={() => focusCanvasNode(node.id)}>定位</button>
                   <button disabled={busy} className="rounded border border-blue-400/30 px-2 py-1 text-blue-100 hover:bg-blue-500/10 disabled:opacity-50" onClick={() => void runNodeChain(node.id)}>运行链路</button>
@@ -1973,7 +1996,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
               </div>
             </article>;
           })}
-          {!graphOutlineNodes.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">暂无节点，请先添加节点或工作流预设。</p>}
+          {!nodes.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">暂无节点，请先添加节点或工作流预设。</p>}
+          {!!nodes.length && !filteredGraphOutlineNodes.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">没有匹配的大纲节点，请调整搜索或关闭问题筛选。</p>}
         </div>
       </aside>}
 

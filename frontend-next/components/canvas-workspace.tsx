@@ -3268,7 +3268,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(copiedToClipboard ? `已下载并复制选区 ProjectGraph JSON：${graph.nodes.length} 个节点、${graph.edges.length} 条连线。` : "已下载选区 ProjectGraph JSON；浏览器剪贴板不可用，已把内容暂存到本地。");
   }
 
-  function importWorkflowJson() {
+  function importWorkflowJson(mode: "append" | "replace" = "append") {
     let graph: Partial<ProjectGraph> & { nodes?: unknown; edges?: unknown };
     try {
       graph = JSON.parse(importText);
@@ -3284,14 +3284,14 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const idMap = new Map<string, string>();
     const importedNodes = (graph.nodes as ProjectGraphNode[]).map((item, index) => {
       const originalId = String(item.id || `node-${index}`);
-      const id = `import-${timestamp}-${index}`;
+      const id = mode === "append" ? `import-${timestamp}-${index}` : originalId;
       idMap.set(originalId, id);
       return toFlowNode({
         ...item,
         id,
         position: {
-          x: Number(item.position?.x || 160) + 48,
-          y: Number(item.position?.y || 120) + 48
+          x: Number(item.position?.x || 160) + (mode === "append" ? 48 : 0),
+          y: Number(item.position?.y || 120) + (mode === "append" ? 48 : 0)
         },
         status: "draft",
         data: { ...(item.data || {}), graphNodeId: id }
@@ -3302,7 +3302,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       const target = idMap.get(String(edge.target));
       if (!source || !target) return [];
       return [edgeWithDefaultHandles({
-        id: `edge-import-${timestamp}-${index}`,
+        id: mode === "append" ? `edge-import-${timestamp}-${index}` : String(edge.id || `edge-replace-${timestamp}-${index}`),
         source,
         target,
         sourceHandle: edge.sourceHandle || "output",
@@ -3311,13 +3311,19 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       } satisfies Edge)];
     });
     rememberGraphHistory();
-    setNodes((items) => [...items, ...importedNodes]);
-    setEdges((items) => [...items, ...importedEdges]);
+    if (mode === "replace") {
+      setNodes(importedNodes);
+      setEdges(importedEdges);
+    } else {
+      setNodes((items) => [...items, ...importedNodes]);
+      setEdges((items) => [...items, ...importedEdges]);
+    }
     restoreCanvasViewport(graph.viewport);
     setSelectedNodeId(importedNodes[0]?.id || "");
+    setSelectedEdgeId("");
     setShowImport(false);
     setImportText("");
-    setStatus(`已导入工作流：${importedNodes.length} 个节点、${importedEdges.length} 条连线。`);
+    setStatus(mode === "replace" ? `已替换当前画布工作流：${importedNodes.length} 个节点、${importedEdges.length} 条连线，可撤销恢复。` : `已追加导入工作流：${importedNodes.length} 个节点、${importedEdges.length} 条连线。`);
   }
 
   async function loadImportJsonFile(event: ReactChangeEvent<HTMLInputElement>) {
@@ -3335,7 +3341,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         return;
       }
       setImportText(text);
-      setStatus(`已读取导入文件：${file.name}，确认后会追加到当前画布。`);
+      setStatus(`已读取导入文件：${file.name}，可选择追加到当前画布或替换当前画布。`);
     } catch {
       setStatus("导入文件读取失败，请重新选择 JSON 文件。");
     }
@@ -3355,7 +3361,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       return;
     }
     setImportText(text);
-    setStatus("已从剪贴板读取 ProjectGraph JSON，确认后会追加到当前画布。");
+    setStatus("已从剪贴板读取 ProjectGraph JSON，可选择追加到当前画布或替换当前画布。");
   }
 
   const selectedData = (selectedNode?.data || {}) as Record<string, unknown>;
@@ -3373,7 +3379,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     { key: "run-graph", title: "运行全图", description: "运行所有终点链路", shortcut: "Ctrl/⌘ R", disabled: busy || !nodes.length, run: () => void runCanvasGraph() },
     { key: "layout", title: "整理画布", description: "按依赖关系自动整理节点", shortcut: "Ctrl/⌘ L", disabled: busy || !nodes.length, run: autoLayoutGraph },
     { key: "validate", title: "画布自检", description: "检查断线、缺参、禁用和运行阻断问题", disabled: busy || !nodes.length, run: () => setShowValidation(true) },
-    { key: "import", title: "导入工作流 JSON", description: "把外部 ProjectGraph 追加到当前画布", disabled: busy, run: () => setShowImport(true) },
+    { key: "import", title: "导入工作流 JSON", description: "把外部 ProjectGraph 追加到当前画布或替换当前画布", disabled: busy, run: () => setShowImport(true) },
     { key: "export", title: "导出工作流 JSON", description: "下载并复制当前完整工作流", disabled: busy || !nodes.length, run: () => void exportWorkflowJson() },
     { key: "export-selection", title: "导出选区 JSON", description: "下载并复制当前选区节点和连线", disabled: busy || !selectedNodes.length, run: () => void exportSelectedWorkflowJson() },
     { key: "save-preset", title: "保存当前画布为预设", description: "保存到我的工作流预设", disabled: !nodes.length, run: saveCurrentWorkflowAsPreset },
@@ -3683,10 +3689,13 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <span>从剪贴板读取 ProjectGraph JSON</span>
           <span className="inline-flex items-center gap-2 rounded-md border border-white/10 px-2 py-1 text-xs text-slate-300"><ClipboardPaste size={14} />读取剪贴板</span>
         </button>
-        <textarea className="mt-3 min-h-64 w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500" placeholder="粘贴从画布导出的 ProjectGraph JSON，导入后会追加到当前画布。" value={importText} onChange={(event) => setImportText(event.target.value)} />
-        <div className="mt-3 flex items-center justify-between gap-2 text-sm">
-          <span className="text-xs text-slate-400">导入会重置节点状态为草稿，并保留参数、位置和连线。</span>
-          <button disabled={busy || !importText.trim()} className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 disabled:opacity-50" onClick={importWorkflowJson}><Upload size={15} />确认导入</button>
+        <textarea className="mt-3 min-h-64 w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500" placeholder="粘贴从画布导出的 ProjectGraph JSON，可追加到当前画布，也可替换当前画布。" value={importText} onChange={(event) => setImportText(event.target.value)} />
+        <div className="mt-3 grid gap-2 text-sm">
+          <span className="text-xs text-slate-400">导入会重置节点状态为草稿，并保留参数、位置和连线；替换当前画布前会写入撤销历史。</span>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <button disabled={busy || !importText.trim()} className="inline-flex items-center gap-2 rounded-md border border-white/10 px-3 py-2 text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => importWorkflowJson("replace")}><Upload size={15} />替换当前画布</button>
+            <button disabled={busy || !importText.trim()} className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 disabled:opacity-50" onClick={() => importWorkflowJson("append")}><Upload size={15} />追加导入</button>
+          </div>
         </div>
       </aside>}
 

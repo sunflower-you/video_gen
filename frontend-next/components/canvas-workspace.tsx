@@ -427,6 +427,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [importText, setImportText] = useState("");
   const [customWorkflowPresets, setCustomWorkflowPresets] = useState<CustomWorkflowPreset[]>([]);
   const [presetTitle, setPresetTitle] = useState("自定义工作流");
+  const [nodeContextMenu, setNodeContextMenu] = useState<{ nodeId: string; x: number; y: number } | null>(null);
   const [busy, setBusy] = useState(false);
 
   const selectedNode = useMemo(() => nodes.find((item) => item.id === selectedNodeId) || null, [nodes, selectedNodeId]);
@@ -466,6 +467,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   useEffect(() => {
     const handleCanvasKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setNodeContextMenu(null);
+        return;
+      }
       const target = event.target as HTMLElement | null;
       if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
@@ -510,6 +515,12 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const onNodesChange = useCallback((changes: NodeChange[]) => setNodes((items) => applyNodeChanges(changes, items)), []);
   const onEdgesChange = useCallback((changes: EdgeChange[]) => setEdges((items) => applyEdgeChanges(changes, items)), []);
   const onConnect = useCallback((connection: Connection) => setEdges((items) => addEdge({ ...connection, id: `edge-${connection.source}-${connection.target}-${Date.now()}` }, items)), []);
+
+  function openNodeContextMenu(event: ReactMouseEvent, nodeId: string) {
+    event.preventDefault();
+    setSelectedNodeId(nodeId);
+    setNodeContextMenu({ nodeId, x: event.clientX, y: event.clientY });
+  }
 
   async function refreshAll() {
     setBusy(true);
@@ -1266,7 +1277,12 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         onDoubleClick={handleCanvasDoubleClick}
         onDragOver={handleCanvasDragOver}
         onDrop={handleCanvasDrop}
-        onNodeClick={(_, node) => setSelectedNodeId(node.id)}
+        onNodeClick={(_, node) => {
+          setSelectedNodeId(node.id);
+          setNodeContextMenu(null);
+        }}
+        onNodeContextMenu={(event, node) => openNodeContextMenu(event, node.id)}
+        onPaneClick={() => setNodeContextMenu(null)}
         fitView
         className="h-full w-full"
       >
@@ -1274,6 +1290,24 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         <Controls className="!bottom-6 !left-1/2 !-translate-x-1/2 !rounded-lg !border !border-white/10 !bg-slate-950/90 !shadow-2xl" />
         <MiniMap className="!bottom-6 !right-6 !rounded-lg !border !border-white/10 !bg-slate-950/90" nodeColor="#2563eb" />
       </ReactFlow>
+
+      {nodeContextMenu && selectedNode && <div
+        className="fixed z-40 w-56 rounded-lg border border-white/10 bg-slate-950/95 p-2 text-sm text-slate-200 shadow-2xl backdrop-blur"
+        style={{ left: nodeContextMenu.x, top: nodeContextMenu.y }}
+      >
+        <div className="border-b border-white/10 px-2 pb-2">
+          <p className="text-xs text-slate-500">节点快捷菜单</p>
+          <strong className="mt-1 block truncate text-white">{String((selectedNode.data as Record<string, unknown>).title || "节点")}</strong>
+        </div>
+        <div className="mt-2 grid gap-1">
+          <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setNodeContextMenu(null); void runSelectedNode(); }}>运行节点</button>
+          <button disabled={busy || !selectedUpstreamInputs.length} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { fillSelectedFromUpstream(); setNodeContextMenu(null); }}>填充上游参数</button>
+          <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { duplicateSelectedNode(); setNodeContextMenu(null); }}>复制节点</button>
+          <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { copySelectedChain(); setNodeContextMenu(null); }}>复制上游链路</button>
+          <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { void runSelectedChain(); setNodeContextMenu(null); }}>运行上游链路</button>
+          <button disabled={busy} className="rounded px-2 py-2 text-left text-red-100 hover:bg-red-500/10 disabled:opacity-50" onClick={() => { setNodeContextMenu(null); void deleteSelectedNode(); }}>删除节点</button>
+        </div>
+      </div>}
 
       <section className="absolute right-4 top-28 z-20 w-[360px] rounded-lg border border-white/10 bg-slate-950/90 p-4 shadow-2xl backdrop-blur">
         <div className="flex items-center justify-between gap-3">

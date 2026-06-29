@@ -184,6 +184,10 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /填充参数/);
   assert.match(canvasWorkspace, /upstreamInputEntries/);
   assert.match(canvasWorkspace, /fillSelectedFromUpstream/);
+  assert.match(canvasWorkspace, /节点快捷菜单/);
+  assert.match(canvasWorkspace, /openNodeContextMenu/);
+  assert.match(canvasWorkspace, /onNodeContextMenu/);
+  assert.match(canvasWorkspace, /复制上游链路/);
   assert.match(canvasWorkspace, /exportWorkflowJson/);
   assert.match(canvasWorkspace, /importWorkflowJson/);
   assert.match(canvasWorkspace, /ProjectGraph JSON/);

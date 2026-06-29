@@ -690,6 +690,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [taskStatusFilter, setTaskStatusFilter] = useState("all");
   const [assetQuery, setAssetQuery] = useState("");
   const [taskQuery, setTaskQuery] = useState("");
+  const [shotStatusFilter, setShotStatusFilter] = useState("all");
+  const [shotQuery, setShotQuery] = useState("");
   const [importText, setImportText] = useState("");
   const [customWorkflowPresets, setCustomWorkflowPresets] = useState<CustomWorkflowPreset[]>([]);
   const [recentNodeTypes, setRecentNodeTypes] = useState<string[]>([]);
@@ -739,12 +741,27 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     counts[task.status] = (counts[task.status] || 0) + 1;
     return counts;
   }, {}), [tasks]);
+  const shotStatusCounts = useMemo(() => shotOptions.reduce<Record<string, number>>((counts, shot) => {
+    const shotStatus = shot.generation_status || "draft";
+    counts[shotStatus] = (counts[shotStatus] || 0) + 1;
+    return counts;
+  }, {}), [shotOptions]);
   const assetTypeCounts = useMemo(() => assets.reduce<Record<string, number>>((counts, asset) => {
     counts[asset.asset_type] = (counts[asset.asset_type] || 0) + 1;
     return counts;
   }, {}), [assets]);
   const assetTypeFilterOptions = useMemo(() => ["all", ...Object.keys(assetTypeCounts).sort()], [assetTypeCounts]);
   const taskStatusFilterOptions = useMemo(() => ["all", ...Object.keys(taskStatusCounts).sort()], [taskStatusCounts]);
+  const shotStatusFilterOptions = useMemo(() => ["all", ...Object.keys(shotStatusCounts).sort()], [shotStatusCounts]);
+  const filteredShots = useMemo(() => {
+    const keyword = shotQuery.trim().toLowerCase();
+    return shotOptions.filter((shot) => {
+      const shotStatus = shot.generation_status || "draft";
+      const matchesStatus = shotStatusFilter === "all" || shotStatus === shotStatusFilter;
+      const text = `${shot.index} ${shot.id} ${shot.narration || ""} ${shot.visual_description || ""} ${shot.prompt || ""} ${shot.negative_prompt || ""} ${(shot.characters || []).join(" ")}`.toLowerCase();
+      return matchesStatus && (!keyword || text.includes(keyword));
+    });
+  }, [shotOptions, shotQuery, shotStatusFilter]);
   const filteredAssets = useMemo(() => {
     const keyword = assetQuery.trim().toLowerCase();
     return assets.filter((asset) => {
@@ -1455,9 +1472,12 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   }
 
   function addAllShotWorkflows() {
-    if (!shotOptions.length) return;
+    if (!filteredShots.length) {
+      setStatus("当前筛选结果没有可添加的分镜。");
+      return;
+    }
     const timestamp = Date.now();
-    const groups = shotOptions.map((shot, index) => buildShotWorkflow(shot, timestamp + index, 220, 120 + index * 280));
+    const groups = filteredShots.map((shot, index) => buildShotWorkflow(shot, timestamp + index, 220, 120 + index * 280));
     const createdNodes = groups.flatMap((group) => group.createdNodes);
     const createdEdges = groups.flatMap((group) => group.createdEdges);
     rememberGraphHistory();
@@ -1465,7 +1485,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setEdges((items) => [...items, ...createdEdges]);
     setSelectedNodeId(createdNodes[0]?.id || "");
     setShowShots(false);
-    setStatus(`已为 ${shotOptions.length} 个分镜添加生成链路。`);
+    setStatus(`已为 ${filteredShots.length} 个分镜添加生成链路。`);
   }
 
   function updateSelectedData(key: string, value: string | boolean) {
@@ -3410,11 +3430,22 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <p className="text-xs text-slate-400">项目分镜</p>
             <h2 className="font-semibold">分镜生成链路</h2>
           </div>
-          <span className="rounded border border-white/10 px-2 py-1 text-xs text-slate-400">{shotOptions.length} 个</span>
+          <span className="rounded border border-white/10 px-2 py-1 text-xs text-slate-400">{filteredShots.length}/{shotOptions.length}</span>
         </div>
-        <button disabled={!shotOptions.length} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border border-blue-400/40 bg-blue-500/10 px-3 py-2 text-sm text-white hover:bg-blue-500/20 disabled:opacity-50" onClick={addAllShotWorkflows}><GitBranch size={15} />添加全部分镜链路</button>
+        <div className="mt-3 flex flex-wrap gap-1 text-[11px]">
+          {shotStatusFilterOptions.map((shotStatus) => <button
+            key={shotStatus}
+            className={`rounded border px-2 py-1 ${shotStatusFilter === shotStatus ? "border-blue-400/50 bg-blue-500/15 text-blue-50" : "border-white/10 text-slate-300 hover:bg-white/10"}`}
+            onClick={() => setShotStatusFilter(shotStatus)}
+          >{shotStatus === "all" ? `全部 ${shotOptions.length}` : `${statusText(shotStatus)} ${shotStatusCounts[shotStatus] || 0}`}</button>)}
+        </div>
+        <label className="mt-3 flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm">
+          <Search size={15} className="text-slate-400" />
+          <input className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-slate-500" placeholder="搜索分镜描述、旁白、角色" value={shotQuery} onChange={(event) => setShotQuery(event.target.value)} />
+        </label>
+        <button disabled={!filteredShots.length} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border border-blue-400/40 bg-blue-500/10 px-3 py-2 text-sm text-white hover:bg-blue-500/20 disabled:opacity-50" onClick={addAllShotWorkflows}><GitBranch size={15} />添加当前分镜链路</button>
         <div className="mt-3 grid gap-2 text-sm">
-          {shotOptions.map((shot) => <article key={shot.id} className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+          {filteredShots.map((shot) => <article key={shot.id} className="rounded-md border border-white/10 bg-white/[0.03] p-3">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <strong className="block text-white">分镜 {shot.index}</strong>
@@ -3426,6 +3457,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-xs text-white hover:bg-blue-500" onClick={() => addShotWorkflow(shot)}><GitBranch size={14} />添加分镜链路</button>
           </article>)}
           {!shotOptions.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">暂无分镜，请先从创作入口生成脚本分镜。</p>}
+          {!!shotOptions.length && !filteredShots.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">没有匹配分镜，请调整状态或关键词。</p>}
         </div>
       </aside>}
 

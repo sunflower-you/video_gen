@@ -254,6 +254,14 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /分镜列表/);
   assert.match(canvasWorkspace, /项目分镜/);
   assert.match(canvasWorkspace, /分镜生成链路/);
+  assert.match(canvasWorkspace, /shotStatusCounts/);
+  assert.match(canvasWorkspace, /shotStatusFilter/);
+  assert.match(canvasWorkspace, /shotQuery/);
+  assert.match(canvasWorkspace, /filteredShots/);
+  assert.match(canvasWorkspace, /搜索分镜描述、旁白、角色/);
+  assert.match(canvasWorkspace, /添加当前分镜链路/);
+  assert.match(canvasWorkspace, /没有匹配分镜/);
+  assert.match(canvasWorkspace, /当前筛选结果没有可添加的分镜/);
   assert.match(canvasWorkspace, /outlineQuery/);
   assert.match(canvasWorkspace, /outlineIssuesOnly/);
   assert.match(canvasWorkspace, /filteredGraphOutlineNodes/);
@@ -322,7 +330,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /可继续整理、打组、复制或运行链路/);
   assert.match(canvasWorkspace, /没有匹配的大纲节点/);
   assert.match(canvasWorkspace, /添加分镜链路/);
-  assert.match(canvasWorkspace, /添加全部分镜链路/);
+  assert.match(canvasWorkspace, /添加当前分镜链路/);
   assert.match(canvasWorkspace, /addShotWorkflow/);
   assert.match(canvasWorkspace, /addAllShotWorkflows/);
   assert.match(canvasWorkspace, /buildShotWorkflow/);

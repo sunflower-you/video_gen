@@ -18,7 +18,7 @@ import {
   type NodeProps,
   type ReactFlowInstance
 } from "@xyflow/react";
-import { AlertTriangle, Boxes, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, GitBranch, Image, LayoutGrid, Library, ListTree, Music, Play, Plus, Redo2, RefreshCcw, Save, Search, Sparkles, Trash2, Undo2, Upload, Video, Wand2 } from "lucide-react";
+import { AlertTriangle, Boxes, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, GitBranch, Image, LayoutGrid, Library, ListTree, Lock, Music, Play, Plus, Redo2, RefreshCcw, Save, Search, Sparkles, Trash2, Undo2, Unlock, Upload, Video, Wand2 } from "lucide-react";
 import { apiFetch, currentUserId, deleteJson, postJson, type Asset, type GenerationTask, type Project, type ProjectGraph, type ProjectGraphNode, type StoryboardShot } from "../lib/api";
 
 const nodeLabels: Record<string, string> = {
@@ -93,11 +93,12 @@ function PlatformNode({ data, selected }: NodeProps) {
   const title = String(payload.title || nodeLabels[type] || "节点");
   const summary = String(payload.text || payload.script || payload.prompt || payload.narration || payload.result_summary || payload.workflow_key || "等待编辑参数");
   const status = String(payload.status || "draft");
+  const locked = payload.locked === true;
   return (
     <div className={`w-[240px] rounded-lg border p-3 text-white shadow-xl ${nodeColors[type] || nodeColors.demo} ${selected ? "ring-2 ring-white" : ""}`}>
       <div className="flex items-center justify-between gap-2">
         <strong className="truncate text-sm">{title}</strong>
-        <span className="rounded bg-black/30 px-2 py-1 text-[11px]">{statusText(status)}</span>
+        <span className="inline-flex items-center gap-1 rounded bg-black/30 px-2 py-1 text-[11px]">{locked && <Lock size={11} />}{statusText(status)}</span>
       </div>
       {mediaUrlFromData(payload) && <div className="mt-2 overflow-hidden rounded-md border border-white/10 bg-black/30"><MediaPreview data={payload} title={title} compact /></div>}
       <p className="mt-2 line-clamp-3 text-xs text-slate-200">{summary}</p>
@@ -113,6 +114,7 @@ function toFlowNode(item: ProjectGraphNode): Node {
     id: item.id,
     type: "platform",
     position: item.position,
+    draggable: item.data?.locked !== true,
     data: { ...item.data, nodeType: item.type, graphNodeId: item.id, status: item.status || "draft" }
   };
 }
@@ -687,6 +689,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       id,
       type: "platform",
       position,
+      draggable: extraData.locked !== true,
       data: { ...buildNodeData(type), ...extraData, nodeType: type, graphNodeId: id, status: String(extraData.status || "draft") }
     };
     return node;
@@ -909,6 +912,14 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setNodes((items) => items.map((node) => node.id === selectedNode.id ? { ...node, data: { ...node.data, [key]: value } } : node));
   }
 
+  function toggleSelectedNodeLock() {
+    if (!selectedNode) return;
+    const nextLocked = (selectedNode.data as Record<string, unknown>).locked !== true;
+    rememberGraphHistory();
+    setNodes((items) => items.map((node) => node.id === selectedNode.id ? { ...node, draggable: !nextLocked, data: { ...node.data, locked: nextLocked } } : node));
+    setStatus(nextLocked ? "节点已锁定，防止误拖动和误删。" : "节点已解锁，可继续编辑位置和结构。");
+  }
+
   function fillSelectedFromUpstream() {
     if (!selectedNode) return;
     if (!selectedUpstreamInputs.length) {
@@ -1065,8 +1076,9 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       ...selectedNode,
       id,
       selected: false,
+      draggable: true,
       position: { x: selectedNode.position.x + 40, y: selectedNode.position.y + 40 },
-      data: { ...(selectedNode.data as Record<string, unknown>), graphNodeId: id, title: `${String(selectedData.title || nodeLabels[selectedType] || "节点")} 副本`, status: "draft" }
+      data: { ...(selectedNode.data as Record<string, unknown>), graphNodeId: id, title: `${String(selectedData.title || nodeLabels[selectedType] || "节点")} 副本`, status: "draft", locked: false }
     };
     rememberGraphHistory();
     setNodes((items) => [...items, duplicated]);
@@ -1106,11 +1118,12 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const pastedNodes = (cached.nodes as Node[]).map((node, index) => {
       const id = `paste-${node.id}-${timestamp}-${index}`;
       idMap.set(node.id, id);
-      const data = { ...(node.data as Record<string, unknown>), graphNodeId: id, status: "draft" };
+      const data: Record<string, unknown> = { ...(node.data as Record<string, unknown>), graphNodeId: id, status: "draft" };
       return {
         ...node,
         id,
         selected: false,
+        draggable: data.locked !== true,
         position: { x: node.position.x + 72, y: node.position.y + 72 },
         data
       } satisfies Node;
@@ -1136,6 +1149,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   async function deleteSelectedNode() {
     if (!selectedNode) return;
     const nodeId = selectedNode.id;
+    if ((selectedNode.data as Record<string, unknown>).locked === true) {
+      setStatus("节点已锁定，请先解锁再删除。");
+      return;
+    }
     rememberGraphHistory();
     setNodes((items) => items.filter((node) => node.id !== nodeId));
     setEdges((items) => items.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
@@ -1158,6 +1175,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setNodes((items) => [...items, {
       id,
       type: "platform",
+      draggable: true,
       position: { x: 260 + items.length * 32, y: 220 + items.length * 24 },
       data: { title: `素材 ${asset.asset_type}`, nodeType: type, graphNodeId: id, status: "completed", [dataKey]: asset.url, text: asset.workflow_key || asset.source_task_type || "项目素材" }
     }]);
@@ -1449,7 +1467,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { duplicateSelectedNode(); setNodeContextMenu(null); }}>复制节点</button>
           <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { copySelectedChain(); setNodeContextMenu(null); }}>复制上游链路</button>
           <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { void runSelectedChain(); setNodeContextMenu(null); }}>运行上游链路</button>
-          <button disabled={busy} className="rounded px-2 py-2 text-left text-red-100 hover:bg-red-500/10 disabled:opacity-50" onClick={() => { setNodeContextMenu(null); void deleteSelectedNode(); }}>删除节点</button>
+          <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { toggleSelectedNodeLock(); setNodeContextMenu(null); }}>{(selectedNode.data as Record<string, unknown>).locked === true ? "解锁节点" : "锁定节点"}</button>
+          <button disabled={busy || (selectedNode.data as Record<string, unknown>).locked === true} className="rounded px-2 py-2 text-left text-red-100 hover:bg-red-500/10 disabled:opacity-50" onClick={() => { setNodeContextMenu(null); void deleteSelectedNode(); }}>删除节点</button>
         </div>
       </div>}
 
@@ -1459,7 +1478,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <p className="text-xs text-slate-400">参数面板</p>
             <h2 className="font-semibold">{selectedNode ? nodeLabels[selectedType] || "节点" : "未选择节点"}</h2>
           </div>
-          {selectedNode && <button title="删除节点" className="rounded-md border border-white/10 p-2 text-slate-300 hover:bg-white/10" onClick={() => void deleteSelectedNode()}><Trash2 size={16} /></button>}
+          {selectedNode && <div className="flex items-center gap-2">
+            <button title={selectedData.locked === true ? "解锁节点" : "锁定节点"} className="rounded-md border border-white/10 p-2 text-slate-300 hover:bg-white/10" onClick={toggleSelectedNodeLock}>{selectedData.locked === true ? <Unlock size={16} /> : <Lock size={16} />}</button>
+            <button title="删除节点" disabled={selectedData.locked === true} className="rounded-md border border-white/10 p-2 text-slate-300 hover:bg-white/10 disabled:opacity-50" onClick={() => void deleteSelectedNode()}><Trash2 size={16} /></button>
+          </div>}
         </div>
         {selectedNode ? <div className="mt-4 grid gap-3 text-sm">
           {mediaUrlFromData(selectedData) && <section className="rounded-md border border-white/10 bg-black/25 p-2">
@@ -1483,6 +1505,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
               {!selectedUpstreamInputs.length && <p className="rounded border border-white/10 px-2 py-1 text-slate-400">已连接上游节点，但没有可直接填充的字段。</p>}
             </div>
           </section>}
+          <label className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
+            <span className="text-slate-300">锁定节点位置</span>
+            <input type="checkbox" checked={selectedData.locked === true} onChange={toggleSelectedNodeLock} />
+          </label>
           <label className="grid gap-1"><span className="text-slate-400">标题</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.title || "")} onChange={(event) => updateSelectedData("title", event.target.value)} /></label>
           {(selectedType === "text" || selectedType === "demo") && <label className="grid gap-1"><span className="text-slate-400">文本内容</span><textarea className="min-h-28 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.text || "")} onChange={(event) => updateSelectedData("text", event.target.value)} /></label>}
           {selectedType === "script" && <label className="grid gap-1"><span className="text-slate-400">脚本</span><textarea className="min-h-40 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.script || "")} onChange={(event) => updateSelectedData("script", event.target.value)} /></label>}

@@ -207,6 +207,12 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /复制节点/);
   assert.match(canvasWorkspace, /复制链路/);
   assert.match(canvasWorkspace, /粘贴链路/);
+  assert.match(canvasWorkspace, /锁定节点/);
+  assert.match(canvasWorkspace, /解锁节点/);
+  assert.match(canvasWorkspace, /锁定节点位置/);
+  assert.match(canvasWorkspace, /toggleSelectedNodeLock/);
+  assert.match(canvasWorkspace, /draggable: item\.data\?\.locked !== true/);
+  assert.match(canvasWorkspace, /节点已锁定，请先解锁再删除/);
   assert.match(canvasWorkspace, /删除节点/);
   assert.match(canvasWorkspace, /upstreamNodeIds/);
   assert.match(canvasWorkspace, /orderedChainNodes/);

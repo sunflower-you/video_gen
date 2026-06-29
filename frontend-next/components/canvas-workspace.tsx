@@ -921,6 +921,24 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setNodes((items) => items.map((node) => node.id === selectedNode.id ? { ...node, data: { ...node.data, [key]: value } } : node));
   }
 
+  function updateSelectedNodeType(nextType: string) {
+    if (!selectedNode || nextType === selectedType || !nodeLabels[nextType]) return;
+    const currentData = selectedNode.data as Record<string, unknown>;
+    const defaults = buildNodeData(nextType);
+    rememberGraphHistory();
+    setNodes((items) => items.map((node) => node.id === selectedNode.id ? {
+      ...node,
+      data: {
+        ...defaults,
+        ...currentData,
+        nodeType: nextType,
+        graphNodeId: selectedNode.id,
+        title: String(currentData.title || (defaults as Record<string, unknown>).title || nodeLabels[nextType])
+      }
+    } : node));
+    setStatus(`节点类型已切换为${nodeLabels[nextType]}，连线和已有参数已保留。`);
+  }
+
   function toggleSelectedNodeLock() {
     if (!selectedNode) return;
     const nextLocked = (selectedNode.data as Record<string, unknown>).locked !== true;
@@ -1548,6 +1566,9 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <span className="text-slate-300">禁用节点运行</span>
             <input type="checkbox" checked={selectedData.disabled === true} onChange={toggleSelectedNodeDisabled} />
           </label>
+          <label className="grid gap-1"><span className="text-slate-400">节点类型</span><select className="rounded-md border border-white/10 bg-slate-900 px-3 py-2 outline-none" value={selectedType} onChange={(event) => updateSelectedNodeType(event.target.value)}>
+            {addableNodes.map((item) => <option key={item.type} value={item.type}>{item.category} · {nodeLabels[item.type] || item.label}</option>)}
+          </select></label>
           <label className="grid gap-1"><span className="text-slate-400">标题</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.title || "")} onChange={(event) => updateSelectedData("title", event.target.value)} /></label>
           {(selectedType === "text" || selectedType === "demo") && <label className="grid gap-1"><span className="text-slate-400">文本内容</span><textarea className="min-h-28 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.text || "")} onChange={(event) => updateSelectedData("text", event.target.value)} /></label>}
           {selectedType === "script" && <label className="grid gap-1"><span className="text-slate-400">脚本</span><textarea className="min-h-40 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.script || "")} onChange={(event) => updateSelectedData("script", event.target.value)} /></label>}

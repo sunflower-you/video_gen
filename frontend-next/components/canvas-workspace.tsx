@@ -481,6 +481,13 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   const selectedNode = useMemo(() => nodes.find((item) => item.id === selectedNodeId) || null, [nodes, selectedNodeId]);
   const selectedEdge = useMemo(() => edges.find((item) => item.id === selectedEdgeId) || null, [edges, selectedEdgeId]);
+  const selectedNodes = useMemo(() => {
+    const picked = nodes.filter((item) => item.selected);
+    if (picked.length) return picked;
+    return selectedNode ? [selectedNode] : [];
+  }, [nodes, selectedNode]);
+  const selectedNodeIds = useMemo(() => new Set(selectedNodes.map((item) => item.id)), [selectedNodes]);
+  const selectedSelectionEdges = useMemo(() => edges.filter((edge) => selectedNodeIds.has(edge.source) && selectedNodeIds.has(edge.target)), [edges, selectedNodeIds]);
   const shotOptions = useMemo(() => project?.shots || [], [project]);
   const taskById = useMemo(() => new Map(tasks.map((task) => [task.id, task])), [tasks]);
   const selectedTask = useMemo(() => {
@@ -591,7 +598,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "c") {
         event.preventDefault();
-        copySelectedChain();
+        if (selectedNodes.length > 1) copySelectedNodes();
+        else copySelectedChain();
         return;
       }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "v") {
@@ -601,7 +609,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "d") {
         event.preventDefault();
-        duplicateSelectedNode();
+        duplicateSelectedNodes();
         return;
       }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "r") {
@@ -612,6 +620,11 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "l") {
         event.preventDefault();
         autoLayoutGraph();
+        return;
+      }
+      if ((event.key === "Delete" || event.key === "Backspace") && selectedNodes.length > 1) {
+        event.preventDefault();
+        void deleteSelectedNodes();
         return;
       }
       if ((event.key === "Delete" || event.key === "Backspace") && selectedNode) {
@@ -1234,6 +1247,57 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus("节点已复制，可继续编辑参数或接入连线。");
   }
 
+  function duplicateSelectedNodes() {
+    if (selectedNodes.length <= 1) {
+      duplicateSelectedNode();
+      return;
+    }
+    const timestamp = Date.now();
+    const idMap = new Map<string, string>();
+    const duplicatedNodes = selectedNodes.map((node, index) => {
+      const data = node.data as Record<string, unknown>;
+      const type = String(data.nodeType || "text");
+      const id = `copy-${node.id}-${timestamp}-${index}`;
+      idMap.set(node.id, id);
+      return {
+        ...node,
+        id,
+        selected: true,
+        draggable: true,
+        position: { x: node.position.x + 56, y: node.position.y + 56 },
+        data: { ...data, graphNodeId: id, title: `${String(data.title || nodeLabels[type] || "节点")} 副本`, status: "draft", locked: false, disabled: false }
+      } satisfies Node;
+    });
+    const duplicatedEdges = selectedSelectionEdges.flatMap((edge, index) => {
+      const source = idMap.get(edge.source);
+      const target = idMap.get(edge.target);
+      if (!source || !target) return [];
+      return [{
+        ...edge,
+        id: `edge-copy-${timestamp}-${index}`,
+        source,
+        target
+      } satisfies Edge];
+    });
+    rememberGraphHistory();
+    setNodes((items) => [...items.map((node) => ({ ...node, selected: false })), ...duplicatedNodes]);
+    setEdges((items) => [...items, ...duplicatedEdges]);
+    setSelectedNodeId(duplicatedNodes[duplicatedNodes.length - 1]?.id || "");
+    setSelectedEdgeId("");
+    setStatus(`已复制选区：${duplicatedNodes.length} 个节点、${duplicatedEdges.length} 条连线。`);
+  }
+
+  function copySelectedNodes() {
+    if (!selectedNodes.length) {
+      setStatus("请先框选或点选节点，再复制选区。");
+      return;
+    }
+    const snapshot = { nodes: selectedNodes, edges: selectedSelectionEdges };
+    setCopiedSelection(snapshot);
+    window.localStorage.setItem(`project_graph_clipboard_${projectId}`, JSON.stringify(snapshot));
+    setStatus(`已复制选区：${selectedNodes.length} 个节点、${selectedSelectionEdges.length} 条连线。`);
+  }
+
   function copySelectedChain() {
     if (!selectedNode) {
       setStatus("请先选择一个节点，再复制链路。");
@@ -1292,6 +1356,53 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setEdges((items) => [...items, ...pastedEdges]);
     setSelectedNodeId(pastedNodes[pastedNodes.length - 1]?.id || "");
     setStatus(`已粘贴链路：${pastedNodes.length} 个节点、${pastedEdges.length} 条连线。`);
+  }
+
+  function autoLayoutSelectedNodes() {
+    if (selectedNodes.length <= 1) {
+      setStatus("请先框选多个节点，再整理选区。");
+      return;
+    }
+    const selectedEdges = edges.filter((edge) => selectedNodeIds.has(edge.source) && selectedNodeIds.has(edge.target));
+    const laidOut = layoutGraphNodes(selectedNodes, selectedEdges);
+    const laidOutById = new Map(laidOut.map((node) => [node.id, node]));
+    rememberGraphHistory();
+    setNodes((items) => items.map((node) => laidOutById.get(node.id) || node));
+    setStatus(`已整理选区：${selectedNodes.length} 个节点。`);
+  }
+
+  function setSelectedNodesLocked(locked: boolean) {
+    if (!selectedNodes.length) return;
+    rememberGraphHistory();
+    setNodes((items) => items.map((node) => selectedNodeIds.has(node.id) ? { ...node, draggable: !locked, data: { ...(node.data as Record<string, unknown>), locked } } : node));
+    setStatus(locked ? `已锁定选区：${selectedNodes.length} 个节点。` : `已解锁选区：${selectedNodes.length} 个节点。`);
+  }
+
+  function setSelectedNodesDisabled(disabled: boolean) {
+    if (!selectedNodes.length) return;
+    rememberGraphHistory();
+    setNodes((items) => items.map((node) => selectedNodeIds.has(node.id) ? { ...node, data: { ...(node.data as Record<string, unknown>), disabled } } : node));
+    setStatus(disabled ? `已禁用选区：${selectedNodes.length} 个节点，运行时会跳过。` : `已启用选区：${selectedNodes.length} 个节点。`);
+  }
+
+  async function deleteSelectedNodes() {
+    if (!selectedNodes.length) return;
+    const unlockedIds = new Set(selectedNodes.filter((node) => (node.data as Record<string, unknown>).locked !== true).map((node) => node.id));
+    if (!unlockedIds.size) {
+      setStatus("选区节点均已锁定，请先解锁再删除。");
+      return;
+    }
+    rememberGraphHistory();
+    setNodes((items) => items.filter((node) => !unlockedIds.has(node.id)));
+    setEdges((items) => items.filter((edge) => !unlockedIds.has(edge.source) && !unlockedIds.has(edge.target)));
+    setSelectedNodeId("");
+    setSelectedEdgeId("");
+    const remoteNodeIds = [...unlockedIds].filter((nodeId) => !nodeId.startsWith("local-"));
+    if (remoteNodeIds.length) {
+      const userId = currentUserId();
+      await Promise.allSettled(remoteNodeIds.map((nodeId) => deleteJson(`/api/projects/${projectId}/graph/nodes/${nodeId}`, { user_id: userId })));
+    }
+    setStatus(`已删除选区：${unlockedIds.size} 个节点${unlockedIds.size < selectedNodes.length ? "，已跳过锁定节点" : ""}。`);
   }
 
   async function deleteSelectedNode() {
@@ -1637,18 +1748,29 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         style={{ left: nodeContextMenu.x, top: nodeContextMenu.y }}
       >
         <div className="border-b border-white/10 px-2 pb-2">
-          <p className="text-xs text-slate-500">节点快捷菜单</p>
-          <strong className="mt-1 block truncate text-white">{String((selectedNode.data as Record<string, unknown>).title || "节点")}</strong>
+          <p className="text-xs text-slate-500">{selectedNodes.length > 1 ? "选区快捷菜单" : "节点快捷菜单"}</p>
+          <strong className="mt-1 block truncate text-white">{selectedNodes.length > 1 ? `已选择 ${selectedNodes.length} 个节点` : String((selectedNode.data as Record<string, unknown>).title || "节点")}</strong>
         </div>
         <div className="mt-2 grid gap-1">
-          <button disabled={busy || (selectedNode.data as Record<string, unknown>).disabled === true} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setNodeContextMenu(null); void runSelectedNode(); }}>运行节点</button>
-          <button disabled={busy || !selectedUpstreamInputs.length} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { fillSelectedFromUpstream(); setNodeContextMenu(null); }}>填充上游参数</button>
-          <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { duplicateSelectedNode(); setNodeContextMenu(null); }}>复制节点</button>
-          <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { copySelectedChain(); setNodeContextMenu(null); }}>复制上游链路</button>
-          <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { void runSelectedChain(); setNodeContextMenu(null); }}>运行上游链路</button>
-          <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { toggleSelectedNodeDisabled(); setNodeContextMenu(null); }}>{(selectedNode.data as Record<string, unknown>).disabled === true ? "启用节点" : "禁用节点"}</button>
-          <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { toggleSelectedNodeLock(); setNodeContextMenu(null); }}>{(selectedNode.data as Record<string, unknown>).locked === true ? "解锁节点" : "锁定节点"}</button>
-          <button disabled={busy || (selectedNode.data as Record<string, unknown>).locked === true} className="rounded px-2 py-2 text-left text-red-100 hover:bg-red-500/10 disabled:opacity-50" onClick={() => { setNodeContextMenu(null); void deleteSelectedNode(); }}>删除节点</button>
+          {selectedNodes.length > 1 ? <>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { copySelectedNodes(); setNodeContextMenu(null); }}>复制选区</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { duplicateSelectedNodes(); setNodeContextMenu(null); }}>生成选区副本</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { autoLayoutSelectedNodes(); setNodeContextMenu(null); }}>整理选区</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesDisabled(true); setNodeContextMenu(null); }}>禁用选区</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesDisabled(false); setNodeContextMenu(null); }}>启用选区</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesLocked(true); setNodeContextMenu(null); }}>锁定选区</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesLocked(false); setNodeContextMenu(null); }}>解锁选区</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left text-red-100 hover:bg-red-500/10 disabled:opacity-50" onClick={() => { setNodeContextMenu(null); void deleteSelectedNodes(); }}>删除选区</button>
+          </> : <>
+            <button disabled={busy || (selectedNode.data as Record<string, unknown>).disabled === true} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setNodeContextMenu(null); void runSelectedNode(); }}>运行节点</button>
+            <button disabled={busy || !selectedUpstreamInputs.length} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { fillSelectedFromUpstream(); setNodeContextMenu(null); }}>填充上游参数</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { duplicateSelectedNode(); setNodeContextMenu(null); }}>复制节点</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { copySelectedChain(); setNodeContextMenu(null); }}>复制上游链路</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { void runSelectedChain(); setNodeContextMenu(null); }}>运行上游链路</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { toggleSelectedNodeDisabled(); setNodeContextMenu(null); }}>{(selectedNode.data as Record<string, unknown>).disabled === true ? "启用节点" : "禁用节点"}</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { toggleSelectedNodeLock(); setNodeContextMenu(null); }}>{(selectedNode.data as Record<string, unknown>).locked === true ? "解锁节点" : "锁定节点"}</button>
+            <button disabled={busy || (selectedNode.data as Record<string, unknown>).locked === true} className="rounded px-2 py-2 text-left text-red-100 hover:bg-red-500/10 disabled:opacity-50" onClick={() => { setNodeContextMenu(null); void deleteSelectedNode(); }}>删除节点</button>
+          </>}
         </div>
       </div>}
 
@@ -1656,15 +1778,32 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-xs text-slate-400">参数面板</p>
-            <h2 className="font-semibold">{selectedNode ? nodeLabels[selectedType] || "节点" : "未选择节点"}</h2>
+            <h2 className="font-semibold">{selectedNodes.length > 1 ? "选区操作" : selectedNode ? nodeLabels[selectedType] || "节点" : "未选择节点"}</h2>
           </div>
-          {selectedNode && <div className="flex items-center gap-2">
+          {selectedNode && selectedNodes.length <= 1 && <div className="flex items-center gap-2">
             <button title={selectedData.disabled === true ? "启用节点" : "禁用节点"} className="rounded-md border border-white/10 p-2 text-slate-300 hover:bg-white/10" onClick={toggleSelectedNodeDisabled}><Ban size={16} /></button>
             <button title={selectedData.locked === true ? "解锁节点" : "锁定节点"} className="rounded-md border border-white/10 p-2 text-slate-300 hover:bg-white/10" onClick={toggleSelectedNodeLock}>{selectedData.locked === true ? <Unlock size={16} /> : <Lock size={16} />}</button>
             <button title="删除节点" disabled={selectedData.locked === true} className="rounded-md border border-white/10 p-2 text-slate-300 hover:bg-white/10 disabled:opacity-50" onClick={() => void deleteSelectedNode()}><Trash2 size={16} /></button>
           </div>}
         </div>
-        {selectedNode ? <div className="mt-4 grid gap-3 text-sm">
+        {selectedNodes.length > 1 ? <div className="mt-4 grid gap-3 text-sm">
+          <section className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+            <p className="text-xs text-slate-400">批量节点操作</p>
+            <h3 className="mt-1 font-semibold text-white">已选择 {selectedNodes.length} 个节点</h3>
+            <p className="mt-2 text-xs leading-5 text-slate-400">选区内包含 {selectedSelectionEdges.length} 条内部连线，可批量复制、整理、锁定、禁用或删除。</p>
+          </section>
+          <div className="grid grid-cols-2 gap-2">
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={copySelectedNodes}><ClipboardCopy size={16} />复制选区</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={duplicateSelectedNodes}><Copy size={16} />生成副本</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={pasteCopiedSelection}><ClipboardPaste size={16} />粘贴选区</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={autoLayoutSelectedNodes}><LayoutGrid size={16} />整理选区</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesDisabled(true)}><Ban size={16} />禁用选区</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesDisabled(false)}><Play size={16} />启用选区</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesLocked(true)}><Lock size={16} />锁定选区</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesLocked(false)}><Unlock size={16} />解锁选区</button>
+            <button disabled={busy} className="col-span-2 inline-flex items-center justify-center gap-2 rounded-md border border-red-400/30 px-3 py-2 text-red-100 disabled:opacity-50" onClick={() => void deleteSelectedNodes()}><Trash2 size={16} />删除选区</button>
+          </div>
+        </div> : selectedNode ? <div className="mt-4 grid gap-3 text-sm">
           {mediaUrlFromData(selectedData) && <section className="rounded-md border border-white/10 bg-black/25 p-2">
             <div className="mb-2 flex items-center justify-between gap-2 text-xs text-slate-400">
               <span>素材预览</span>

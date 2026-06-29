@@ -207,6 +207,11 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /复制节点/);
   assert.match(canvasWorkspace, /复制链路/);
   assert.match(canvasWorkspace, /粘贴链路/);
+  assert.match(canvasWorkspace, /选区操作/);
+  assert.match(canvasWorkspace, /复制选区/);
+  assert.match(canvasWorkspace, /整理选区/);
+  assert.match(canvasWorkspace, /禁用选区/);
+  assert.match(canvasWorkspace, /锁定选区/);
   assert.match(canvasWorkspace, /锁定节点/);
   assert.match(canvasWorkspace, /解锁节点/);
   assert.match(canvasWorkspace, /锁定节点位置/);
@@ -248,6 +253,11 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /runCanvasGraph/);
   assert.match(canvasWorkspace, /autoLayoutGraph/);
   assert.match(canvasWorkspace, /duplicateSelectedNode/);
+  assert.match(canvasWorkspace, /duplicateSelectedNodes/);
+  assert.match(canvasWorkspace, /copySelectedNodes/);
+  assert.match(canvasWorkspace, /deleteSelectedNodes/);
+  assert.match(canvasWorkspace, /autoLayoutSelectedNodes/);
+  assert.match(canvasWorkspace, /setSelectedNodesDisabled/);
   assert.match(canvasWorkspace, /copySelectedChain/);
   assert.match(canvasWorkspace, /pasteCopiedSelection/);
   assert.match(canvasWorkspace, /handleCanvasDoubleClick/);

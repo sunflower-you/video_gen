@@ -18,7 +18,7 @@ import {
   type NodeProps,
   type ReactFlowInstance
 } from "@xyflow/react";
-import { AlertTriangle, Boxes, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, GitBranch, Image, LayoutGrid, Library, Music, Play, Plus, Redo2, RefreshCcw, Save, Search, Sparkles, Trash2, Undo2, Upload, Video, Wand2 } from "lucide-react";
+import { AlertTriangle, Boxes, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, GitBranch, Image, LayoutGrid, Library, ListTree, Music, Play, Plus, Redo2, RefreshCcw, Save, Search, Sparkles, Trash2, Undo2, Upload, Video, Wand2 } from "lucide-react";
 import { apiFetch, currentUserId, deleteJson, postJson, type Asset, type GenerationTask, type Project, type ProjectGraph, type ProjectGraphNode, type StoryboardShot } from "../lib/api";
 
 const nodeLabels: Record<string, string> = {
@@ -428,6 +428,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [showShots, setShowShots] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
+  const [showOutline, setShowOutline] = useState(false);
   const [showPalette, setShowPalette] = useState(true);
   const [paletteQuery, setPaletteQuery] = useState("");
   const [importText, setImportText] = useState("");
@@ -452,6 +453,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     return counts;
   }, {}), [tasks]);
   const graphValidation = useMemo(() => validateCanvasGraph(nodes, edges), [nodes, edges]);
+  const graphOutlineNodes = useMemo(() => orderedGraphNodes(nodes, edges), [nodes, edges]);
+  const terminalNodeIdSet = useMemo(() => new Set(terminalNodeIds(nodes, edges)), [nodes, edges]);
   const filteredAddableNodes = useMemo(() => {
     const keyword = paletteQuery.trim().toLowerCase();
     return addableNodes.filter((item) => {
@@ -984,9 +987,19 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   async function runSelectedChain() {
     if (!selectedNode) return;
+    await runNodeChain(selectedNode.id);
+  }
+
+  async function runNodeChain(nodeId: string) {
+    const targetNode = nodes.find((node) => node.id === nodeId);
+    if (!targetNode) {
+      setStatus("画布中暂未找到要运行的节点。");
+      return;
+    }
+    setSelectedNodeId(nodeId);
     await saveGraph();
-    const upstream = upstreamNodeIds(selectedNode.id, edges);
-    const orderedNodes = orderedChainNodes(selectedNode.id, nodes, edges);
+    const upstream = upstreamNodeIds(nodeId, edges);
+    const orderedNodes = orderedChainNodes(nodeId, nodes, edges);
     setBusy(true);
     setStatus(`正在运行链路，上游 ${upstream.size} 个，共 ${orderedNodes.length} 个节点...`);
     try {
@@ -1251,10 +1264,50 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
       <aside className="absolute left-4 top-28 z-20 grid gap-2 rounded-lg border border-white/10 bg-slate-950/85 p-2 shadow-2xl backdrop-blur">
         <button title="添加节点" className="grid h-10 w-10 place-items-center rounded-md bg-blue-600 text-white hover:bg-blue-500" onClick={() => setShowPalette((value) => !value)}><Plus size={18} /></button>
+        <button title="节点大纲" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowOutline((value) => !value)}><ListTree size={18} /></button>
         <button title="分镜列表" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowShots((value) => !value)}><Clapperboard size={18} /></button>
         <button title="素材库" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowAssets((value) => !value)}><Library size={18} /></button>
         <button title="任务队列" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowTasks((value) => !value)}><Boxes size={18} /></button>
       </aside>
+
+      {showOutline && <aside className="absolute left-20 top-28 z-30 max-h-[620px] w-[390px] overflow-auto rounded-lg border border-white/10 bg-slate-950/95 p-4 shadow-2xl backdrop-blur">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs text-slate-400">流程导航</p>
+            <h2 className="font-semibold">节点大纲</h2>
+          </div>
+          <span className="rounded border border-white/10 px-2 py-1 text-xs text-slate-400">{nodes.length} 个节点</span>
+        </div>
+        <div className="mt-3 grid gap-2 text-sm">
+          {graphOutlineNodes.map((node, index) => {
+            const data = node.data as Record<string, unknown>;
+            const type = String(data.nodeType || "text");
+            const incomingCount = edges.filter((edge) => edge.target === node.id).length;
+            const outgoingCount = edges.filter((edge) => edge.source === node.id).length;
+            const taskId = String(data.task_id || "");
+            const task = taskId ? taskById.get(taskId) : null;
+            return <article key={node.id} className={`rounded-md border px-3 py-2 ${selectedNodeId === node.id ? "border-blue-400/50 bg-blue-500/10" : "border-white/10 bg-white/[0.03]"}`}>
+              <button className="w-full text-left" onClick={() => focusCanvasNode(node.id)}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <strong className="block truncate text-white">{index + 1}. {String(data.title || nodeLabels[type] || "节点")}</strong>
+                    <span className="mt-1 block truncate text-xs text-slate-400">{nodeLabels[type] || type} · 入 {incomingCount} / 出 {outgoingCount}</span>
+                  </div>
+                  <span className="shrink-0 rounded bg-black/30 px-2 py-1 text-[11px] text-slate-300">{task ? statusText(task.status) : statusText(String(data.status || "draft"))}</span>
+                </div>
+              </button>
+              <div className="mt-2 flex items-center justify-between gap-2 text-xs">
+                <span className="text-slate-500">{terminalNodeIdSet.has(node.id) ? "终点节点" : incomingCount ? "链路中节点" : "起点节点"}</span>
+                <div className="flex gap-1">
+                  <button className="rounded border border-white/10 px-2 py-1 text-slate-200 hover:bg-white/10" onClick={() => focusCanvasNode(node.id)}>定位</button>
+                  <button disabled={busy} className="rounded border border-blue-400/30 px-2 py-1 text-blue-100 hover:bg-blue-500/10 disabled:opacity-50" onClick={() => void runNodeChain(node.id)}>运行链路</button>
+                </div>
+              </div>
+            </article>;
+          })}
+          {!graphOutlineNodes.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">暂无节点，请先添加节点或工作流预设。</p>}
+        </div>
+      </aside>}
 
       {showPalette && <aside className="absolute left-20 top-28 z-20 max-h-[620px] w-[360px] overflow-auto rounded-lg border border-white/10 bg-slate-950/90 p-4 shadow-2xl backdrop-blur">
         <div className="flex items-center justify-between gap-3">

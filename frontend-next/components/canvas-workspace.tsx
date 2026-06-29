@@ -1522,6 +1522,12 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已选中当前 ${filteredShots.length} 个分镜。`);
   }
 
+  function selectUnlinkedFilteredShots() {
+    const unlinkedShots = filteredShots.filter((shot) => !shotWorkflowShotIds.has(shot.id));
+    setSelectedShotIds(unlinkedShots.map((shot) => shot.id));
+    setStatus(`已选中当前 ${unlinkedShots.length} 个未铺设分镜。`);
+  }
+
   function clearShotSelection() {
     setSelectedShotIds([]);
     setStatus("已清空分镜选择。");
@@ -3511,8 +3517,9 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <option value="status">按生成状态优先</option>
           </select>
         </label>
-        <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+        <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
           <button disabled={!filteredShots.length} className="rounded-md border border-white/10 px-3 py-2 text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={selectFilteredShots}>选择当前分镜</button>
+          <button disabled={!filteredShots.some((shot) => !shotWorkflowShotIds.has(shot.id))} className="rounded-md border border-white/10 px-3 py-2 text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={selectUnlinkedFilteredShots}>选择未铺设</button>
           <button disabled={!selectedShotIds.length} className="rounded-md border border-white/10 px-3 py-2 text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={clearShotSelection}>清空分镜选择</button>
         </div>
         <button disabled={!selectedFilteredShots.length} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border border-blue-400/40 bg-blue-500/10 px-3 py-2 text-sm text-white hover:bg-blue-500/20 disabled:opacity-50" onClick={addAllShotWorkflows}><GitBranch size={15} />{selectedShotIds.length ? `添加选中分镜链路 ${selectedFilteredShots.length}` : "添加当前分镜链路"}</button>

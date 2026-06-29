@@ -265,6 +265,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /selectedFilteredShots/);
   assert.match(canvasWorkspace, /toggleShotSelection/);
   assert.match(canvasWorkspace, /selectFilteredShots/);
+  assert.match(canvasWorkspace, /selectUnlinkedFilteredShots/);
   assert.match(canvasWorkspace, /clearShotSelection/);
   assert.match(canvasWorkspace, /focusShotWorkflow/);
   assert.match(canvasWorkspace, /filteredShots/);
@@ -274,6 +275,8 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /按分镜序号降序/);
   assert.match(canvasWorkspace, /按生成状态优先/);
   assert.match(canvasWorkspace, /选择当前分镜/);
+  assert.match(canvasWorkspace, /选择未铺设/);
+  assert.match(canvasWorkspace, /个未铺设分镜/);
   assert.match(canvasWorkspace, /清空分镜选择/);
   assert.match(canvasWorkspace, /添加选中分镜链路/);
   assert.match(canvasWorkspace, /已清空分镜选择/);

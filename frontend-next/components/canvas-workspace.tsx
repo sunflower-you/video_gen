@@ -1434,6 +1434,28 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已添加${nodeLabels[String(node.data.nodeType)] || "节点"}。`);
   }
 
+  function addFirstFilteredPaletteNode() {
+    const nodeType = filteredAddableNodes[0]?.type;
+    if (!nodeType) {
+      setStatus("当前节点面板没有匹配节点，无法快速添加。");
+      return;
+    }
+    addNode(nodeType);
+    setPaletteQuery("");
+  }
+
+  function handlePaletteSearchKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      addFirstFilteredPaletteNode();
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setShowPalette(false);
+      setStatus("已关闭节点面板。");
+    }
+  }
+
   function addConnectedNodeFromSelected(type: string) {
     if (!selectedNode) return;
     const selectedType = String((selectedNode.data as Record<string, unknown>).nodeType || "text");
@@ -3816,7 +3838,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         </div>
         <label className="mt-3 flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm">
           <Search size={16} className="text-slate-400" />
-          <input className="w-full bg-transparent outline-none placeholder:text-slate-500" placeholder="搜索图片、视频、配音、合成" value={paletteQuery} onChange={(event) => setPaletteQuery(event.target.value)} />
+          <input className="w-full bg-transparent outline-none placeholder:text-slate-500" placeholder="搜索图片、视频、配音、合成" value={paletteQuery} onChange={(event) => setPaletteQuery(event.target.value)} onKeyDown={handlePaletteSearchKeyDown} />
         </label>
         <div aria-label="节点分类筛选" className="mt-3 flex flex-wrap gap-1 text-[11px]">
           {[

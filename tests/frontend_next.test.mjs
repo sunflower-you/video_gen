@@ -136,6 +136,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /id: "input"/);
   assert.match(canvasWorkspace, /id: "output"/);
   assert.match(canvasWorkspace, /semanticPortsForType/);
+  assert.match(canvasWorkspace, /semanticPortsForNode/);
   assert.match(canvasWorkspace, /portTop/);
   assert.match(canvasWorkspace, /提示词/);
   assert.match(canvasWorkspace, /首帧/);
@@ -152,6 +153,10 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /sourceHandle: connection\.sourceHandle \|\| "output"/);
   assert.match(canvasWorkspace, /targetHandle: connection\.targetHandle \|\| "input"/);
   assert.match(canvasWorkspace, /insertNodeOnSelectedEdge/);
+  assert.match(canvasWorkspace, /updateSelectedEdgePort/);
+  assert.match(canvasWorkspace, /端口映射/);
+  assert.match(canvasWorkspace, /输出端口/);
+  assert.match(canvasWorkspace, /输入端口/);
   assert.match(canvasWorkspace, /插入节点/);
   assert.match(canvasWorkspace, /插入文本节点/);
   assert.match(canvasWorkspace, /edge-insert-a/);

@@ -116,6 +116,12 @@ function semanticPortsForType(type: string): NodePort[] {
   return map[type] || common;
 }
 
+function semanticPortsForNode(node: Node | null, side: NodePort["side"]) {
+  if (!node) return [];
+  const type = String((node.data as Record<string, unknown>).nodeType || "text");
+  return semanticPortsForType(type).filter((port) => port.side === side);
+}
+
 function portTop(index: number, total: number) {
   return `${Math.round(((index + 1) * 100) / (total + 1))}%`;
 }
@@ -1226,6 +1232,27 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(nextDisabled ? "连线已禁用，运行和上游输入会跳过这条连线。" : "连线已启用，可继续参与上游输入和运行。");
   }
 
+  function updateSelectedEdgePort(side: "source" | "target", handleId: string) {
+    if (!selectedEdge) return;
+    const nextConnection = {
+      ...selectedEdge,
+      sourceHandle: side === "source" ? handleId : selectedEdge.sourceHandle || "output",
+      targetHandle: side === "target" ? handleId : selectedEdge.targetHandle || "input"
+    };
+    const issue = connectionIssueMessage(nextConnection, edges, selectedEdge.id);
+    if (issue) {
+      setStatus(issue);
+      return;
+    }
+    rememberGraphHistory();
+    setEdges((items) => items.map((edge) => edge.id === selectedEdge.id ? edgeWithDefaultHandles({
+      ...edge,
+      sourceHandle: nextConnection.sourceHandle,
+      targetHandle: nextConnection.targetHandle
+    }) : edge));
+    setStatus(side === "source" ? "连线输出端口已更新。" : "连线输入端口已更新。");
+  }
+
   function deleteSelectedEdge() {
     if (!selectedEdge) return;
     const edgeId = selectedEdge.id;
@@ -1784,6 +1811,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const selectedEdgeTarget = selectedEdge ? nodes.find((node) => node.id === selectedEdge.target) || null : null;
   const selectedEdgeLabel = String((selectedEdge?.data as Record<string, unknown> | undefined)?.label || "");
   const selectedEdgeDisabled = selectedEdge ? isEdgeDisabled(selectedEdge) : false;
+  const selectedEdgeSourcePorts = semanticPortsForNode(selectedEdgeSource, "output");
+  const selectedEdgeTargetPorts = semanticPortsForNode(selectedEdgeTarget, "input");
 
   return (
     <main className="h-screen overflow-hidden bg-[#0b1020] text-white">
@@ -2193,6 +2222,17 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <input type="checkbox" checked={selectedEdgeDisabled} onChange={toggleSelectedEdgeDisabled} />
           </label>
           <label className="grid gap-1"><span className="text-slate-400">连线标签</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" placeholder="例如：提示词、首帧、配音输入" value={selectedEdgeLabel} onChange={(event) => updateSelectedEdgeLabel(event.target.value)} /></label>
+          <section className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+            <p className="text-xs text-slate-400">端口映射</p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <label className="grid gap-1"><span className="text-slate-400">输出端口</span><select className="rounded-md border border-white/10 bg-slate-900 px-2 py-2 outline-none" value={selectedEdge.sourceHandle || "output"} onChange={(event) => updateSelectedEdgePort("source", event.target.value)}>
+                {selectedEdgeSourcePorts.map((port) => <option key={port.id} value={port.id}>{port.label}</option>)}
+              </select></label>
+              <label className="grid gap-1"><span className="text-slate-400">输入端口</span><select className="rounded-md border border-white/10 bg-slate-900 px-2 py-2 outline-none" value={selectedEdge.targetHandle || "input"} onChange={(event) => updateSelectedEdgePort("target", event.target.value)}>
+                {selectedEdgeTargetPorts.map((port) => <option key={port.id} value={port.id}>{port.label}</option>)}
+              </select></label>
+            </div>
+          </section>
           <section className="rounded-md border border-white/10 bg-white/[0.03] p-3">
             <p className="text-xs text-slate-400">插入节点</p>
             <div className="mt-2 grid grid-cols-3 gap-2">

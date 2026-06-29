@@ -43,6 +43,7 @@ export function CreateWorkbench() {
   const [tasks, setTasks] = useState<GenerationTask[]>([]);
   const [status, setStatus] = useState("等待创建项目");
   const [busy, setBusy] = useState(false);
+  const [activeQuickMode, setActiveQuickMode] = useState("");
 
   useEffect(() => {
     void loadTemplates();
@@ -51,6 +52,7 @@ export function CreateWorkbench() {
     const templateId = params.get("template") || "";
     const mode = quickStartModes[quick as keyof typeof quickStartModes];
     if (mode) {
+      setActiveQuickMode(quick);
       setTitle(mode.title);
       setScript(mode.script);
       setStatus(mode.status);
@@ -61,6 +63,20 @@ export function CreateWorkbench() {
       setStatus("已从模板市场预选模板，可复刻后进入全画幅创作画布。");
     }
   }, []);
+
+  function primaryCreateLabel() {
+    if (activeQuickMode === "seedance2") return "一键创建 Seedance 2.0 画布";
+    if (activeQuickMode === "tv-show") return "一键创建 TV Show 画布";
+    if (activeQuickMode === "creator-challenge") return "一键创建挑战赛画布";
+    return projectType === "空白项目" ? "创建空白项目" : projectType === "模板复刻" ? "复刻模板并生成分镜草稿" : "创建项目并生成分镜草稿";
+  }
+
+  async function createPrimaryProject() {
+    if (activeQuickMode === "seedance2") return createSeedanceQuickProject();
+    if (activeQuickMode === "tv-show") return createTvShowProject();
+    if (activeQuickMode === "creator-challenge") return createCreatorChallengeProject();
+    return createProjectFlow();
+  }
 
   async function loadTemplates() {
     try {
@@ -254,7 +270,7 @@ export function CreateWorkbench() {
         <h2 className="font-semibold">创建项目</h2>
         <div className="mt-4 grid gap-3">
           <input className="rounded-md border border-line px-3 py-2" value={title} onChange={(event) => setTitle(event.target.value)} />
-          <select className="rounded-md border border-line px-3 py-2" value={projectType} onChange={(event) => setProjectType(event.target.value)}>
+          <select className="rounded-md border border-line px-3 py-2" value={projectType} onChange={(event) => { setActiveQuickMode(""); setProjectType(event.target.value); }}>
             <option>脚本成片</option>
             <option>图片成片</option>
             <option>模板复刻</option>
@@ -276,8 +292,8 @@ export function CreateWorkbench() {
             <input className="rounded-md border border-line px-3 py-2" value={referenceImageUrl} onChange={(event) => setReferenceImageUrl(event.target.value)} placeholder="参考图 URL" />
           )}
           <textarea className="min-h-32 rounded-md border border-line px-3 py-2" value={script} onChange={(event) => setScript(event.target.value)} />
-          <button disabled={busy} className="rounded-md bg-accent px-4 py-2 text-white disabled:opacity-60" onClick={createProjectFlow}>
-            {projectType === "空白项目" ? "创建空白项目" : projectType === "模板复刻" ? "复刻模板并生成分镜草稿" : "创建项目并生成分镜草稿"}
+          <button disabled={busy} className="rounded-md bg-accent px-4 py-2 text-white disabled:opacity-60" onClick={() => void createPrimaryProject()}>
+            {primaryCreateLabel()}
           </button>
           <button disabled={busy} className="rounded-md border border-line px-4 py-2 text-sm disabled:opacity-50" onClick={createSeedanceQuickProject}>
             快速体验 Seedance 2.0

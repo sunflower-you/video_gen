@@ -3178,6 +3178,41 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已按从左到右顺序串联选区：新增 ${nextEdges.length} 条连线。`);
   }
 
+  function collectSelectedNodesToCompose() {
+    if (!selectedNodes.length) {
+      setStatus("请先框选或点选节点，再汇聚到合成节点。");
+      return;
+    }
+    const selectedIds = new Set(selectedNodes.map((node) => node.id));
+    const terminalSelectedNodes = selectedNodes.filter((node) => !selectedSelectionEdges.some((edge) => edge.source === node.id && selectedIds.has(edge.target)));
+    const sourceNodes = terminalSelectedNodes.length ? terminalSelectedNodes : selectedNodes;
+    const right = Math.max(...selectedNodes.map((node) => node.position.x));
+    const top = Math.min(...selectedNodes.map((node) => node.position.y));
+    const bottom = Math.max(...selectedNodes.map((node) => node.position.y));
+    const composeNode = createFlowNode("compose_generation", { x: right + 360, y: (top + bottom) / 2 }, { title: "选区成片合成", subtitle: true });
+    const timestamp = Date.now();
+    const nextEdges = sourceNodes.flatMap((node, index) => {
+      const connection = { source: node.id, target: composeNode.id, sourceHandle: "output", targetHandle: "input" };
+      if (connectionIssueMessage(connection, edges)) return [];
+      return [edgeWithDefaultHandles({
+        id: `edge-selection-compose-${timestamp}-${index}`,
+        ...connection,
+        animated: true,
+        data: { label: "选区汇聚" }
+      } satisfies Edge)];
+    });
+    if (!nextEdges.length) {
+      setStatus("当前选区已存在可用汇聚连线，未新增合成节点。");
+      return;
+    }
+    rememberGraphHistory();
+    setNodes((items) => [...items.map((node) => ({ ...node, selected: false })), composeNode]);
+    setEdges((items) => [...items, ...nextEdges]);
+    setSelectedNodeId(composeNode.id);
+    setSelectedEdgeId("");
+    setStatus(`已将选区末端 ${sourceNodes.length} 个节点汇聚到新的合成节点。`);
+  }
+
   function alignSelectedNodes(mode: "left" | "centerX" | "right" | "top" | "centerY" | "bottom" | "horizontal" | "vertical") {
     if (selectedNodes.length <= 1) {
       setStatus("请先框选多个节点，再对齐或分布选区。");
@@ -3686,6 +3721,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     { key: "invert-selection", title: "反选画布节点", description: "反转当前节点选区", shortcut: "Ctrl/⌘ Shift A", disabled: !nodes.length, run: invertCanvasSelection },
     { key: "select-all-edges", title: "全选画布连线", description: "选中当前画布所有连线，便于批量标记或禁用", disabled: !edges.length, run: selectAllCanvasEdges },
     { key: "invert-edge-selection", title: "反选画布连线", description: "反转当前连线选区，快速排除已选链路", disabled: !edges.length, run: invertCanvasEdgeSelection },
+    { key: "collect-selection-compose", title: "选区汇聚到合成节点", description: "在选区右侧创建合成节点并连接选区末端分支", disabled: !selectedNodes.length, run: collectSelectedNodesToCompose },
     { key: "clear-selection", title: "清空当前选区", description: "取消节点和连线选择", shortcut: "Esc", disabled: !selectedNodes.length && !selectedEdge, run: clearCanvasSelection },
     { key: "fit-graph", title: "适配全部节点", description: "把完整节点图适配到当前视图", shortcut: "Ctrl/⌘ 1", disabled: !nodes.length, run: fitGraphView },
     { key: "fit-selection", title: "适配选中节点", description: "把当前选区适配到视图中心", shortcut: "Ctrl/⌘ 2", disabled: !selectedNodes.length, run: fitSelectedNodeView },
@@ -4272,6 +4308,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesLayer("front"); setNodeContextMenu(null); }}>置顶选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesLayer("back"); setNodeContextMenu(null); }}>置底选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { connectSelectedNodesInOrder(); setNodeContextMenu(null); }}>串联选区</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { collectSelectedNodesToCompose(); setNodeContextMenu(null); }}>汇聚到合成节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { groupSelectedNodes(); setNodeContextMenu(null); }}>打组选区</button>
             <button disabled={busy || !selectedGroupIds.size} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSelectedGroups(); setNodeContextMenu(null); }}>选中同组节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { ungroupSelectedNodes(); setNodeContextMenu(null); }}>取消分组</button>
@@ -4402,6 +4439,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesLayer("front")}><BringToFront size={16} />置顶选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesLayer("back")}><SendToBack size={16} />置底选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={connectSelectedNodesInOrder}><GitBranch size={16} />串联选区</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={collectSelectedNodesToCompose}><Sparkles size={16} />汇聚合成</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={groupSelectedNodes}><Boxes size={16} />打组选区</button>
             <button disabled={busy || !selectedGroupIds.size} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={selectSelectedGroups}><Boxes size={16} />选中同组</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={ungroupSelectedNodes}><Boxes size={16} />取消分组</button>

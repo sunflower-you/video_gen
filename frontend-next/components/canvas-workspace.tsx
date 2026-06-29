@@ -18,7 +18,7 @@ import {
   type NodeProps,
   type ReactFlowInstance
 } from "@xyflow/react";
-import { Boxes, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, FileText, GitBranch, Image, Library, Music, Play, Plus, RefreshCcw, Save, Search, Sparkles, Trash2, Video, Wand2 } from "lucide-react";
+import { Boxes, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, FileText, GitBranch, Image, LayoutGrid, Library, Music, Play, Plus, RefreshCcw, Save, Search, Sparkles, Trash2, Video, Wand2 } from "lucide-react";
 import { apiFetch, currentUserId, deleteJson, postJson, type Asset, type GenerationTask, type Project, type ProjectGraph, type ProjectGraphNode, type StoryboardShot } from "../lib/api";
 
 const nodeLabels: Record<string, string> = {
@@ -158,6 +158,57 @@ function orderedChainNodes(targetId: string, nodes: Node[], edges: Edge[]) {
   return ordered;
 }
 
+function terminalNodeIds(nodes: Node[], edges: Edge[]) {
+  const sourceIds = new Set(edges.map((edge) => edge.source));
+  return nodes.filter((node) => !sourceIds.has(node.id)).map((node) => node.id);
+}
+
+function orderedGraphNodes(nodes: Node[], edges: Edge[]) {
+  const terminals = terminalNodeIds(nodes, edges);
+  const ordered: Node[] = [];
+  const seen = new Set<string>();
+  for (const terminalId of terminals.length ? terminals : nodes.map((node) => node.id)) {
+    for (const node of orderedChainNodes(terminalId, nodes, edges)) {
+      if (seen.has(node.id)) continue;
+      seen.add(node.id);
+      ordered.push(node);
+    }
+  }
+  return ordered;
+}
+
+function layoutGraphNodes(nodes: Node[], edges: Edge[]) {
+  const incoming = new Map<string, string[]>();
+  const outgoing = new Map<string, string[]>();
+  for (const edge of edges) {
+    incoming.set(edge.target, [...(incoming.get(edge.target) || []), edge.source]);
+    outgoing.set(edge.source, [...(outgoing.get(edge.source) || []), edge.target]);
+  }
+  const depthById = new Map<string, number>();
+  const computeDepth = (nodeId: string, visiting = new Set<string>()): number => {
+    if (depthById.has(nodeId)) return depthById.get(nodeId) || 0;
+    if (visiting.has(nodeId)) return 0;
+    visiting.add(nodeId);
+    const parents = incoming.get(nodeId) || [];
+    const depth = parents.length ? Math.max(...parents.map((parentId) => computeDepth(parentId, visiting))) + 1 : 0;
+    visiting.delete(nodeId);
+    depthById.set(nodeId, depth);
+    return depth;
+  };
+  for (const node of nodes) computeDepth(node.id);
+  const rowsByDepth = new Map<number, number>();
+  return nodes.map((node) => {
+    const depth = depthById.get(node.id) || 0;
+    const row = rowsByDepth.get(depth) || 0;
+    rowsByDepth.set(depth, row + 1);
+    const hasOutgoing = (outgoing.get(node.id) || []).length > 0;
+    return {
+      ...node,
+      position: { x: 180 + depth * 310, y: 120 + row * 170 + (hasOutgoing ? 0 : 24) }
+    };
+  });
+}
+
 const addableNodes = [
   { type: "text", label: "文本", category: "基础节点", description: "承载提示词、旁白、备注。", icon: FileText },
   { type: "image", label: "图片", category: "素材节点", description: "放入参考图或生成图。", icon: Image },
@@ -261,6 +312,16 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "d") {
         event.preventDefault();
         duplicateSelectedNode();
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "r") {
+        event.preventDefault();
+        void runCanvasGraph();
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "l") {
+        event.preventDefault();
+        autoLayoutGraph();
         return;
       }
       if ((event.key === "Delete" || event.key === "Backspace") && selectedNode) {
@@ -558,6 +619,43 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     }
   }
 
+  async function runCanvasGraph() {
+    const orderedNodes = orderedGraphNodes(nodes, edges);
+    const terminals = terminalNodeIds(nodes, edges);
+    if (!orderedNodes.length) {
+      setStatus("画布暂无可运行节点，请先添加节点或工作流。");
+      return;
+    }
+    await saveGraph();
+    setBusy(true);
+    setStatus(`正在运行全画布：${terminals.length || 1} 条终点链路，共 ${orderedNodes.length} 个节点...`);
+    try {
+      for (const node of orderedNodes) {
+        const response = await postJson<{ node?: ProjectGraphNode; task?: GenerationTask; message?: string }>(`/api/projects/${projectId}/graph/nodes/${node.id}/run`, {
+          user_id: currentUserId()
+        });
+        if (response.node) {
+          setNodes((items) => items.map((item) => item.id === node.id ? toFlowNode(response.node as ProjectGraphNode) : item));
+        }
+      }
+      setStatus(`全画布运行完成：${orderedNodes.length} 个节点已按依赖顺序处理。`);
+      await refreshAll();
+    } catch (error) {
+      setStatus(error instanceof Error ? `全画布运行失败：${error.message}` : "全画布运行失败。请检查节点参数后重试。");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function autoLayoutGraph() {
+    if (!nodes.length) {
+      setStatus("画布暂无节点可整理。");
+      return;
+    }
+    setNodes((items) => layoutGraphNodes(items, edges));
+    setStatus(`已按连线依赖整理 ${nodes.length} 个节点。`);
+  }
+
   function duplicateSelectedNode() {
     if (!selectedNode) return;
     const id = `copy-${selectedNode.id}-${Date.now()}`;
@@ -673,6 +771,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         <div className="flex items-center gap-2 text-sm">
           <span className="max-w-[420px] truncate rounded border border-white/10 bg-white/5 px-3 py-2 text-slate-300">{status}</span>
           <button disabled={busy} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={() => void refreshAll()}><RefreshCcw size={16} />刷新</button>
+          <button disabled={busy || !nodes.length} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={autoLayoutGraph}><LayoutGrid size={16} />整理画布</button>
+          <button disabled={busy || !nodes.length} className="inline-flex items-center gap-2 rounded-md border border-blue-400/40 bg-blue-500/10 px-3 py-2 disabled:opacity-50" onClick={() => void runCanvasGraph()}><GitBranch size={16} />运行全图</button>
           <button disabled={busy} className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 disabled:opacity-50" onClick={() => void saveGraph()}><Save size={16} />保存画布</button>
         </div>
       </header>

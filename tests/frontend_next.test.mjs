@@ -164,6 +164,13 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /upstreamNodeIds/);
   assert.match(canvasWorkspace, /orderedChainNodes/);
   assert.match(canvasWorkspace, /runSelectedChain/);
+  assert.match(canvasWorkspace, /运行全图/);
+  assert.match(canvasWorkspace, /整理画布/);
+  assert.match(canvasWorkspace, /terminalNodeIds/);
+  assert.match(canvasWorkspace, /orderedGraphNodes/);
+  assert.match(canvasWorkspace, /layoutGraphNodes/);
+  assert.match(canvasWorkspace, /runCanvasGraph/);
+  assert.match(canvasWorkspace, /autoLayoutGraph/);
   assert.match(canvasWorkspace, /duplicateSelectedNode/);
   assert.match(canvasWorkspace, /copySelectedChain/);
   assert.match(canvasWorkspace, /pasteCopiedSelection/);

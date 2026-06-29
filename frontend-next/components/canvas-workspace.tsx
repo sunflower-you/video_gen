@@ -20,7 +20,7 @@ import {
   type NodeProps,
   type ReactFlowInstance
 } from "@xyflow/react";
-import { AlertTriangle, AlignHorizontalDistributeCenter, AlignHorizontalJustifyStart, AlignVerticalDistributeCenter, AlignVerticalJustifyStart, Ban, Boxes, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, Focus, GitBranch, Image, LayoutGrid, Library, ListTree, Lock, Maximize2, Music, Play, Plus, Redo2, RefreshCcw, RotateCcw, Save, Search, Sparkles, Trash2, Undo2, Unlock, Upload, Video, Wand2 } from "lucide-react";
+import { AlertTriangle, AlignHorizontalDistributeCenter, AlignHorizontalJustifyStart, AlignVerticalDistributeCenter, AlignVerticalJustifyStart, Ban, Boxes, CheckSquare, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, Focus, GitBranch, Image, LayoutGrid, Library, ListTree, Lock, Maximize2, Music, Play, Plus, Redo2, RefreshCcw, RotateCcw, Save, Search, Sparkles, Trash2, Undo2, Unlock, Upload, Video, Wand2, XSquare } from "lucide-react";
 import { apiFetch, currentUserId, deleteJson, postJson, type Asset, type GenerationTask, type Project, type ProjectGraph, type ProjectGraphNode, type StoryboardShot } from "../lib/api";
 
 const nodeLabels: Record<string, string> = {
@@ -756,13 +756,17 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   useEffect(() => {
     const handleCanvasKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setNodeContextMenu(null);
-        setEdgeContextMenu(null);
-        return;
-      }
       const target = event.target as HTMLElement | null;
       if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
+      if (event.key === "Escape") {
+        clearCanvasSelection();
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "a") {
+        event.preventDefault();
+        selectAllCanvasNodes();
+        return;
+      }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
         event.preventDefault();
         void saveGraph();
@@ -1476,6 +1480,28 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     selectCanvasNodesByIds(graphOutlineNodes.filter((node) => outlineIssueNodeIds.has(node.id)).map((node) => node.id), "全部问题节点");
   }
 
+  function selectAllCanvasNodes() {
+    if (!nodes.length) {
+      setStatus("画布暂无节点，无法全选。");
+      return;
+    }
+    setNodes((items) => items.map((node) => ({ ...node, selected: true })));
+    setSelectedNodeId(nodes[nodes.length - 1].id);
+    setSelectedEdgeId("");
+    setNodeContextMenu(null);
+    setEdgeContextMenu(null);
+    setStatus(`已全选画布节点：${nodes.length} 个，可继续批量整理、打组、复制或运行链路。`);
+  }
+
+  function clearCanvasSelection() {
+    setNodes((items) => items.map((node) => ({ ...node, selected: false })));
+    setSelectedNodeId("");
+    setSelectedEdgeId("");
+    setNodeContextMenu(null);
+    setEdgeContextMenu(null);
+    setStatus("已清空当前节点和连线选区。");
+  }
+
   function fitGraphView() {
     if (!nodes.length) {
       setStatus("画布暂无节点，无法适配视图。");
@@ -2033,6 +2059,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       <aside className="absolute left-4 top-28 z-20 grid gap-2 rounded-lg border border-white/10 bg-slate-950/85 p-2 shadow-2xl backdrop-blur">
         <button title="添加节点" className="grid h-10 w-10 place-items-center rounded-md bg-blue-600 text-white hover:bg-blue-500" onClick={() => setShowPalette((value) => !value)}><Plus size={18} /></button>
         <button title="节点大纲" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowOutline((value) => !value)}><ListTree size={18} /></button>
+        <button title="全选画布节点" disabled={!nodes.length} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={selectAllCanvasNodes}><CheckSquare size={18} /></button>
+        <button title="清空当前选区" disabled={!selectedNodes.length && !selectedEdge} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={clearCanvasSelection}><XSquare size={18} /></button>
         <button title="适配全部节点" disabled={!nodes.length} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={fitGraphView}><Maximize2 size={18} /></button>
         <button title="适配选中节点" disabled={!selectedNodes.length} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={fitSelectedNodeView}><Focus size={18} /></button>
         <button title="重置画布视口" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={resetCanvasViewport}><RotateCcw size={18} /></button>

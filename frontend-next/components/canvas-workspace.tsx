@@ -3012,6 +3012,26 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已导出工作流：${graph.nodes.length} 个节点、${graph.edges.length} 条连线。`);
   }
 
+  async function exportSelectedWorkflowJson() {
+    if (!selectedNodes.length) {
+      setStatus("请先框选或点选节点，再导出选区 JSON。");
+      return;
+    }
+    const graph = {
+      id: `export-selection-${projectId}-${Date.now()}`,
+      project_id: projectId,
+      title: `${project?.title || "全画幅工作流"} 选区`,
+      exported_at: new Date().toISOString(),
+      nodes: selectedNodes.map(fromFlowNode),
+      edges: selectedSelectionEdges.map(fromFlowEdge),
+      viewport: currentCanvasViewport(),
+      status: "draft"
+    };
+    const text = JSON.stringify(graph, null, 2);
+    const copiedToClipboard = await copyTextToSystemClipboard(text, `project_graph_selection_export_${projectId}`);
+    setStatus(copiedToClipboard ? `已复制选区 ProjectGraph JSON：${graph.nodes.length} 个节点、${graph.edges.length} 条连线。` : "浏览器剪贴板不可用，已把选区 ProjectGraph JSON 暂存到本地。");
+  }
+
   function importWorkflowJson() {
     let graph: Partial<ProjectGraph> & { nodes?: unknown; edges?: unknown };
     try {
@@ -3391,6 +3411,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { copySelectedNodes(); setNodeContextMenu(null); }}>复制选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setNodeContextMenu(null); void cutSelectedNodes(); }}>剪切选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { saveSelectedWorkflowAsPreset(); setNodeContextMenu(null); }}>保存选区为预设</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { void exportSelectedWorkflowJson(); setNodeContextMenu(null); }}>导出选区 JSON</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { duplicateSelectedNodes(); setNodeContextMenu(null); }}>生成选区副本</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { autoLayoutSelectedNodes(); setNodeContextMenu(null); }}>整理选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesLayer("front"); setNodeContextMenu(null); }}>置顶选区</button>
@@ -3519,6 +3540,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={copySelectedNodes}><ClipboardCopy size={16} />复制选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void cutSelectedNodes()}><Scissors size={16} />剪切选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={saveSelectedWorkflowAsPreset}><Save size={16} />存为预设</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void exportSelectedWorkflowJson()}><Download size={16} />导出 JSON</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={duplicateSelectedNodes}><Copy size={16} />生成副本</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={pasteCopiedSelection}><ClipboardPaste size={16} />粘贴选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={autoLayoutSelectedNodes}><LayoutGrid size={16} />整理选区</button>

@@ -540,6 +540,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /terminalNodeIdSet/);
   assert.match(canvasWorkspace, /runNodeChain/);
   assert.match(canvasWorkspace, /exportWorkflowJson/);
+  assert.match(canvasWorkspace, /exportSelectedWorkflowJson/);
   assert.match(canvasWorkspace, /importWorkflowJson/);
   assert.match(canvasWorkspace, /ProjectGraph JSON/);
   assert.match(canvasWorkspace, /运行节点/);
@@ -569,6 +570,9 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /选区操作/);
   assert.match(canvasWorkspace, /复制选区/);
   assert.match(canvasWorkspace, /剪切选区/);
+  assert.match(canvasWorkspace, /导出选区 JSON/);
+  assert.match(canvasWorkspace, /已复制选区 ProjectGraph JSON/);
+  assert.match(canvasWorkspace, /浏览器剪贴板不可用，已把选区 ProjectGraph JSON 暂存到本地/);
   assert.match(canvasWorkspace, /置顶选区/);
   assert.match(canvasWorkspace, /置底选区/);
   assert.match(canvasWorkspace, /整理选区/);

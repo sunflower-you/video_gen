@@ -771,6 +771,13 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /禁用节点或批注节点/);
   assert.match(canvasWorkspace, /批注节点不会自动连线/);
   assert.match(canvasWorkspace, /handleCanvasDoubleClick/);
+  assert.match(canvasWorkspace, /canvasContextMenu/);
+  assert.match(canvasWorkspace, /openCanvasContextMenu/);
+  assert.match(canvasWorkspace, /addNodeFromCanvasContext/);
+  assert.match(canvasWorkspace, /onPaneContextMenu=\{openCanvasContextMenu\}/);
+  assert.match(canvasWorkspace, /画布快捷菜单/);
+  assert.match(canvasWorkspace, /在此处添加节点/);
+  assert.match(canvasWorkspace, /已通过画布右键菜单添加/);
   assert.match(canvasWorkspace, /handleCanvasDrop/);
   assert.match(canvasWorkspace, /handleCanvasKeyDown/);
   assert.match(canvasWorkspace, /project_graph_clipboard_/);

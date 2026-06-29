@@ -739,6 +739,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [selectedRenamePrefix, setSelectedRenamePrefix] = useState("镜头节点");
   const [nodeContextMenu, setNodeContextMenu] = useState<{ nodeId: string; x: number; y: number } | null>(null);
   const [edgeContextMenu, setEdgeContextMenu] = useState<{ edgeId: string; x: number; y: number } | null>(null);
+  const [canvasContextMenu, setCanvasContextMenu] = useState<{ x: number; y: number; position: { x: number; y: number } } | null>(null);
   const [graphPast, setGraphPast] = useState<GraphHistorySnapshot[]>([]);
   const [graphFuture, setGraphFuture] = useState<GraphHistorySnapshot[]>([]);
   const [snapToGrid, setSnapToGrid] = useState(true);
@@ -1301,6 +1302,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     event.preventDefault();
     setSelectedNodeId(nodeId);
     setSelectedEdgeId("");
+    setCanvasContextMenu(null);
     setEdgeContextMenu(null);
     setNodeContextMenu({ nodeId, x: event.clientX, y: event.clientY });
   }
@@ -1308,7 +1310,19 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   function openEdgeContextMenu(event: ReactMouseEvent, edgeId: string) {
     event.preventDefault();
     selectEdge(edgeId);
+    setCanvasContextMenu(null);
     setEdgeContextMenu({ edgeId, x: event.clientX, y: event.clientY });
+  }
+
+  function openCanvasContextMenu(event: Pick<ReactMouseEvent, "clientX" | "clientY" | "preventDefault"> | Pick<MouseEvent, "clientX" | "clientY" | "preventDefault">) {
+    event.preventDefault();
+    setSelectedNodeId("");
+    setSelectedEdgeId("");
+    setNodes((items) => items.map((node) => ({ ...node, selected: false })));
+    setEdges((items) => items.map((edge) => ({ ...edge, selected: false })));
+    setNodeContextMenu(null);
+    setEdgeContextMenu(null);
+    setCanvasContextMenu({ x: event.clientX, y: event.clientY, position: flowPositionFromEvent(event) });
   }
 
   async function refreshAll() {
@@ -1445,6 +1459,14 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const node = addNodeAtPosition(type, { x: 160 + nodes.length * 36, y: 120 + nodes.length * 28 });
     setShowPalette(false);
     setStatus(`已添加${nodeLabels[String(node.data.nodeType)] || "节点"}。`);
+  }
+
+  function addNodeFromCanvasContext(type: string) {
+    if (!canvasContextMenu) return;
+    const node = addNodeAtPosition(type, canvasContextMenu.position, type === "comment" ? { title: "画布批注", text: "记录制作意图、审核意见或后续修改点。" } : {});
+    setCanvasContextMenu(null);
+    setShowPalette(false);
+    setStatus(`已通过画布右键菜单添加${nodeLabels[String(node.data.nodeType)] || "节点"}。`);
   }
 
   function addFirstFilteredPaletteNode() {
@@ -4112,16 +4134,20 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         onNodeClick={(_, node) => {
           setSelectedNodeId(node.id);
           setSelectedEdgeId("");
+          setCanvasContextMenu(null);
           setNodeContextMenu(null);
           setEdgeContextMenu(null);
         }}
         onNodeContextMenu={(event, node) => openNodeContextMenu(event, node.id)}
         onEdgeClick={(_, edge) => {
           selectEdge(edge.id);
+          setCanvasContextMenu(null);
           setEdgeContextMenu(null);
         }}
         onEdgeContextMenu={(event, edge) => openEdgeContextMenu(event, edge.id)}
+        onPaneContextMenu={openCanvasContextMenu}
         onPaneClick={() => {
+          setCanvasContextMenu(null);
           setNodeContextMenu(null);
           setEdgeContextMenu(null);
         }}
@@ -4136,6 +4162,28 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         <Controls className="!bottom-6 !left-1/2 !-translate-x-1/2 !rounded-lg !border !border-white/10 !bg-slate-950/90 !shadow-2xl" />
         {showMiniMap && <MiniMap className="!bottom-6 !right-6 !rounded-lg !border !border-white/10 !bg-slate-950/90" nodeColor="#2563eb" />}
       </ReactFlow>
+
+      {canvasContextMenu && <div
+        className="fixed z-40 w-56 rounded-lg border border-white/10 bg-slate-950/95 p-2 text-sm text-slate-200 shadow-2xl backdrop-blur"
+        style={{ left: canvasContextMenu.x, top: canvasContextMenu.y }}
+      >
+        <div className="border-b border-white/10 px-2 pb-2">
+          <p className="text-xs text-slate-500">画布快捷菜单</p>
+          <strong className="mt-1 block text-white">在此处添加节点</strong>
+        </div>
+        <div className="mt-2 grid gap-1">
+          {[
+            { type: "text", label: "文本节点" },
+            { type: "image_generation", label: "分镜图生成" },
+            { type: "video_generation", label: "镜头视频" },
+            { type: "tts_generation", label: "配音节点" },
+            { type: "compose_generation", label: "合成节点" },
+            { type: "image", label: "图片素材" },
+            { type: "comment", label: "画布批注" }
+          ].map((item) => <button key={item.type} className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => addNodeFromCanvasContext(item.type)}>{item.label}</button>)}
+          <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => { setShowPalette(true); setCanvasContextMenu(null); }}>打开节点面板</button>
+        </div>
+      </div>}
 
       {edgeContextMenu && selectedEdge && <div
         className="fixed z-40 w-52 rounded-lg border border-white/10 bg-slate-950/95 p-2 text-sm text-slate-200 shadow-2xl backdrop-blur"

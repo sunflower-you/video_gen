@@ -1059,13 +1059,13 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "c") {
         event.preventDefault();
-        if (selectedNodes.length > 1) copySelectedNodes();
-        else copySelectedChain();
+        if (selectedNodes.length > 1) void copySelectedNodes();
+        else void copySelectedChain();
         return;
       }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "v") {
         event.preventDefault();
-        pasteCopiedSelection();
+        void pasteCopiedSelection();
         return;
       }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "x") {
@@ -2697,15 +2697,45 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已复制选区：${duplicatedNodes.length} 个节点、${duplicatedEdges.length} 条连线。`);
   }
 
-  function copySelectedNodes() {
+  function parseClipboardGraphSnapshot(text: string): { nodes: Node[]; edges: Edge[] } | null {
+    if (!text.trim()) return null;
+    const graph = JSON.parse(text) as { nodes?: unknown; edges?: unknown };
+    if (!Array.isArray(graph.nodes)) return null;
+    const rawEdges = Array.isArray(graph.edges) ? graph.edges : [];
+    const nodesFromGraph = graph.nodes.map((item) => toFlowNode(item as ProjectGraphNode));
+    const validNodeIds = new Set(nodesFromGraph.map((node) => node.id));
+    const edgesFromGraph = rawEdges.flatMap((edge, index) => {
+      const item = edge as ProjectGraph["edges"][number];
+      if (!validNodeIds.has(String(item.source)) || !validNodeIds.has(String(item.target))) return [];
+      return [toFlowEdge({ ...item, id: String(item.id || `edge-clipboard-${index}`) })];
+    });
+    return nodesFromGraph.length ? { nodes: nodesFromGraph, edges: edgesFromGraph } : null;
+  }
+
+  async function copyGraphSnapshotToClipboard(snapshot: { nodes: Node[]; edges: Edge[] }, title: string, fallbackKey: string) {
+    setCopiedSelection(snapshot);
+    window.localStorage.setItem(`project_graph_clipboard_${projectId}`, JSON.stringify(snapshot));
+    const graph = {
+      id: `clipboard-${projectId}-${Date.now()}`,
+      project_id: projectId,
+      title,
+      exported_at: new Date().toISOString(),
+      nodes: snapshot.nodes.map(fromFlowNode),
+      edges: snapshot.edges.map(fromFlowEdge),
+      viewport: currentCanvasViewport(),
+      status: "draft"
+    };
+    return copyTextToSystemClipboard(JSON.stringify(graph, null, 2), fallbackKey);
+  }
+
+  async function copySelectedNodes() {
     if (!selectedNodes.length) {
       setStatus("请先框选或点选节点，再复制选区。");
       return;
     }
     const snapshot = { nodes: selectedNodes, edges: selectedSelectionEdges };
-    setCopiedSelection(snapshot);
-    window.localStorage.setItem(`project_graph_clipboard_${projectId}`, JSON.stringify(snapshot));
-    setStatus(`已复制选区：${selectedNodes.length} 个节点、${selectedSelectionEdges.length} 条连线。`);
+    const copiedToClipboard = await copyGraphSnapshotToClipboard(snapshot, `${project?.title || "全画幅工作流"} 选区剪贴板`, `project_graph_selection_clipboard_${projectId}`);
+    setStatus(copiedToClipboard ? `已复制选区到系统剪贴板：${selectedNodes.length} 个节点、${selectedSelectionEdges.length} 条连线。` : `已复制选区到本地画布剪贴板：${selectedNodes.length} 个节点、${selectedSelectionEdges.length} 条连线。`);
   }
 
   async function cutSelectedNodes() {
@@ -2720,13 +2750,12 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     }
     const unlockedIds = new Set(unlockedNodes.map((node) => node.id));
     const snapshot = { nodes: unlockedNodes, edges: selectedSelectionEdges.filter((edge) => unlockedIds.has(edge.source) && unlockedIds.has(edge.target)) };
-    setCopiedSelection(snapshot);
-    window.localStorage.setItem(`project_graph_clipboard_${projectId}`, JSON.stringify(snapshot));
+    const copiedToClipboard = await copyGraphSnapshotToClipboard(snapshot, `${project?.title || "全画幅工作流"} 剪切选区`, `project_graph_selection_clipboard_${projectId}`);
     await deleteSelectedNodes();
-    setStatus(`已剪切选区到画布剪贴板：${snapshot.nodes.length} 个节点、${snapshot.edges.length} 条连线${unlockedNodes.length < selectedNodes.length ? "，已跳过锁定节点" : ""}。`);
+    setStatus(`${copiedToClipboard ? "已剪切选区到系统剪贴板" : "已剪切选区到本地画布剪贴板"}：${snapshot.nodes.length} 个节点、${snapshot.edges.length} 条连线${unlockedNodes.length < selectedNodes.length ? "，已跳过锁定节点" : ""}。`);
   }
 
-  function copySelectedChain() {
+  async function copySelectedChain() {
     if (!selectedNode) {
       setStatus("请先选择一个节点，再复制链路。");
       return;
@@ -2735,9 +2764,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const nodeIds = new Set(chainNodes.map((node) => node.id));
     const chainEdges = edges.filter((edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target));
     const snapshot = { nodes: chainNodes, edges: chainEdges };
-    setCopiedSelection(snapshot);
-    window.localStorage.setItem(`project_graph_clipboard_${projectId}`, JSON.stringify(snapshot));
-    setStatus(`已复制链路：${chainNodes.length} 个节点、${chainEdges.length} 条连线。`);
+    const copiedToClipboard = await copyGraphSnapshotToClipboard(snapshot, `${project?.title || "全画幅工作流"} 上游链路剪贴板`, `project_graph_chain_clipboard_${projectId}`);
+    setStatus(copiedToClipboard ? `已复制链路到系统剪贴板：${chainNodes.length} 个节点、${chainEdges.length} 条连线。` : `已复制链路到本地画布剪贴板：${chainNodes.length} 个节点、${chainEdges.length} 条连线。`);
   }
 
   async function copyTextToSystemClipboard(text: string, fallbackKey: string) {
@@ -2813,8 +2841,14 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(copiedToClipboard ? "已复制连线定位链接到系统剪贴板。" : "浏览器剪贴板不可用，已把连线定位链接暂存到本地。");
   }
 
-  function pasteCopiedSelection() {
-    let cached = copiedSelection;
+  async function pasteCopiedSelection() {
+    let cached: { nodes: Node[]; edges: Edge[] } | null = null;
+    try {
+      cached = parseClipboardGraphSnapshot(await navigator.clipboard.readText()) || null;
+    } catch {
+      cached = null;
+    }
+    if (!cached) cached = copiedSelection;
     if (!cached) {
       try {
         cached = JSON.parse(window.localStorage.getItem(`project_graph_clipboard_${projectId}`) || "null");
@@ -3804,7 +3838,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         <div className="mt-2 grid gap-1">
           {selectedNodes.length > 1 ? <>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setNodeContextMenu(null); void runSelectedNodes(); }}>运行选区</button>
-            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { copySelectedNodes(); setNodeContextMenu(null); }}>复制选区</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { void copySelectedNodes(); setNodeContextMenu(null); }}>复制选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setNodeContextMenu(null); void cutSelectedNodes(); }}>剪切选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { saveSelectedWorkflowAsPreset(); setNodeContextMenu(null); }}>保存选区为预设</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { void exportSelectedWorkflowJson(); setNodeContextMenu(null); }}>导出选区 JSON</button>
@@ -3856,7 +3890,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectValidationIssueNodes("warning"); setNodeContextMenu(null); }}>选中提醒节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectTaskStatusNodes("running"); setNodeContextMenu(null); }}>选中运行中任务节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectTaskStatusNodes("failed"); setNodeContextMenu(null); }}>选中失败任务节点</button>
-            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { copySelectedChain(); setNodeContextMenu(null); }}>复制上游链路</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { void copySelectedChain(); setNodeContextMenu(null); }}>复制上游链路</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { void runSelectedChain(); setNodeContextMenu(null); }}>运行上游链路</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { disconnectSelectedNodes(); setNodeContextMenu(null); }}>断开节点连线</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { toggleSelectedNodeDisabled(); setNodeContextMenu(null); }}>{(selectedNode.data as Record<string, unknown>).disabled === true ? "启用节点" : "禁用节点"}</button>
@@ -3933,12 +3967,12 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           </section>
           <div className="grid grid-cols-2 gap-2">
             <button disabled={busy} className="col-span-2 inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-3 py-2 disabled:opacity-50" onClick={() => void runSelectedNodes()}><Play size={16} />运行选区</button>
-            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={copySelectedNodes}><ClipboardCopy size={16} />复制选区</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void copySelectedNodes()}><ClipboardCopy size={16} />复制选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void cutSelectedNodes()}><Scissors size={16} />剪切选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={saveSelectedWorkflowAsPreset}><Save size={16} />存为预设</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void exportSelectedWorkflowJson()}><Download size={16} />导出 JSON</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={duplicateSelectedNodes}><Copy size={16} />生成副本</button>
-            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={pasteCopiedSelection}><ClipboardPaste size={16} />粘贴选区</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void pasteCopiedSelection()}><ClipboardPaste size={16} />粘贴选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={autoLayoutSelectedNodes}><LayoutGrid size={16} />整理选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesLayer("front")}><BringToFront size={16} />置顶选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesLayer("back")}><SendToBack size={16} />置底选区</button>
@@ -4140,8 +4174,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void copySelectedNodeId()}><ClipboardCopy size={16} />复制 ID</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void copySelectedNodeParams()}><FileText size={16} />复制参数</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void copySelectedNodeLink()}><ClipboardCopy size={16} />复制链接</button>
-            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={copySelectedChain}><ClipboardCopy size={16} />复制链路</button>
-            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={pasteCopiedSelection}><ClipboardPaste size={16} />粘贴链路</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void copySelectedChain()}><ClipboardCopy size={16} />复制链路</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void pasteCopiedSelection()}><ClipboardPaste size={16} />粘贴链路</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesLayer("front")}><BringToFront size={16} />置顶节点</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesLayer("back")}><SendToBack size={16} />置底节点</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={disconnectSelectedNodes}><XSquare size={16} />断开连线</button>

@@ -708,9 +708,12 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /duplicateSelectedNode/);
   assert.match(canvasWorkspace, /duplicateSelectedNodes/);
   assert.match(canvasWorkspace, /copySelectedNodes/);
+  assert.match(canvasWorkspace, /copyGraphSnapshotToClipboard/);
+  assert.match(canvasWorkspace, /parseClipboardGraphSnapshot/);
   assert.match(canvasWorkspace, /cutSelectedNodes/);
   assert.match(canvasWorkspace, /event\.key\.toLowerCase\(\) === "x"/);
-  assert.match(canvasWorkspace, /已剪切选区到画布剪贴板/);
+  assert.match(canvasWorkspace, /已剪切选区到系统剪贴板/);
+  assert.match(canvasWorkspace, /已剪切选区到本地画布剪贴板/);
   assert.match(canvasWorkspace, /请先框选或点选节点，再剪切选区/);
   assert.match(canvasWorkspace, /选区节点均已锁定，请先解锁再剪切/);
   assert.match(canvasWorkspace, /deleteSelectedNodes/);
@@ -720,6 +723,9 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /pasteCopiedSelection/);
   assert.match(canvasWorkspace, /currentViewportCenter/);
   assert.match(canvasWorkspace, /offsetX/);
+  assert.match(canvasWorkspace, /已复制选区到系统剪贴板/);
+  assert.match(canvasWorkspace, /已复制选区到本地画布剪贴板/);
+  assert.match(canvasWorkspace, /已复制链路到系统剪贴板/);
   assert.match(canvasWorkspace, /已粘贴链路到当前视图中心/);
   assert.match(canvasWorkspace, /handleCanvasDoubleClick/);
   assert.match(canvasWorkspace, /handleCanvasDrop/);

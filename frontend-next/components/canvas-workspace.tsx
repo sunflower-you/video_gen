@@ -666,6 +666,7 @@ const customPresetStorageKey = "video_gen_canvas_custom_presets";
 const recentNodeStorageKey = "video_gen_canvas_recent_nodes";
 const viewBookmarkStoragePrefix = "video_gen_canvas_view_bookmarks";
 const graphVersionStoragePrefix = "video_gen_canvas_graph_versions";
+const eventLogStoragePrefix = "video_gen_canvas_event_log";
 const paletteNodeDragType = "application/x-video-gen-node-type";
 const defaultCanvasViewport: CanvasViewport = { x: 0, y: 0, zoom: 1 };
 
@@ -701,6 +702,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [taskStatusFilter, setTaskStatusFilter] = useState("all");
   const [assetQuery, setAssetQuery] = useState("");
   const [taskQuery, setTaskQuery] = useState("");
+  const [eventLogQuery, setEventLogQuery] = useState("");
   const [shotStatusFilter, setShotStatusFilter] = useState("all");
   const [shotQuery, setShotQuery] = useState("");
   const [shotSort, setShotSort] = useState("index-asc");
@@ -821,6 +823,11 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       return matchesStatus && (!keyword || text.includes(keyword));
     });
   }, [taskQuery, taskStatusFilter, tasks]);
+  const filteredCanvasEventLog = useMemo(() => {
+    const keyword = eventLogQuery.trim().toLowerCase();
+    if (!keyword) return canvasEventLog;
+    return canvasEventLog.filter((item) => `${item.message} ${item.created_at}`.toLowerCase().includes(keyword));
+  }, [canvasEventLog, eventLogQuery]);
   const activeEdges = useMemo(() => activeGraphEdges(edges), [edges]);
   const graphValidation = useMemo(() => validateCanvasGraph(nodes, edges), [nodes, edges]);
   const selectedRunBlockingIssues = useMemo(() => selectedNode ? graphValidation.issues.filter((issue) => issue.level === "error" && issue.nodeId === selectedNode.id) : [], [graphValidation, selectedNode]);
@@ -853,15 +860,31 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   }), [filteredAddableNodes, paletteQuery, recentNodeTypes]);
   const viewBookmarkStorageKey = useMemo(() => `${viewBookmarkStoragePrefix}:${projectId}`, [projectId]);
   const graphVersionStorageKey = useMemo(() => `${graphVersionStoragePrefix}:${projectId}`, [projectId]);
+  const eventLogStorageKey = useMemo(() => `${eventLogStoragePrefix}:${projectId}`, [projectId]);
+
+  function persistCanvasEventLog(items: CanvasEventLogEntry[]) {
+    window.localStorage.setItem(eventLogStorageKey, JSON.stringify(items));
+  }
+
+  useEffect(() => {
+    try {
+      const cached = JSON.parse(window.localStorage.getItem(eventLogStorageKey) || "[]") as CanvasEventLogEntry[];
+      if (Array.isArray(cached)) setCanvasEventLog(cached.filter((item) => item?.key && item?.message && item?.created_at).slice(0, 80));
+    } catch {
+      window.localStorage.removeItem(eventLogStorageKey);
+    }
+  }, [eventLogStorageKey]);
 
   useEffect(() => {
     const message = status.trim();
     if (!message) return;
     setCanvasEventLog((items) => {
       if (items[0]?.message === message) return items;
-      return [{ key: `canvas-event-${Date.now()}-${items.length}`, message, created_at: new Date().toISOString() }, ...items].slice(0, 80);
+      const next = [{ key: `canvas-event-${Date.now()}-${items.length}`, message, created_at: new Date().toISOString() }, ...items].slice(0, 80);
+      persistCanvasEventLog(next);
+      return next;
     });
-  }, [status]);
+  }, [eventLogStorageKey, status]);
 
   function cloneGraphSnapshot(snapshotNodes = nodes, snapshotEdges = edges, snapshotSelectedNodeId = selectedNodeId, snapshotSelectedEdgeId = selectedEdgeId): GraphHistorySnapshot {
     return {
@@ -3276,6 +3299,25 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     URL.revokeObjectURL(url);
   }
 
+  function clearCanvasEventLog() {
+    setCanvasEventLog([]);
+    window.localStorage.removeItem(eventLogStorageKey);
+  }
+
+  async function exportCanvasEventLog() {
+    const payload = {
+      id: `canvas-event-log-${projectId}-${Date.now()}`,
+      project_id: projectId,
+      title: `${project?.title || "全画幅创作画布"} 事件日志`,
+      exported_at: new Date().toISOString(),
+      events: canvasEventLog
+    };
+    const text = JSON.stringify(payload, null, 2);
+    downloadJsonFile(text, `${project?.title || "video-gen-canvas"}-事件日志.json`);
+    const copiedToClipboard = await copyTextToSystemClipboard(text, `project_graph_event_log_export_${projectId}`);
+    setStatus(copiedToClipboard ? `已导出并复制画布事件日志：${canvasEventLog.length} 条记录。` : "已导出画布事件日志；浏览器剪贴板不可用，已把内容暂存到本地。");
+  }
+
   async function exportWorkflowJson() {
     const graph = {
       id: `export-${projectId}-${Date.now()}`,
@@ -3439,6 +3481,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     { key: "show-assets", title: "打开素材库", description: "筛选并拖入项目图片、视频和音频素材", run: () => setShowAssets(true) },
     { key: "show-tasks", title: "打开任务队列", description: "筛选、定位、同步、重试和取消生成任务", run: () => setShowTasks(true) },
     { key: "show-event-log", title: "打开画布事件日志", description: "追踪保存、运行、导入导出、复制粘贴和失败提示", run: () => setShowEventLog(true) },
+    { key: "export-event-log", title: "导出画布事件日志", description: "下载并复制当前项目的画布操作追踪 JSON", disabled: !canvasEventLog.length, run: () => void exportCanvasEventLog() },
     { key: "select-all", title: "全选画布节点", description: "选中当前画布所有节点", shortcut: "Ctrl/⌘ A", disabled: !nodes.length, run: selectAllCanvasNodes },
     { key: "invert-selection", title: "反选画布节点", description: "反转当前节点选区", shortcut: "Ctrl/⌘ Shift A", disabled: !nodes.length, run: invertCanvasSelection },
     { key: "clear-selection", title: "清空当前选区", description: "取消节点和连线选择", shortcut: "Esc", disabled: !selectedNodes.length && !selectedEdge, run: clearCanvasSelection },
@@ -3594,16 +3637,22 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <h2 className="font-semibold">画布事件日志</h2>
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <span className="rounded border border-white/10 px-2 py-1 text-slate-400">{canvasEventLog.length}</span>
-            <button className="rounded border border-white/10 px-2 py-1 text-slate-200 hover:bg-white/10" onClick={() => setCanvasEventLog([])}>清空</button>
+            <span className="rounded border border-white/10 px-2 py-1 text-slate-400">{filteredCanvasEventLog.length}/{canvasEventLog.length}</span>
+            <button disabled={!canvasEventLog.length} className="rounded border border-white/10 px-2 py-1 text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={() => void exportCanvasEventLog()}>导出</button>
+            <button disabled={!canvasEventLog.length} className="rounded border border-white/10 px-2 py-1 text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={clearCanvasEventLog}>清空</button>
           </div>
         </div>
+        <label className="mt-3 flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm">
+          <Search size={15} className="text-slate-400" />
+          <input className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-slate-500" placeholder="搜索事件内容或时间" value={eventLogQuery} onChange={(event) => setEventLogQuery(event.target.value)} />
+        </label>
         <div className="mt-3 grid gap-2 text-sm">
-          {canvasEventLog.map((item) => <article key={item.key} className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
+          {filteredCanvasEventLog.map((item) => <article key={item.key} className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
             <p className="leading-5 text-slate-100">{item.message}</p>
             <time className="mt-1 block text-xs text-slate-500">{new Date(item.created_at).toLocaleString("zh-CN", { hour12: false })}</time>
           </article>)}
           {!canvasEventLog.length && <p className="rounded-md border border-white/10 px-3 py-4 text-slate-400">暂无画布事件，保存、运行、导入导出或复制粘贴后会自动记录。</p>}
+          {!!canvasEventLog.length && !filteredCanvasEventLog.length && <p className="rounded-md border border-white/10 px-3 py-4 text-slate-400">没有匹配事件，请调整关键词。</p>}
         </div>
       </aside>}
 

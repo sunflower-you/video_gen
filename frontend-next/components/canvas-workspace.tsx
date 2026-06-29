@@ -93,14 +93,24 @@ const nodeParameterPresets: NodeParameterPreset[] = [
   { key: "image-landscape", label: "横屏 16:9", nodeTypes: ["image_generation"], patch: { width: "1344", height: "768" } },
   { key: "image-square", label: "方图 1:1", nodeTypes: ["image_generation"], patch: { width: "1024", height: "1024" } },
   { key: "image-random-seed", label: "随机 seed", nodeTypes: ["image_generation"], patch: () => ({ seed: String(Math.floor(Math.random() * 100000000)) }) },
+  { key: "image-liblib-comic", label: "Liblib 漫剧同款", nodeTypes: ["image_generation"], patch: { model_key: "flux-dev", style_prompt: "国漫漫剧质感，角色一致，竖屏分镜，电影级布光，高细节背景", width: "768", height: "1344", batch_size: "4" } },
+  { key: "image-tv-show-studio", label: "TV Show 棚拍", nodeTypes: ["image_generation"], patch: { style_prompt: "高质感 TV Show 棚拍，主持人半身构图，干净布光，真实摄影", width: "1344", height: "768", batch_size: "2" } },
+  { key: "image-challenge-cover", label: "挑战赛封面", nodeTypes: ["image_generation"], patch: { style_prompt: "短片挑战赛封面，强视觉钩子，高对比，电影感，结尾反转氛围", width: "768", height: "1344", batch_size: "4" } },
   { key: "video-fast-cut", label: "快切 3 秒", nodeTypes: ["video_generation"], patch: { duration: "3", fps: "16" } },
   { key: "video-standard", label: "标准 5 秒", nodeTypes: ["video_generation"], patch: { duration: "5", fps: "16" } },
   { key: "video-smooth", label: "流畅 24fps", nodeTypes: ["video_generation"], patch: { fps: "24" } },
+  { key: "video-seedance-camera", label: "Seedance 同款运镜", nodeTypes: ["video_generation"], patch: { workflow_key: "selfhost/video_wan2.1_fusionx", camera_motion: "缓慢推进", motion_strength: "0.7", duration: "5", fps: "24" } },
+  { key: "video-challenge-push", label: "挑战赛快速推进", nodeTypes: ["video_generation"], patch: { camera_motion: "快速推进", motion_strength: "0.85", duration: "5", fps: "24" } },
+  { key: "video-tv-show-pan", label: "TV Show 横移开场", nodeTypes: ["video_generation"], patch: { camera_motion: "稳定横移", motion_strength: "0.45", duration: "6", fps: "24" } },
   { key: "tts-female", label: "女声常速", nodeTypes: ["tts_generation"], patch: { voice: "zh-CN-XiaoxiaoNeural", rate: "1" } },
   { key: "tts-male", label: "男声常速", nodeTypes: ["tts_generation"], patch: { voice: "zh-CN-YunxiNeural", rate: "1" } },
   { key: "tts-slow", label: "慢速旁白", nodeTypes: ["tts_generation"], patch: { rate: "0.85" } },
+  { key: "tts-tv-host", label: "TV Show 主持", nodeTypes: ["tts_generation"], patch: { voice: "zh-CN-XiaoxiaoNeural", emotion: "neutral", pitch: "0", rate: "1.05" } },
+  { key: "tts-challenge-drama", label: "挑战赛悬念口播", nodeTypes: ["tts_generation"], patch: { voice: "zh-CN-XiaoyiNeural", emotion: "dramatic", pitch: "1", rate: "1" } },
   { key: "compose-subtitle", label: "带字幕成片", nodeTypes: ["compose_generation"], patch: { subtitle: true } },
-  { key: "compose-no-subtitle", label: "无字幕成片", nodeTypes: ["compose_generation"], patch: { subtitle: false } }
+  { key: "compose-no-subtitle", label: "无字幕成片", nodeTypes: ["compose_generation"], patch: { subtitle: false } },
+  { key: "compose-tv-show-package", label: "TV Show 包装", nodeTypes: ["compose_generation"], patch: { duration_per_shot: "6", subtitle_style: "底部白字黑描边", transition: "fade", subtitle: true, voice: "zh-CN-XiaoxiaoNeural" } },
+  { key: "compose-challenge-package", label: "挑战赛成片包装", nodeTypes: ["compose_generation"], patch: { duration_per_shot: "5", subtitle_style: "底部黄字黑描边", transition: "fade", subtitle: true, voice: "zh-CN-XiaoyiNeural" } }
 ];
 
 function presetPatch(preset: NodeParameterPreset) {

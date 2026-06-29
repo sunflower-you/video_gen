@@ -94,6 +94,8 @@ test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
   assert.match(dashboard, /setWorkQuery\(\(query\) => \(\{ \.\.\.query, category: item\.category \}\)\)/);
   assert.match(fallbackData, /category: "Seedance 2\.0"/);
   assert.match(fallbackData, /Seedance 雨夜回眸/);
+  assert.match(fallbackData, /category: "TV Show"/);
+  assert.match(fallbackData, /未来新闻冷开场/);
   assert.match(workspace, /"use client"/);
   assert.match(workspace, /apiFetch\(`\/api\/projects\?owner_id=/);
   assert.match(workspace, /postJson<Project>\("\/api\/projects"/);

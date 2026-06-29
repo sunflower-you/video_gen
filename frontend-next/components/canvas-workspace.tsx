@@ -1452,6 +1452,30 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus("已定位到自检问题节点。");
   }
 
+  function selectCanvasNodesByIds(nodeIds: string[], label: string) {
+    const idSet = new Set(nodeIds);
+    const matchedNodes = nodes.filter((node) => idSet.has(node.id));
+    if (!matchedNodes.length) {
+      setStatus(`${label}暂无可选节点。`);
+      return;
+    }
+    setNodes((items) => items.map((node) => ({ ...node, selected: idSet.has(node.id) })));
+    setSelectedNodeId(matchedNodes[matchedNodes.length - 1].id);
+    setSelectedEdgeId("");
+    setNodeContextMenu(null);
+    setEdgeContextMenu(null);
+    void flowInstance?.fitView({ nodes: matchedNodes.map((node) => ({ id: node.id })), padding: 0.22, duration: 420, maxZoom: 1.15 });
+    setStatus(`已选中${label}：${matchedNodes.length} 个节点，可继续整理、打组、复制或运行链路。`);
+  }
+
+  function selectFilteredOutlineNodes() {
+    selectCanvasNodesByIds(filteredGraphOutlineNodes.map((node) => node.id), "当前大纲结果");
+  }
+
+  function selectIssueOutlineNodes() {
+    selectCanvasNodesByIds(graphOutlineNodes.filter((node) => outlineIssueNodeIds.has(node.id)).map((node) => node.id), "全部问题节点");
+  }
+
   function fitGraphView() {
     if (!nodes.length) {
       setStatus("画布暂无节点，无法适配视图。");
@@ -2033,6 +2057,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <span>只看问题节点</span>
           <input type="checkbox" checked={outlineIssuesOnly} onChange={(event) => setOutlineIssuesOnly(event.target.checked)} />
         </label>
+        <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+          <button disabled={!filteredGraphOutlineNodes.length} className="rounded-md border border-white/10 px-3 py-2 text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={selectFilteredOutlineNodes}>选中当前结果</button>
+          <button disabled={!outlineIssueNodeIds.size} className="rounded-md border border-amber-400/30 px-3 py-2 text-amber-100 hover:bg-amber-500/10 disabled:opacity-40" onClick={selectIssueOutlineNodes}>选中问题节点</button>
+        </div>
         <div className="mt-3 grid gap-2 text-sm">
           {filteredGraphOutlineNodes.map((node, index) => {
             const data = node.data as Record<string, unknown>;

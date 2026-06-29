@@ -226,6 +226,12 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /outlineIssueNodeIds/);
   assert.match(canvasWorkspace, /搜索节点标题、类型、状态/);
   assert.match(canvasWorkspace, /只看问题节点/);
+  assert.match(canvasWorkspace, /selectCanvasNodesByIds/);
+  assert.match(canvasWorkspace, /selectFilteredOutlineNodes/);
+  assert.match(canvasWorkspace, /selectIssueOutlineNodes/);
+  assert.match(canvasWorkspace, /选中当前结果/);
+  assert.match(canvasWorkspace, /选中问题节点/);
+  assert.match(canvasWorkspace, /可继续整理、打组、复制或运行链路/);
   assert.match(canvasWorkspace, /没有匹配的大纲节点/);
   assert.match(canvasWorkspace, /添加分镜链路/);
   assert.match(canvasWorkspace, /添加全部分镜链路/);

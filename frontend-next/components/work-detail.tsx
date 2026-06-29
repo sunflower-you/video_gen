@@ -1,9 +1,10 @@
 "use client";
 
-import { Bookmark, Heart, UserRound } from "lucide-react";
+import { Bookmark, Heart, Sparkles, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { apiFetch, currentUserId, postJson, type Work } from "../lib/api";
 import { fallbackWorks } from "../lib/fallback-data";
+import { quickStartHrefForWork } from "../lib/work-quick-start";
 
 export function WorkDetail({ workId }: { workId: string }) {
   const [work, setWork] = useState<Work | null>(null);
@@ -55,6 +56,10 @@ export function WorkDetail({ workId }: { workId: string }) {
             <h1 className="mt-1 text-2xl font-semibold">{work?.title || "正在加载作品"}</h1>
           </div>
           <div className="flex gap-2">
+            <a className="inline-flex items-center gap-2 rounded-md bg-accent px-3 py-2 text-sm text-white" href={quickStartHrefForWork(work)}>
+              <Sparkles size={16} />
+              同款创作
+            </a>
             <button className="inline-flex items-center gap-2 rounded-md border border-line px-3 py-2 text-sm" onClick={() => void interact("like")}>
               <Heart size={16} />
               点赞
@@ -101,6 +106,10 @@ export function WorkDetail({ workId }: { workId: string }) {
               查看作者主页
             </a>
             <p className="mt-3 text-sm text-muted">模板：{work?.template_name || work?.template_id || "未绑定模板"}</p>
+            <a className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md bg-accent px-3 py-2 text-sm text-white" href={quickStartHrefForWork(work)}>
+              <Sparkles size={16} />
+              使用该作品同款创作
+            </a>
             <p className="mt-3 rounded-md border border-line bg-canvas px-3 py-2 text-sm text-muted">{status}</p>
           </section>
         </aside>

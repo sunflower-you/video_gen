@@ -4,6 +4,7 @@ import { LayoutGrid } from "lucide-react";
 import { FormEvent, useState } from "react";
 import type { Work } from "../lib/api";
 import { categories } from "../lib/fallback-data";
+import { quickStartHrefForWork } from "../lib/work-quick-start";
 import type { WorkQuery } from "./platform-dashboard";
 import { PanelTitle } from "./panel-title";
 
@@ -13,14 +14,6 @@ const sortOptions = [
   { label: "最多点赞", value: "most_liked" },
   { label: "最多收藏", value: "most_favorited" }
 ];
-
-function quickStartHrefForWork(item: Work): string {
-  const text = `${item.category} ${item.template_name || ""} ${item.template_id || ""} ${(item.tags || []).join(" ")}`;
-  if (text.includes("创作者挑战赛") || text.includes("挑战赛")) return "/create?quick=creator-challenge";
-  if (text.includes("TV Show")) return "/create?quick=tv-show";
-  if (text.includes("Seedance") || text.includes("Wan2.1") || text.includes("镜头视频")) return "/create?quick=seedance2";
-  return "/create";
-}
 
 export function WorkGallery({
   works,

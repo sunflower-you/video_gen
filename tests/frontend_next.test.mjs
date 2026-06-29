@@ -34,6 +34,7 @@ const userPage = await readFile(new URL("../frontend-next/app/users/[id]/page.ts
 const layout = await readFile(new URL("../frontend-next/app/layout.tsx", import.meta.url), "utf8");
 const api = await readFile(new URL("../frontend-next/lib/api.ts", import.meta.url), "utf8");
 const fallbackData = await readFile(new URL("../frontend-next/lib/fallback-data.ts", import.meta.url), "utf8");
+const workQuickStart = await readFile(new URL("../frontend-next/lib/work-quick-start.ts", import.meta.url), "utf8");
 const tailwind = await readFile(new URL("../frontend-next/tailwind.config.ts", import.meta.url), "utf8");
 const accountPage = await readFile(new URL("../frontend-next/app/account/page.tsx", import.meta.url), "utf8");
 const oauthCallbackPage = await readFile(new URL("../frontend-next/app/account/oauth/callback/page.tsx", import.meta.url), "utf8");
@@ -96,9 +97,9 @@ test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
   assert.match(gallery, /item\.template_name/);
   assert.match(gallery, /item\.tags/);
   assert.match(gallery, /quickStartHrefForWork/);
-  assert.match(gallery, /\/create\?quick=creator-challenge/);
-  assert.match(gallery, /\/create\?quick=tv-show/);
-  assert.match(gallery, /\/create\?quick=seedance2/);
+  assert.match(workQuickStart, /\/create\?quick=creator-challenge/);
+  assert.match(workQuickStart, /\/create\?quick=tv-show/);
+  assert.match(workQuickStart, /\/create\?quick=seedance2/);
   assert.match(gallery, /onSubmit=\{submitSearch\}/);
   assert.match(gallery, /onQueryChange/);
   assert.match(gallery, /sortOptions/);
@@ -1206,8 +1207,12 @@ test("Next 作品详情页接入真实作品接口和互动入口", () => {
   assert.match(workDetail, /interaction_type: interactionType/);
   assert.match(workDetail, /target_type: "work"/);
   assert.match(workDetail, /href=\{`\/users\/\$\{work\?\.author_id \|\| "system"\}`\}/);
+  assert.match(workDetail, /quickStartHrefForWork\(work\)/);
+  assert.match(workDetail, /使用该作品同款创作/);
+  assert.match(workDetail, /Sparkles/);
+  assert.match(workQuickStart, /function quickStartHrefForWork/);
   assert.match(gallery, /href=\{`\/works\/\$\{item\.id\}`\}/);
-  for (const text of ["作品详情", "点赞", "收藏", "查看作者主页", "作品数据", "成片预览"]) {
+  for (const text of ["作品详情", "同款创作", "点赞", "收藏", "查看作者主页", "作品数据", "成片预览"]) {
     assert.match(workDetail, new RegExp(text));
   }
 });

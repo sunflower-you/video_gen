@@ -136,6 +136,11 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /id="input"/);
   assert.match(canvasWorkspace, /id="output"/);
   assert.match(canvasWorkspace, /edgeWithDefaultHandles/);
+  assert.match(canvasWorkspace, /connectionIssueMessage/);
+  assert.match(canvasWorkspace, /connectionEndpointKey/);
+  assert.match(canvasWorkspace, /不能把节点连接到自身/);
+  assert.match(canvasWorkspace, /请勿重复连接/);
+  assert.match(canvasWorkspace, /连线规则冲突/);
   assert.match(canvasWorkspace, /sourceHandle: connection\.sourceHandle \|\| "output"/);
   assert.match(canvasWorkspace, /targetHandle: connection\.targetHandle \|\| "input"/);
   assert.match(canvasWorkspace, /nodeTypes/);

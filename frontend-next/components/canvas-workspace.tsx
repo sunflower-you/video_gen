@@ -84,6 +84,20 @@ function edgeWithDefaultHandles(edge: Edge): Edge {
   };
 }
 
+function connectionEndpointKey(connection: Pick<Edge, "source" | "target"> & { sourceHandle?: string | null; targetHandle?: string | null }) {
+  return `${connection.source}:${connection.sourceHandle || "output"}->${connection.target}:${connection.targetHandle || "input"}`;
+}
+
+function connectionIssueMessage(connection: { source?: string | null; target?: string | null; sourceHandle?: string | null; targetHandle?: string | null }, edges: Edge[], excludeEdgeId = "") {
+  const source = connection.source || "";
+  const target = connection.target || "";
+  if (!source || !target) return "连线缺少起点或终点，请从节点输出连接桩拖到目标输入连接桩。";
+  if (source === target) return "不能把节点连接到自身，请选择另一个目标节点。";
+  const candidateKey = connectionEndpointKey({ source, target, sourceHandle: connection.sourceHandle, targetHandle: connection.targetHandle });
+  const duplicated = edges.some((edge) => edge.id !== excludeEdgeId && connectionEndpointKey(edge) === candidateKey);
+  return duplicated ? "这两个端口已经存在连线，请勿重复连接。" : "";
+}
+
 function mediaUrlFromData(data: Record<string, unknown>) {
   return String(data.image_url || data.video_url || data.audio_url || data.first_frame_url || data.output_url || data.result_url || data.final_video_url || "");
 }
@@ -353,6 +367,15 @@ function validateCanvasGraph(nodes: Node[], edges: Edge[]) {
   const activeEdges = activeGraphEdges(edges);
   const issues: GraphValidationIssue[] = [];
   for (const edge of edges) {
+    const connectionIssue = connectionIssueMessage(edge, edges, edge.id);
+    if (connectionIssue) {
+      issues.push({
+        id: `invalid-edge-${edge.id}`,
+        level: "error",
+        title: "连线规则冲突",
+        detail: `${connectionIssue} 连线 ${edge.id} 暂不能参与稳定运行。`
+      });
+    }
     if (isEdgeDisabled(edge)) {
       issues.push({
         id: `disabled-edge-${edge.id}`,
@@ -676,15 +699,23 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   }
 
   function onConnect(connection: Connection) {
+    const issue = connectionIssueMessage(connection, edges);
+    if (issue) {
+      setStatus(issue);
+      return;
+    }
     rememberGraphHistory();
-    setEdges((items) => addEdge({
-      ...connection,
-      id: `edge-${connection.source}-${connection.target}-${Date.now()}`,
+    const source = connection.source || "";
+    const target = connection.target || "";
+    setEdges((items) => addEdge(edgeWithDefaultHandles({
+      source,
+      target,
+      id: `edge-${source}-${target}-${Date.now()}`,
       sourceHandle: connection.sourceHandle || "output",
       targetHandle: connection.targetHandle || "input",
-      animated: true,
       data: { label: "" }
-    }, items));
+    } satisfies Edge), items));
+    setStatus("连线已创建，可在右侧面板编辑标签或禁用。");
   }
 
   function selectEdge(edgeId: string) {

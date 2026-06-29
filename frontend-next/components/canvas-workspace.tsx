@@ -20,7 +20,7 @@ import {
   type NodeProps,
   type ReactFlowInstance
 } from "@xyflow/react";
-import { AlertTriangle, Ban, Boxes, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, Focus, GitBranch, Image, LayoutGrid, Library, ListTree, Lock, Maximize2, Music, Play, Plus, Redo2, RefreshCcw, RotateCcw, Save, Search, Sparkles, Trash2, Undo2, Unlock, Upload, Video, Wand2 } from "lucide-react";
+import { AlertTriangle, AlignHorizontalDistributeCenter, AlignHorizontalJustifyStart, AlignVerticalDistributeCenter, AlignVerticalJustifyStart, Ban, Boxes, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, Focus, GitBranch, Image, LayoutGrid, Library, ListTree, Lock, Maximize2, Music, Play, Plus, Redo2, RefreshCcw, RotateCcw, Save, Search, Sparkles, Trash2, Undo2, Unlock, Upload, Video, Wand2 } from "lucide-react";
 import { apiFetch, currentUserId, deleteJson, postJson, type Asset, type GenerationTask, type Project, type ProjectGraph, type ProjectGraphNode, type StoryboardShot } from "../lib/api";
 
 const nodeLabels: Record<string, string> = {
@@ -1737,6 +1737,36 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已整理选区：${selectedNodes.length} 个节点。`);
   }
 
+  function alignSelectedNodes(mode: "left" | "top" | "horizontal" | "vertical") {
+    if (selectedNodes.length <= 1) {
+      setStatus("请先框选多个节点，再对齐或分布选区。");
+      return;
+    }
+    const sortedByX = [...selectedNodes].sort((a, b) => a.position.x - b.position.x);
+    const sortedByY = [...selectedNodes].sort((a, b) => a.position.y - b.position.y);
+    const left = Math.min(...selectedNodes.map((node) => node.position.x));
+    const top = Math.min(...selectedNodes.map((node) => node.position.y));
+    const horizontalGap = sortedByX.length > 1 ? (sortedByX[sortedByX.length - 1].position.x - sortedByX[0].position.x) / (sortedByX.length - 1) : 0;
+    const verticalGap = sortedByY.length > 1 ? (sortedByY[sortedByY.length - 1].position.y - sortedByY[0].position.y) / (sortedByY.length - 1) : 0;
+    const nextPositionById = new Map<string, { x: number; y: number }>();
+    if (mode === "left") {
+      for (const node of selectedNodes) nextPositionById.set(node.id, { ...node.position, x: left });
+    }
+    if (mode === "top") {
+      for (const node of selectedNodes) nextPositionById.set(node.id, { ...node.position, y: top });
+    }
+    if (mode === "horizontal") {
+      sortedByX.forEach((node, index) => nextPositionById.set(node.id, { ...node.position, x: sortedByX[0].position.x + horizontalGap * index }));
+    }
+    if (mode === "vertical") {
+      sortedByY.forEach((node, index) => nextPositionById.set(node.id, { ...node.position, y: sortedByY[0].position.y + verticalGap * index }));
+    }
+    rememberGraphHistory();
+    setNodes((items) => items.map((node) => nextPositionById.has(node.id) ? { ...node, position: nextPositionById.get(node.id) || node.position } : node));
+    const label = mode === "left" ? "左对齐" : mode === "top" ? "顶部对齐" : mode === "horizontal" ? "水平等距分布" : "垂直等距分布";
+    setStatus(`已${label}选区：${selectedNodes.length} 个节点。`);
+  }
+
   function setSelectedNodesLocked(locked: boolean) {
     if (!selectedNodes.length) return;
     rememberGraphHistory();
@@ -2230,6 +2260,15 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <span className="text-xs text-slate-400">分组名称</span>
             <input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" placeholder={selectedGroupTitles.length > 1 ? "多个分组，将统一改名" : "输入分组名称"} value={selectedGroupTitleValue} onFocus={rememberGraphHistory} onChange={(event) => updateSelectedGroupTitle(event.target.value)} onBlur={(event) => updateSelectedGroupTitle(event.target.value, true)} />
           </label>}
+          <section className="grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">
+            <span className="text-xs text-slate-400">对齐与分布</span>
+            <div className="grid grid-cols-4 gap-2">
+              <button title="左对齐选区" disabled={busy} className="grid h-9 place-items-center rounded-md border border-white/10 text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={() => alignSelectedNodes("left")}><AlignHorizontalJustifyStart size={16} /></button>
+              <button title="顶部对齐选区" disabled={busy} className="grid h-9 place-items-center rounded-md border border-white/10 text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={() => alignSelectedNodes("top")}><AlignVerticalJustifyStart size={16} /></button>
+              <button title="水平等距分布选区" disabled={busy} className="grid h-9 place-items-center rounded-md border border-white/10 text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={() => alignSelectedNodes("horizontal")}><AlignHorizontalDistributeCenter size={16} /></button>
+              <button title="垂直等距分布选区" disabled={busy} className="grid h-9 place-items-center rounded-md border border-white/10 text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={() => alignSelectedNodes("vertical")}><AlignVerticalDistributeCenter size={16} /></button>
+            </div>
+          </section>
           <div className="grid grid-cols-2 gap-2">
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={copySelectedNodes}><ClipboardCopy size={16} />复制选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={duplicateSelectedNodes}><Copy size={16} />生成副本</button>

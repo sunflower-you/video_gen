@@ -2999,7 +2999,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     URL.revokeObjectURL(url);
   }
 
-  function exportWorkflowJson() {
+  async function exportWorkflowJson() {
     const graph = {
       id: `export-${projectId}-${Date.now()}`,
       project_id: projectId,
@@ -3012,8 +3012,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     };
     const text = JSON.stringify(graph, null, 2);
     downloadJsonFile(text, `${project?.title || "video-gen-workflow"}.json`);
-    void navigator.clipboard?.writeText(text).catch(() => undefined);
-    setStatus(`已导出工作流：${graph.nodes.length} 个节点、${graph.edges.length} 条连线。`);
+    const copiedToClipboard = await copyTextToSystemClipboard(text, `project_graph_workflow_export_${projectId}`);
+    setStatus(copiedToClipboard ? `已下载并复制工作流 ProjectGraph JSON：${graph.nodes.length} 个节点、${graph.edges.length} 条连线。` : "已下载工作流 ProjectGraph JSON；浏览器剪贴板不可用，已把内容暂存到本地。");
   }
 
   async function exportSelectedWorkflowJson() {
@@ -3110,6 +3110,23 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     }
   }
 
+  async function loadImportJsonFromClipboard() {
+    let text = "";
+    const fallbackText = () => window.localStorage.getItem(`project_graph_selection_export_${projectId}`) || window.localStorage.getItem(`project_graph_workflow_export_${projectId}`) || "";
+    try {
+      text = await navigator.clipboard.readText();
+    } catch {
+      text = fallbackText();
+    }
+    if (!text.trim()) text = fallbackText();
+    if (!text.trim()) {
+      setStatus("剪贴板中没有可导入的 ProjectGraph JSON，请先复制或导出工作流。");
+      return;
+    }
+    setImportText(text);
+    setStatus("已从剪贴板读取 ProjectGraph JSON，确认后会追加到当前画布。");
+  }
+
   const selectedData = (selectedNode?.data || {}) as Record<string, unknown>;
   const selectedType = String(selectedData.nodeType || "text");
   const selectedEdgeSource = selectedEdge ? nodes.find((node) => node.id === selectedEdge.source) || null : null;
@@ -3133,7 +3150,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <button disabled={busy} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={() => void refreshAll()}><RefreshCcw size={16} />刷新</button>
           <button disabled={busy || !graphPast.length} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={undoGraphChange}><Undo2 size={16} />撤销</button>
           <button disabled={busy || !graphFuture.length} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={redoGraphChange}><Redo2 size={16} />重做</button>
-          <button disabled={busy || !nodes.length} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={exportWorkflowJson}><Download size={16} />导出工作流</button>
+          <button disabled={busy || !nodes.length} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={() => void exportWorkflowJson()}><Download size={16} />导出工作流</button>
           <button disabled={busy} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={() => setShowImport((value) => !value)}><Upload size={16} />导入工作流</button>
           <button title={snapToGrid ? "关闭网格吸附" : "开启网格吸附"} disabled={busy} className={`inline-flex items-center gap-2 rounded-md border px-3 py-2 disabled:opacity-50 ${snapToGrid ? "border-blue-400/40 bg-blue-500/10 text-blue-50" : "border-white/15"}`} onClick={toggleSnapToGrid}><LayoutGrid size={16} />网格吸附</button>
           <button disabled={busy || !nodes.length} className="inline-flex items-center gap-2 rounded-md border border-amber-400/40 bg-amber-500/10 px-3 py-2 disabled:opacity-50" onClick={() => setShowValidation((value) => !value)}><AlertTriangle size={16} />画布自检 {graphValidation.errorCount ? graphValidation.errorCount : ""}</button>
@@ -3327,6 +3344,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <span className="inline-flex items-center gap-2 rounded-md border border-white/10 px-2 py-1 text-xs text-slate-300"><Upload size={14} />读取文件</span>
           <input className="sr-only" type="file" accept="application/json,.json" onChange={(event) => void loadImportJsonFile(event)} />
         </label>
+        <button className="mt-2 flex w-full items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-slate-200 hover:bg-white/[0.06]" onClick={() => void loadImportJsonFromClipboard()}>
+          <span>从剪贴板读取 ProjectGraph JSON</span>
+          <span className="inline-flex items-center gap-2 rounded-md border border-white/10 px-2 py-1 text-xs text-slate-300"><ClipboardPaste size={14} />读取剪贴板</span>
+        </button>
         <textarea className="mt-3 min-h-64 w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500" placeholder="粘贴从画布导出的 ProjectGraph JSON，导入后会追加到当前画布。" value={importText} onChange={(event) => setImportText(event.target.value)} />
         <div className="mt-3 flex items-center justify-between gap-2 text-sm">
           <span className="text-xs text-slate-400">导入会重置节点状态为草稿，并保留参数、位置和连线。</span>

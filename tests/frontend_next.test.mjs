@@ -543,8 +543,15 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /exportSelectedWorkflowJson/);
   assert.match(canvasWorkspace, /importWorkflowJson/);
   assert.match(canvasWorkspace, /loadImportJsonFile/);
+  assert.match(canvasWorkspace, /loadImportJsonFromClipboard/);
+  assert.match(canvasWorkspace, /fallbackText/);
   assert.match(canvasWorkspace, /ProjectGraph JSON/);
   assert.match(canvasWorkspace, /选择 JSON 文件导入/);
+  assert.match(canvasWorkspace, /从剪贴板读取 ProjectGraph JSON/);
+  assert.match(canvasWorkspace, /已下载并复制工作流 ProjectGraph JSON/);
+  assert.match(canvasWorkspace, /已下载工作流 ProjectGraph JSON；浏览器剪贴板不可用，已把内容暂存到本地/);
+  assert.match(canvasWorkspace, /剪贴板中没有可导入的 ProjectGraph JSON/);
+  assert.match(canvasWorkspace, /已从剪贴板读取 ProjectGraph JSON/);
   assert.match(canvasWorkspace, /已读取导入文件/);
   assert.match(canvasWorkspace, /请选择从画布导出的 JSON 文件/);
   assert.match(canvasWorkspace, /导入文件为空，请选择有效的 ProjectGraph JSON 文件/);

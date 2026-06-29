@@ -549,6 +549,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   }, {}), [tasks]);
   const activeEdges = useMemo(() => activeGraphEdges(edges), [edges]);
   const graphValidation = useMemo(() => validateCanvasGraph(nodes, edges), [nodes, edges]);
+  const selectedRunBlockingIssues = useMemo(() => selectedNode ? graphValidation.issues.filter((issue) => issue.level === "error" && issue.nodeId === selectedNode.id) : [], [graphValidation, selectedNode]);
   const graphOutlineNodes = useMemo(() => orderedGraphNodes(nodes, edges), [nodes, edges]);
   const terminalNodeIdSet = useMemo(() => new Set(terminalNodeIds(nodes, edges)), [nodes, edges]);
   const filteredAddableNodes = useMemo(() => {
@@ -1189,12 +1190,27 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus("已定位到自检问题节点。");
   }
 
+  function blockingValidationIssues(nodeIds: string[], includeGlobalIssues = false) {
+    const nodeIdSet = new Set(nodeIds);
+    return graphValidation.issues.filter((issue) => issue.level === "error" && ((issue.nodeId && nodeIdSet.has(issue.nodeId)) || (includeGlobalIssues && !issue.nodeId)));
+  }
+
+  function showRunBlockingIssue(issues: GraphValidationIssue[], scope: string) {
+    const issue = issues[0];
+    if (!issue) return false;
+    setShowValidation(true);
+    if (issue.nodeId) focusCanvasNode(issue.nodeId);
+    setStatus(`${scope}前需要先处理：${issue.title}。${issue.detail}`);
+    return true;
+  }
+
   async function runSelectedNode() {
     if (!selectedNode) return;
     if (isNodeDisabled(selectedNode)) {
       setStatus("节点已禁用，请先启用再运行。");
       return;
     }
+    if (showRunBlockingIssue(blockingValidationIssues([selectedNode.id]), "运行节点")) return;
     await saveGraph();
     setBusy(true);
     setStatus("正在运行节点...");
@@ -1227,9 +1243,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       return;
     }
     setSelectedNodeId(nodeId);
-    await saveGraph();
     const upstream = upstreamNodeIds(nodeId, edges);
     const orderedNodes = orderedChainNodes(nodeId, nodes, edges);
+    if (showRunBlockingIssue(blockingValidationIssues(orderedNodes.map((node) => node.id)), "运行链路")) return;
+    await saveGraph();
     const runnableNodes = orderedNodes.filter((node) => !isNodeDisabled(node));
     const skippedCount = orderedNodes.length - runnableNodes.length;
     if (!runnableNodes.length) {
@@ -1257,6 +1274,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   }
 
   async function runCanvasGraph() {
+    if (showRunBlockingIssue(graphValidation.issues.filter((issue) => issue.level === "error"), "运行全图")) return;
     const orderedNodes = orderedGraphNodes(nodes, edges);
     const terminals = terminalNodeIds(nodes, edges);
     const runnableNodes = orderedNodes.filter((node) => !isNodeDisabled(node));
@@ -1874,6 +1892,18 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="col-span-2 inline-flex items-center justify-center gap-2 rounded-md border border-red-400/30 px-3 py-2 text-red-100 disabled:opacity-50" onClick={() => void deleteSelectedNodes()}><Trash2 size={16} />删除选区</button>
           </div>
         </div> : selectedNode ? <div className="mt-4 grid gap-3 text-sm">
+          {!!selectedRunBlockingIssues.length && <section className="rounded-md border border-red-400/30 bg-red-500/10 p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs text-red-100/80">运行前缺口</p>
+                <strong className="text-sm text-white">当前节点暂不能直接运行</strong>
+              </div>
+              <button className="shrink-0 rounded border border-red-200/20 px-2 py-1 text-xs text-red-50" onClick={() => setShowValidation(true)}>查看自检</button>
+            </div>
+            <div className="mt-2 grid gap-1 text-xs text-red-50">
+              {selectedRunBlockingIssues.slice(0, 3).map((issue) => <p key={issue.id} className="rounded border border-red-200/20 bg-black/20 px-2 py-1">{issue.title}：{issue.detail}</p>)}
+            </div>
+          </section>}
           {mediaUrlFromData(selectedData) && <section className="rounded-md border border-white/10 bg-black/25 p-2">
             <div className="mb-2 flex items-center justify-between gap-2 text-xs text-slate-400">
               <span>素材预览</span>

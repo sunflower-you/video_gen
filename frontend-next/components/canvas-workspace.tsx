@@ -688,6 +688,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [outlineIssuesOnly, setOutlineIssuesOnly] = useState(false);
   const [assetTypeFilter, setAssetTypeFilter] = useState("all");
   const [taskStatusFilter, setTaskStatusFilter] = useState("all");
+  const [assetQuery, setAssetQuery] = useState("");
+  const [taskQuery, setTaskQuery] = useState("");
   const [importText, setImportText] = useState("");
   const [customWorkflowPresets, setCustomWorkflowPresets] = useState<CustomWorkflowPreset[]>([]);
   const [recentNodeTypes, setRecentNodeTypes] = useState<string[]>([]);
@@ -743,8 +745,22 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   }, {}), [assets]);
   const assetTypeFilterOptions = useMemo(() => ["all", ...Object.keys(assetTypeCounts).sort()], [assetTypeCounts]);
   const taskStatusFilterOptions = useMemo(() => ["all", ...Object.keys(taskStatusCounts).sort()], [taskStatusCounts]);
-  const filteredAssets = useMemo(() => assetTypeFilter === "all" ? assets : assets.filter((asset) => asset.asset_type === assetTypeFilter), [assetTypeFilter, assets]);
-  const filteredTasks = useMemo(() => taskStatusFilter === "all" ? tasks : tasks.filter((task) => task.status === taskStatusFilter), [taskStatusFilter, tasks]);
+  const filteredAssets = useMemo(() => {
+    const keyword = assetQuery.trim().toLowerCase();
+    return assets.filter((asset) => {
+      const matchesType = assetTypeFilter === "all" || asset.asset_type === assetTypeFilter;
+      const text = `${asset.asset_type} ${asset.id} ${asset.url || ""} ${asset.workflow_key || ""} ${asset.source_task_type || ""} ${asset.shot_index || ""}`.toLowerCase();
+      return matchesType && (!keyword || text.includes(keyword));
+    });
+  }, [assetQuery, assetTypeFilter, assets]);
+  const filteredTasks = useMemo(() => {
+    const keyword = taskQuery.trim().toLowerCase();
+    return tasks.filter((task) => {
+      const matchesStatus = taskStatusFilter === "all" || task.status === taskStatusFilter;
+      const text = `${task.task_type} ${task.status} ${task.workflow_key || ""} ${task.prompt_id || ""} ${task.id} ${task.error_message || ""} ${task.retry_advice || ""}`.toLowerCase();
+      return matchesStatus && (!keyword || text.includes(keyword));
+    });
+  }, [taskQuery, taskStatusFilter, tasks]);
   const activeEdges = useMemo(() => activeGraphEdges(edges), [edges]);
   const graphValidation = useMemo(() => validateCanvasGraph(nodes, edges), [nodes, edges]);
   const selectedRunBlockingIssues = useMemo(() => selectedNode ? graphValidation.issues.filter((issue) => issue.level === "error" && issue.nodeId === selectedNode.id) : [], [graphValidation, selectedNode]);
@@ -3361,6 +3377,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             onClick={() => setAssetTypeFilter(type)}
           >{type === "all" ? `全部 ${assets.length}` : `${type} ${assetTypeCounts[type] || 0}`}</button>)}
         </div>
+        <label className="mt-3 flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm">
+          <Search size={15} className="text-slate-400" />
+          <input className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-slate-500" placeholder="搜索素材 URL、工作流、分镜" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
+        </label>
         <div className="mt-3 grid gap-2 text-sm">
           {filteredAssets.map((asset) => {
             const type = asset.asset_type === "video" ? "video" : asset.asset_type === "audio" ? "audio" : "image";
@@ -3380,7 +3400,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             </button>;
           })}
           {!assets.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">暂无素材，可先运行生成节点。</p>}
-          {!!assets.length && !filteredAssets.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">当前类型暂无素材，请切换筛选条件。</p>}
+          {!!assets.length && !filteredAssets.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">没有匹配素材，请调整类型或关键词。</p>}
         </div>
       </aside>}
 
@@ -3424,6 +3444,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             onClick={() => setTaskStatusFilter(taskStatus)}
           >{taskStatus === "all" ? `全部 ${tasks.length}` : `${statusText(taskStatus)} ${taskStatusCounts[taskStatus] || 0}`}</button>)}
         </div>
+        <label className="mt-3 flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm">
+          <Search size={15} className="text-slate-400" />
+          <input className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-slate-500" placeholder="搜索任务类型、工作流、错误" value={taskQuery} onChange={(event) => setTaskQuery(event.target.value)} />
+        </label>
         <div className="mt-3 grid gap-2 text-sm">
           {filteredTasks.map((task) => <article key={task.id} className="rounded-md border border-white/10 px-3 py-2 text-slate-300">
             <button className="w-full text-left hover:text-white" onClick={() => focusTaskNode(task.id)}>
@@ -3439,7 +3463,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             </div>
           </article>)}
           {!tasks.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">暂无生成任务</p>}
-          {!!tasks.length && !filteredTasks.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">当前状态暂无任务，请切换筛选条件。</p>}
+          {!!tasks.length && !filteredTasks.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">没有匹配任务，请调整状态或关键词。</p>}
         </div>
       </aside>}
     </main>

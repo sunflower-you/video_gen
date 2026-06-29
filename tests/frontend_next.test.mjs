@@ -227,8 +227,8 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /任务队列/);
   assert.match(canvasWorkspace, /生成过程追踪/);
   assert.match(canvasWorkspace, /素材筛选/);
-  assert.match(canvasWorkspace, /当前类型暂无素材/);
-  assert.match(canvasWorkspace, /当前状态暂无任务/);
+  assert.match(canvasWorkspace, /没有匹配素材/);
+  assert.match(canvasWorkspace, /没有匹配任务/);
   assert.match(canvasWorkspace, /全部 \$\{assets\.length\}/);
   assert.match(canvasWorkspace, /全部 \$\{tasks\.length\}/);
   assert.match(canvasWorkspace, /运行诊断/);
@@ -238,8 +238,14 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /assetTypeCounts/);
   assert.match(canvasWorkspace, /assetTypeFilter/);
   assert.match(canvasWorkspace, /taskStatusFilter/);
+  assert.match(canvasWorkspace, /assetQuery/);
+  assert.match(canvasWorkspace, /taskQuery/);
   assert.match(canvasWorkspace, /filteredAssets/);
   assert.match(canvasWorkspace, /filteredTasks/);
+  assert.match(canvasWorkspace, /搜索素材 URL、工作流、分镜/);
+  assert.match(canvasWorkspace, /搜索任务类型、工作流、错误/);
+  assert.match(canvasWorkspace, /没有匹配素材/);
+  assert.match(canvasWorkspace, /没有匹配任务/);
   assert.match(canvasWorkspace, /selectedTask/);
   assert.match(canvasWorkspace, /\/api\/tasks\/\$\{taskId\}\/\$\{action\}/);
   assert.match(canvasWorkspace, /\/api\/comfy\/tasks\/\$\{taskId\}\/sync/);

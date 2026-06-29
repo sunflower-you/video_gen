@@ -1,0 +1,394 @@
+import { readFile } from "node:fs/promises";
+import test from "node:test";
+import assert from "node:assert/strict";
+
+const rootPackage = await readFile(new URL("../package.json", import.meta.url), "utf8");
+const nextPackage = await readFile(new URL("../frontend-next/package.json", import.meta.url), "utf8");
+const nextPackageLock = await readFile(new URL("../frontend-next/package-lock.json", import.meta.url), "utf8");
+const nextConfig = await readFile(new URL("../frontend-next/next.config.mjs", import.meta.url), "utf8");
+const page = await readFile(new URL("../frontend-next/app/page.tsx", import.meta.url), "utf8");
+const dashboard = await readFile(new URL("../frontend-next/components/platform-dashboard.tsx", import.meta.url), "utf8");
+const shell = await readFile(new URL("../frontend-next/components/app-shell.tsx", import.meta.url), "utf8");
+const gallery = await readFile(new URL("../frontend-next/components/work-gallery.tsx", import.meta.url), "utf8");
+const workspace = await readFile(new URL("../frontend-next/components/workspace-panel.tsx", import.meta.url), "utf8");
+const accountPanel = await readFile(new URL("../frontend-next/components/account-panel.tsx", import.meta.url), "utf8");
+const oauthCallbackPanel = await readFile(new URL("../frontend-next/components/oauth-callback-panel.tsx", import.meta.url), "utf8");
+const createWorkbench = await readFile(new URL("../frontend-next/components/create-workbench.tsx", import.meta.url), "utf8");
+const projectWorkspace = await readFile(new URL("../frontend-next/components/project-workspace.tsx", import.meta.url), "utf8");
+const canvasWorkspace = await readFile(new URL("../frontend-next/components/canvas-workspace.tsx", import.meta.url), "utf8");
+const adminShell = await readFile(new URL("../frontend-next/components/admin-shell.tsx", import.meta.url), "utf8");
+const billingPanel = await readFile(new URL("../frontend-next/components/billing-panel.tsx", import.meta.url), "utf8");
+const adminReviewPanel = await readFile(new URL("../frontend-next/components/admin-review-panel.tsx", import.meta.url), "utf8");
+const templates = await readFile(new URL("../frontend-next/components/template-market.tsx", import.meta.url), "utf8");
+const templateMarketplace = await readFile(new URL("../frontend-next/components/template-marketplace.tsx", import.meta.url), "utf8");
+const review = await readFile(new URL("../frontend-next/components/review-status.tsx", import.meta.url), "utf8");
+const workDetail = await readFile(new URL("../frontend-next/components/work-detail.tsx", import.meta.url), "utf8");
+const authorProfile = await readFile(new URL("../frontend-next/components/author-profile-panel.tsx", import.meta.url), "utf8");
+const createPage = await readFile(new URL("../frontend-next/app/create/page.tsx", import.meta.url), "utf8");
+const workspacePage = await readFile(new URL("../frontend-next/app/workspace/[projectId]/page.tsx", import.meta.url), "utf8");
+const billingPage = await readFile(new URL("../frontend-next/app/billing/page.tsx", import.meta.url), "utf8");
+const templatesPage = await readFile(new URL("../frontend-next/app/templates/page.tsx", import.meta.url), "utf8");
+const reviewPage = await readFile(new URL("../frontend-next/app/admin/review/page.tsx", import.meta.url), "utf8");
+const workPage = await readFile(new URL("../frontend-next/app/works/[id]/page.tsx", import.meta.url), "utf8");
+const userPage = await readFile(new URL("../frontend-next/app/users/[id]/page.tsx", import.meta.url), "utf8");
+const layout = await readFile(new URL("../frontend-next/app/layout.tsx", import.meta.url), "utf8");
+const api = await readFile(new URL("../frontend-next/lib/api.ts", import.meta.url), "utf8");
+const fallbackData = await readFile(new URL("../frontend-next/lib/fallback-data.ts", import.meta.url), "utf8");
+const tailwind = await readFile(new URL("../frontend-next/tailwind.config.ts", import.meta.url), "utf8");
+const accountPage = await readFile(new URL("../frontend-next/app/account/page.tsx", import.meta.url), "utf8");
+const oauthCallbackPage = await readFile(new URL("../frontend-next/app/account/oauth/callback/page.tsx", import.meta.url), "utf8");
+
+test("Next 前端骨架声明 TypeScript、Tailwind 和核心依赖", () => {
+  const rootManifest = JSON.parse(rootPackage);
+  const manifest = JSON.parse(nextPackage);
+  const lockfile = JSON.parse(nextPackageLock);
+  assert.match(rootManifest.scripts["check:next"], /npm --prefix frontend-next run typecheck/);
+  assert.match(rootManifest.scripts["check:next"], /npm --prefix frontend-next run build/);
+  assert.match(rootManifest.scripts["check:next"], /node tests\/next_runtime_smoke\.mjs/);
+  assert.equal(manifest.scripts.dev, "next dev");
+  assert.equal(manifest.scripts.start, "next start");
+  assert.equal(manifest.scripts.typecheck, "tsc --noEmit");
+  assert.ok(manifest.dependencies.next);
+  assert.match(manifest.dependencies.next, /\^16\./);
+  assert.ok(manifest.dependencies.react);
+  assert.ok(manifest.dependencies["lucide-react"]);
+  assert.ok(manifest.dependencies["@xyflow/react"]);
+  assert.match(manifest.devDependencies.postcss, /\^8\.5\./);
+  assert.match(manifest.overrides.postcss, /\^8\.5\./);
+  assert.ok(manifest.devDependencies.typescript);
+  assert.ok(manifest.devDependencies.tailwindcss);
+  assert.equal(lockfile.packages[""].dependencies.next, manifest.dependencies.next);
+  assert.equal(lockfile.packages[""].dependencies["@xyflow/react"], manifest.dependencies["@xyflow/react"]);
+  assert.match(nextConfig, /PLATFORM_API_BASE_URL/);
+  assert.match(nextConfig, /source: "\/api\/:path\*"/);
+  assert.match(nextConfig, /destination: `\$\{apiBaseUrl\}\/api\/:path\*`/);
+  assert.match(nextConfig, /source: "\/storage\/:path\*"/);
+});
+
+test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
+  assert.match(layout, /lang="zh-CN"/);
+  assert.match(layout, /漫剧工坊/);
+  assert.match(page, /PlatformDashboard/);
+  for (const text of ["作品广场", "开始创作", "模板市场", "脚本成片", "创建空白项目", "刷新草稿", "暂无项目草稿", "全画幅创作入口", "快速体验模板"]) {
+    assert.match(`${dashboard}\n${shell}\n${gallery}\n${workspace}\n${templates}`, new RegExp(text));
+  }
+  assert.doesNotMatch(shell, /发布审核/);
+  assert.doesNotMatch(shell, /admin\/review/);
+  assert.doesNotMatch(dashboard, /ReviewStatus/);
+  assert.doesNotMatch(dashboard, /apiFetch\("\/api\/health"\)/);
+  assert.match(dashboard, /new URLSearchParams\(\{ sort_by: query\.sortBy \}\)/);
+  assert.match(dashboard, /params\.set\("category", query\.category\)/);
+  assert.match(dashboard, /params\.set\("keyword", query\.keyword\.trim\(\)\)/);
+  assert.match(dashboard, /apiFetch\(`\/api\/works\?\$\{params\.toString\(\)\}`\)/);
+  assert.match(dashboard, /apiFetch\("\/api\/templates"\)/);
+  assert.match(workspace, /"use client"/);
+  assert.match(workspace, /apiFetch\(`\/api\/projects\?owner_id=/);
+  assert.match(workspace, /postJson<Project>\("\/api\/projects"/);
+  assert.match(workspace, /owner_id: currentUserId\(\)/);
+  assert.match(workspace, /href=\{`\/workspace\/\$\{project\.id\}`\}/);
+  assert.match(gallery, /item\.cover_url/);
+  assert.match(gallery, /item\.video_url/);
+  assert.match(gallery, /item\.template_name/);
+  assert.match(gallery, /item\.tags/);
+  assert.match(gallery, /onSubmit=\{submitSearch\}/);
+  assert.match(gallery, /onQueryChange/);
+  assert.match(gallery, /sortOptions/);
+  for (const text of ["搜索作品", "最新发布", "最多浏览", "最多点赞", "最多收藏", "成片", "模板：", "暂无匹配作品"]) {
+    assert.match(gallery, new RegExp(text));
+  }
+  assert.doesNotMatch(`${page}\n${dashboard}`, /hero/i);
+});
+
+test("Next 前端迁移已拆分组件并提供核心路由", () => {
+  assert.match(shell, /href: "\/create"/);
+  assert.match(shell, /href: "\/templates"/);
+  assert.match(shell, /href: "\/billing"/);
+  assert.match(shell, /href: "\/account"/);
+  assert.match(adminShell, /href: "\/admin\/review"/);
+  assert.match(adminShell, /运营后台/);
+  assert.match(workPage, /WorkDetail/);
+  assert.match(userPage, /AuthorProfilePanel/);
+  assert.match(workspacePage, /CanvasWorkspace/);
+  assert.match(createPage, /创作流程/);
+  assert.match(createPage, /CreateWorkbench/);
+  assert.match(createPage, /全画幅画布/);
+  assert.match(templatesPage, /TemplateMarketplace/);
+  assert.match(templatesPage, /模板复刻/);
+  assert.match(billingPage, /BillingPanel/);
+  assert.match(billingPage, /积分充值/);
+  assert.match(accountPage, /AccountPanel/);
+  assert.match(accountPage, /账号令牌/);
+  assert.match(`${reviewPage}\n${adminReviewPanel}`, /审核队列/);
+  assert.match(reviewPage, /AdminReviewPanel/);
+  assert.match(fallbackData, /短片剧集/);
+  assert.match(fallbackData, /selfhost\/video_wan2\.1_fusionx/);
+});
+
+test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
+  assert.match(canvasWorkspace, /@xyflow\/react/);
+  assert.match(canvasWorkspace, /ReactFlow/);
+  assert.match(canvasWorkspace, /Background/);
+  assert.match(canvasWorkspace, /Controls/);
+  assert.match(canvasWorkspace, /MiniMap/);
+  assert.match(canvasWorkspace, /nodeTypes/);
+  assert.match(canvasWorkspace, /文本节点/);
+  assert.match(canvasWorkspace, /图片节点/);
+  assert.match(canvasWorkspace, /视频节点/);
+  assert.match(canvasWorkspace, /音频节点/);
+  assert.match(canvasWorkspace, /脚本 Beta/);
+  assert.match(canvasWorkspace, /分镜图生成/);
+  assert.match(canvasWorkspace, /镜头视频生成/);
+  assert.match(canvasWorkspace, /旁白配音/);
+  assert.match(canvasWorkspace, /成片合成/);
+  assert.match(canvasWorkspace, /apiFetch\(`\/api\/projects\/\$\{projectId\}\/graph\?user_id=/);
+  assert.match(canvasWorkspace, /apiFetch\(`\/api\/projects\/\$\{projectId\}\/graph`/);
+  assert.match(canvasWorkspace, /graph\/nodes\/\$\{selectedNode\.id\}\/run/);
+  assert.match(canvasWorkspace, /window\.localStorage\.setItem\(`project_graph_/);
+  assert.match(canvasWorkspace, /项目素材库/);
+  assert.match(canvasWorkspace, /任务队列/);
+  assert.match(canvasWorkspace, /保存画布/);
+  assert.match(canvasWorkspace, /运行节点/);
+  assert.match(canvasWorkspace, /删除节点/);
+  assert.match(api, /export type ProjectGraph/);
+  assert.match(api, /export type ProjectGraphNode/);
+  assert.match(api, /export type ProjectGraphEdge/);
+});
+
+test("Next 账号页支持注册登录和本地令牌管理", () => {
+  assert.match(accountPanel, /"use client"/);
+  assert.match(accountPanel, /postJson<AuthResponse>\("\/api\/auth\/register"/);
+  assert.match(accountPanel, /postJson<AuthResponse>\("\/api\/auth\/login"/);
+  assert.match(accountPanel, /postJson<AuthResponse>\("\/api\/auth\/session\/refresh"/);
+  assert.match(accountPanel, /apiFetch\("\/api\/auth\/session\/me"\)/);
+  assert.match(accountPanel, /apiFetch\(`\/api\/auth\/oauth\/\$\{encodeURIComponent\(provider\)\}\/start\?next_url=/);
+  assert.match(accountPanel, /encodeURIComponent\("\/account\/oauth\/callback"\)/);
+  assert.match(accountPanel, /window\.location\.href = authorizationUrl/);
+  assert.match(oauthCallbackPanel, /"use client"/);
+  assert.match(oauthCallbackPanel, /window\.location\.hash/);
+  assert.match(oauthCallbackPanel, /saveUserSessionToken\(token\)/);
+  assert.match(oauthCallbackPanel, /saveCurrentUser\(callbackUser\)/);
+  assert.match(oauthCallbackPanel, /window\.history\.replaceState/);
+  assert.match(oauthCallbackPage, /OAuthCallbackPanel/);
+  assert.match(accountPanel, /savePlatformApiToken\(platformToken\)/);
+  assert.match(accountPanel, /saveUserSessionToken\(response\.token\)/);
+  assert.match(accountPanel, /saveCurrentUser\(response\.user\)/);
+  for (const text of ["平台 API Token", "保存平台访问令牌", "注册账号", "刷新会话", "校验当前会话", "第三方登录渠道", "发起第三方登录", "第三方登录回调", "返回账号页"]) {
+    assert.match(`${accountPanel}\n${accountPage}\n${oauthCallbackPanel}\n${oauthCallbackPage}`, new RegExp(text));
+  }
+});
+
+test("Next 积分充值页读取账户并创建支付订单", () => {
+  assert.match(billingPanel, /"use client"/);
+  assert.match(billingPanel, /apiFetch\("\/api\/billing\/account"\)/);
+  assert.match(billingPanel, /postJson<PaymentOrder>\("\/api\/billing\/payment-orders"/);
+  assert.match(billingPanel, /apiFetch\("\/api\/billing\/subscriptions"\)/);
+  assert.match(billingPanel, /postJson<SubscriptionPlan>\("\/api\/billing\/subscriptions"/);
+  assert.match(billingPanel, /apiFetch\("\/api\/billing\/withdrawals"\)/);
+  assert.match(billingPanel, /postJson<WithdrawalRequest>\("\/api\/billing\/withdrawals"/);
+  assert.match(billingPanel, /postJson<WithdrawalRequest>\(`\/api\/admin\/billing\/withdrawals\/\$\{reviewWithdrawalId\}\/review`/);
+  assert.match(billingPanel, /amount_cents: selectedOption\.amountCents/);
+  assert.match(billingPanel, /latestOrder\.checkout_url/);
+  assert.match(billingPanel, /href=\{latestOrder\.checkout_url\}/);
+  assert.match(billingPanel, /target="_blank"/);
+  assert.match(billingPanel, /postJson<CreditAccount>\("\/api\/admin\/billing\/credits"/);
+  assert.match(billingPanel, /postJson<RevenueShare>\(`\/api\/admin\/billing\/works\/\$\{workId\}\/revenue`/);
+  assert.match(billingPanel, /operator_id: operatorId/);
+  assert.match(billingPanel, /target_user_id: targetUserId/);
+  assert.match(billingPanel, /gross_credits: grossCredits/);
+  assert.match(api, /export type RevenueShare/);
+  assert.match(api, /export type SubscriptionPlan/);
+  assert.match(api, /export type WithdrawalRequest/);
+  for (const text of ["积分账户", "创建支付订单", "支付渠道", "支付订单已创建", "打开支付收银台", "会员订阅", "开通会员", "创作者提现", "提交提现申请", "审核提现", "暂无积分流水", "运营积分调账", "提交积分调账", "作品收益分账", "记录作品收益"]) {
+    assert.match(`${billingPanel}\n${billingPage}`, new RegExp(text));
+  }
+});
+
+test("Next 模板市场读取真实模板并支持复刻项目", () => {
+  assert.match(templateMarketplace, /"use client"/);
+  assert.match(templateMarketplace, /apiFetch\("\/api\/templates"\)/);
+  assert.match(templateMarketplace, /postJson<Project>\("\/api\/projects"/);
+  assert.match(templateMarketplace, /TemplateMarket/);
+  assert.match(templateMarketplace, /fallbackTemplates/);
+  assert.match(templateMarketplace, /href=\{`\/workspace\/\$\{createdProjectId\}`\}/);
+  assert.match(templateMarketplace, /currentUserId/);
+  assert.match(templateMarketplace, /owner_id: currentUserId\(\)/);
+  assert.match(templateMarketplace, /template_id: template\.id/);
+  assert.match(templateMarketplace, /project_type: "模板复刻"/);
+  assert.match(templateMarketplace, /const \[projectTitle, setProjectTitle\]/);
+  assert.match(templateMarketplace, /const \[aspectRatio, setAspectRatio\]/);
+  assert.match(templateMarketplace, /const title = projectTitle\.trim\(\) \|\| `\$\{template\.name\} 复刻项目`/);
+  assert.match(templateMarketplace, /aspect_ratio: aspectRatio/);
+  assert.match(templates, /formatParams/);
+  assert.match(templates, /item\.default_params/);
+  assert.match(templates, /item\.example_inputs/);
+  assert.match(templates, /item\.usage_count/);
+  assert.match(templates, /item\.cover_url/);
+  assert.match(templates, /item\.sample_video_url/);
+  assert.match(api, /default_params\?: Record<string, unknown>/);
+  assert.match(api, /example_inputs\?: Record<string, unknown>/);
+  for (const text of ["复刻项目", "复刻项目标题", "目标画幅", "9:16 竖屏短视频", "16:9 横屏短片", "1:1 方形画布", "刷新模板", "模板复刻成功", "模板复刻失败，请稍后重试", "默认参数", "示例输入", "使用次数", "查看封面", "查看成片示例"]) {
+    assert.match(`${templateMarketplace}\n${templates}\n${fallbackData}`, new RegExp(text));
+  }
+});
+
+test("Next 创作工作台调用真实项目和生成接口", () => {
+  assert.match(createWorkbench, /"use client"/);
+  assert.match(createWorkbench, /currentUserId/);
+  assert.match(createWorkbench, /apiFetch\("\/api\/templates"\)/);
+  assert.match(createWorkbench, /fallbackTemplates/);
+  assert.match(createWorkbench, /type Template/);
+  assert.match(createWorkbench, /postJson<Project>\("\/api\/projects"/);
+  assert.match(createWorkbench, /script\/analyze/);
+  assert.match(createWorkbench, /type ProjectAnalysis/);
+  assert.match(createWorkbench, /const \[aspectRatio, setAspectRatio\]/);
+  assert.match(createWorkbench, /const \[selectedTemplateId, setSelectedTemplateId\]/);
+  assert.match(createWorkbench, /aspect_ratio: aspectRatio/);
+  assert.match(createWorkbench, /template_id: projectType === "模板复刻" \? selectedTemplateId : undefined/);
+  assert.match(createWorkbench, /reference_image_url: projectType === "图片成片" \? referenceImageUrl : ""/);
+  assert.match(createWorkbench, /projectType === "空白项目"/);
+  assert.match(createWorkbench, /projectType === "模板复刻"/);
+  assert.match(createWorkbench, /setProject\(\{ \.\.\.created, characters: analyzed\.characters, shots: analyzed\.shots/);
+  assert.match(createWorkbench, /generate-image/);
+  assert.match(createWorkbench, /batch-generate/);
+  assert.match(createWorkbench, /timeline\/build/);
+  assert.match(createWorkbench, /compose/);
+  assert.match(createWorkbench, /href=\{`\/workspace\/\$\{project\.id\}`\}/);
+  assert.match(createWorkbench, /window\.location\.href = `\/workspace\/\$\{created\.id\}`/);
+  for (const text of ["创建项目并生成分镜草稿", "复刻模板并生成分镜草稿", "模板复刻项目已继承", "9:16 竖屏短视频", "16:9 横屏短片", "1:1 方形画布", "创建空白项目", "参考图 URL", "批量生成素材", "生成时间线", "合成成片", "任务队列", "积分余额不足", "进入项目工作台"]) {
+    assert.match(createWorkbench, new RegExp(text));
+  }
+});
+
+test("Next 独立项目工作台接入项目详情、素材、任务和导出接口", () => {
+  assert.match(projectWorkspace, /"use client"/);
+  assert.match(projectWorkspace, /apiFetch\(`\/api\/projects\/\$\{projectId\}\?user_id=/);
+  assert.match(projectWorkspace, /apiFetch\(`\/api\/projects\/\$\{projectId\}\/tasks\?user_id=/);
+  assert.match(projectWorkspace, /apiFetch\(`\/api\/projects\/\$\{projectId\}\/assets\?user_id=/);
+  assert.match(projectWorkspace, /postJson<StoryboardShot>\(`\/api\/projects\/\$\{projectId\}\/shots`/);
+  assert.match(projectWorkspace, /patchJson<Character>\(`\/api\/projects\/\$\{projectId\}\/characters\/\$\{character\.id\}`/);
+  assert.match(projectWorkspace, /patchJson<StoryboardShot>\(`\/api\/projects\/\$\{projectId\}\/shots\/\$\{shot\.id\}`/);
+  assert.match(projectWorkspace, /patchJson<SubtitleCue>\(`\/api\/projects\/\$\{projectId\}\/subtitles\/\$\{cue\.id\}`/);
+  assert.match(projectWorkspace, /deleteJson<DeleteResult>\(`\/api\/projects\/\$\{projectId\}\/shots\/\$\{shotId\}`/);
+  assert.match(projectWorkspace, /deleteJson<DeleteResult>\(`\/api\/projects\/\$\{projectId\}\/assets\/\$\{assetId\}`/);
+  assert.match(projectWorkspace, /manualCharacters\.split/);
+  assert.match(projectWorkspace, /generate-image/);
+  assert.match(projectWorkspace, /generate-video/);
+  assert.match(projectWorkspace, /generate-tts/);
+  assert.match(projectWorkspace, /timeline\/build/);
+  assert.match(projectWorkspace, /subtitles\/export/);
+  assert.match(projectWorkspace, /compose/);
+  assert.match(projectWorkspace, /postJson<Work>\(`\/api\/works\/\$\{projectId\}\/publish`/);
+  assert.match(projectWorkspace, /publishTags\.split/);
+  assert.match(projectWorkspace, /setLatestWork\(work\)/);
+  assert.match(projectWorkspace, /updateCharacterDraft/);
+  assert.match(projectWorkspace, /updateSubtitleDraft/);
+  assert.match(projectWorkspace, /\/api\/comfy\/tasks\/\$\{taskId\}\/sync/);
+  assert.match(projectWorkspace, /\/api\/tasks\/\$\{taskId\}\/\$\{action\}/);
+  assert.match(templateMarketplace, /href=\{`\/workspace\/\$\{createdProjectId\}`\}/);
+  for (const text of ["项目工作台", "项目结构", "角色设定", "保存角色设定", "参考图 URL", "统一风格提示词", "新增分镜", "新增手动分镜", "保存修订", "删除分镜", "分镜草稿", "时间线与字幕", "字幕文本", "字幕样式", "保存字幕修改", "项目任务队列", "项目素材库", "删除素材", "导出字幕", "合成成片", "发布审核", "提交发布审核", "作品已提交发布审核"]) {
+    assert.match(projectWorkspace, new RegExp(text));
+  }
+});
+
+test("Next 发布审核页接入真实审核、概览和巡检接口", () => {
+  assert.match(adminReviewPanel, /"use client"/);
+  assert.match(adminReviewPanel, /apiFetch\(`\/api\/works\?include_unpublished=true&user_id=/);
+  assert.match(adminReviewPanel, /apiFetch\(`\/api\/admin\/billing\/withdrawals\?status=pending_review&operator_id=/);
+  assert.match(adminReviewPanel, /apiFetch\(`\/api\/admin\/billing\/withdrawals\?status=approved&payout_status=failed&operator_id=/);
+  assert.match(adminReviewPanel, /apiFetch\(`\/api\/admin\/billing\/withdrawals\?status=approved&payout_status=not_configured&operator_id=/);
+  assert.match(adminReviewPanel, /apiFetch\(`\/api\/admin\/overview\?user_id=/);
+  assert.match(adminReviewPanel, /apiFetch\(`\/api\/admin\/runtime-config\?user_id=/);
+  assert.match(adminReviewPanel, /apiFetch\("\/api\/health"\)/);
+  assert.match(adminReviewPanel, /postJson<ComfyUiPluginInstallReport>\("\/api\/admin\/comfyui\/plugin\/install"/);
+  assert.match(adminReviewPanel, /postJson<Work>\(`\/api\/admin\/review\/\$\{workId\}`/);
+  assert.match(adminReviewPanel, /postJson<WithdrawalRequest>\(`\/api\/admin\/billing\/withdrawals\/\$\{withdrawalId\}\/review`/);
+  assert.match(adminReviewPanel, /postJson<WithdrawalRequest>\(`\/api\/admin\/billing\/withdrawals\/\$\{withdrawalId\}\/retry-payout`/);
+  assert.match(adminReviewPanel, /postJson<StorageCleanupResult>\("\/api\/admin\/storage\/cleanup"/);
+  assert.match(adminReviewPanel, /postJson<RunningTaskSyncResult>\("\/api\/admin\/tasks\/sync-running"/);
+  assert.match(adminReviewPanel, /postJson<WorkflowRegistryProbeResult>\("\/api\/admin\/workflows\/probe"/);
+  assert.match(adminReviewPanel, /action === "approve"/);
+  assert.match(api, /export type AdminOverview/);
+  assert.match(api, /export type AdminRuntimeConfig/);
+  assert.match(api, /export type ComfyUiPluginInstallReport/);
+  assert.match(api, /comfyui_plugin:/);
+  assert.match(api, /workflow_registry:/);
+  assert.match(api, /production_ready: boolean/);
+  assert.match(api, /status: "pass" \| "warning" \| "blocker"/);
+  assert.match(api, /export type WithdrawalRequest/);
+  assert.match(api, /export type StorageCleanupResult/);
+  assert.match(api, /export type StorageProbeResult/);
+  assert.match(api, /export type PaymentWebhookProbeResult/);
+  assert.match(api, /export type AlertProbeResult/);
+  assert.match(api, /export type PayoutWebhookProbeResult/);
+  assert.match(api, /export type WorkflowRegistryProbeResult/);
+  assert.match(api, /export type RunningTaskSyncResult/);
+  assert.match(adminReviewPanel, /api\/admin\/storage\/probe/);
+  assert.match(adminReviewPanel, /api\/admin\/billing\/payment-webhook\/probe/);
+  assert.match(adminReviewPanel, /api\/admin\/alerts\/probe/);
+  assert.match(adminReviewPanel, /api\/admin\/billing\/payout-webhook\/probe/);
+  assert.match(adminReviewPanel, /api\/admin\/workflows\/probe/);
+  for (const text of ["审核队列", "提现审核", "通过提现", "驳回提现", "暂无待审核提现", "打款通知处理", "重试打款通知", "暂无待处理打款通知", "运营概览", "部署自检", "安装平台插件", "生产配置未就绪", "阻塞", "ComfyUI 插件", "工作流注册表", "访问令牌", "打款 Webhook", "巡检操作", "清理预检", "清理孤儿文件", "存储读写探针", "支付回调探针", "告警 Webhook 探针", "打款 Webhook 探针", "工作流注册表探针", "同步预检", "同步运行中任务", "暂无待审核作品"]) {
+    assert.match(adminReviewPanel, new RegExp(text));
+  }
+});
+
+test("Next 作品详情页接入真实作品接口和互动入口", () => {
+  assert.match(workDetail, /"use client"/);
+  assert.match(workDetail, /apiFetch\(`\/api\/works\/\$\{workId\}`\)/);
+  assert.match(workDetail, /postJson<Work>\("\/api\/interactions"/);
+  assert.match(workDetail, /interaction_type: interactionType/);
+  assert.match(workDetail, /target_type: "work"/);
+  assert.match(workDetail, /href=\{`\/users\/\$\{work\?\.author_id \|\| "system"\}`\}/);
+  assert.match(gallery, /href=\{`\/works\/\$\{item\.id\}`\}/);
+  for (const text of ["作品详情", "点赞", "收藏", "查看作者主页", "作品数据", "成片预览"]) {
+    assert.match(workDetail, new RegExp(text));
+  }
+});
+
+test("Next 作者主页读取真实作者聚合并支持关注", () => {
+  assert.match(authorProfile, /"use client"/);
+  assert.match(authorProfile, /apiFetch\(`\/api\/users\/\$\{userId\}`\)/);
+  assert.match(authorProfile, /postJson<AuthorProfile>\("\/api\/interactions"/);
+  assert.match(authorProfile, /target_type: "author"/);
+  assert.match(authorProfile, /interaction_type: "follow"/);
+  assert.match(authorProfile, /href=\{`\/works\/\$\{work\.id\}`\}/);
+  assert.match(api, /export type AuthorProfile/);
+  assert.match(api, /export function currentUserId/);
+  assert.match(api, /export function saveCurrentUser/);
+  for (const text of ["作者主页", "关注作者", "公开作品", "发布模板", "暂无公开作品"]) {
+    assert.match(authorProfile, new RegExp(text));
+  }
+});
+
+test("Next API client 统一透传平台令牌和用户会话", () => {
+  assert.match(api, /export type Work/);
+  assert.match(api, /export type Template/);
+  assert.match(api, /export type Project/);
+  assert.match(api, /export type GenerationTask/);
+  assert.match(api, /export type CreditAccount/);
+  assert.match(api, /export type PaymentOrder/);
+  assert.match(api, /export type RevenueShare/);
+  assert.match(api, /export type AuthResponse/);
+  assert.match(api, /export type AuthorProfile/);
+  assert.match(api, /export function savePlatformApiToken/);
+  assert.match(api, /export function saveUserSessionToken/);
+  assert.match(api, /export function saveCurrentUser/);
+  assert.match(api, /export function currentUserId/);
+  assert.match(api, /export async function apiFetch/);
+  assert.match(api, /export async function postJson/);
+  assert.match(api, /export async function patchJson/);
+  assert.match(api, /export async function deleteJson/);
+  assert.match(api, /export type DeleteResult/);
+  assert.match(api, /window\.localStorage\.getItem\("platform_api_token"\)/);
+  assert.match(api, /window\.localStorage\.getItem\("platform_user_session"\)/);
+  assert.match(api, /window\.localStorage\.getItem\("platform_user_id"\)/);
+  assert.match(api, /headers\.set\("Authorization", `Bearer \$\{token\}`\)/);
+  assert.match(api, /headers\.set\("X-User-Session", sessionToken\)/);
+});
+
+test("Next Tailwind 配置使用克制的生产工具色板", () => {
+  assert.match(tailwind, /content: \["\.\/app\/\*\*\/\*\.\{ts,tsx\}"/);
+  assert.match(tailwind, /canvas: "#f6f7f9"/);
+  assert.match(tailwind, /accent: "#1677ff"/);
+  assert.match(tailwind, /borderRadius/);
+});

@@ -1,0 +1,73 @@
+services:
+  api:
+    build:
+      context: ..
+    command: uvicorn app.backend.api:app --host 0.0.0.0 --port 8000
+    env_file:
+      - env.example
+    environment:
+      PLATFORM_TASK_QUEUE_DRIVER: arq
+      PLATFORM_REDIS_URL: redis://redis:6379/0
+      PLATFORM_REPOSITORY_DRIVER: postgres
+      PLATFORM_DATABASE_URL: postgresql://video_gen:video_gen@postgres:5432/video_gen
+    ports:
+      - "8000:8000"
+    volumes:
+      - video_gen_storage:/data/storage
+      - comfy_output:/data/comfy-output:ro
+    depends_on:
+      - redis
+      - postgres
+
+  arq-worker:
+    build:
+      context: ..
+    command: arq app.backend.worker.WorkerSettings
+    env_file:
+      - env.example
+    environment:
+      PLATFORM_TASK_QUEUE_DRIVER: arq
+      PLATFORM_REDIS_URL: redis://redis:6379/0
+      PLATFORM_TASK_QUEUE_NAME: video_gen
+      PLATFORM_REPOSITORY_DRIVER: postgres
+      PLATFORM_DATABASE_URL: postgresql://video_gen:video_gen@postgres:5432/video_gen
+    volumes:
+      - video_gen_storage:/data/storage
+      - comfy_output:/data/comfy-output:ro
+    depends_on:
+      - redis
+      - postgres
+
+  ops-worker:
+    build:
+      context: ..
+    command: python -m app.backend.worker --user-id system_admin --sync-running --cleanup-storage --notify-alerts --limit 20
+    env_file:
+      - env.example
+    volumes:
+      - video_gen_storage:/data/storage
+      - comfy_output:/data/comfy-output:ro
+    depends_on:
+      - redis
+      - postgres
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: video_gen
+      POSTGRES_USER: video_gen
+      POSTGRES_PASSWORD: video_gen
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  video_gen_storage:
+  comfy_output:
+  redis_data:
+  postgres_data:

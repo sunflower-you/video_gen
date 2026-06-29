@@ -1,0 +1,35 @@
+{
+  "workflow_key": "selfhost/image_flux",
+  "adapter_type": "comfyui",
+  "description": "Flux 分镜图生成工作流适配说明。平台提交时只传业务 inputs，部署时由该文件对应的 ComfyUI 节点图承接 prompt、width、height 和 seed。",
+  "inputs": {
+    "prompt": "{{prompt}}",
+    "width": "{{width}}",
+    "height": "{{height}}",
+    "seed": "{{seed}}"
+  },
+  "outputs": {
+    "9": {
+      "asset_type": "image",
+      "field": "images"
+    }
+  },
+  "comfy_workflow": {
+    "1": {
+      "class_type": "PlatformBusinessInput",
+      "inputs": {
+        "prompt": "{{prompt}}",
+        "width": "{{width}}",
+        "height": "{{height}}",
+        "seed": "{{seed}}"
+      }
+    },
+    "9": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": ["1", 0],
+        "filename_prefix": "video_gen/storyboard"
+      }
+    }
+  }
+}

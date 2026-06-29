@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>漫剧工坊</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="主导航">
+        <div class="brand">
+          <span class="brand-mark">影</span>
+          <div>
+            <strong>漫剧工坊</strong>
+            <small>ComfyUI 创作平台</small>
+          </div>
+        </div>
+        <nav class="nav-list">
+          <a class="active" href="#gallery">作品广场</a>
+          <a href="#create">创作工作台</a>
+          <a href="#templates">模板市场</a>
+          <a href="#review">发布审核</a>
+        </nav>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div class="search">
+            <span aria-hidden="true">⌕</span>
+            <input id="searchInput" type="search" placeholder="搜索短片剧集、AI 漫剧、模板" />
+          </div>
+          <div class="status-pill" id="comfyStatus">ComfyUI 检查中</div>
+          <form class="account-form" id="authForm" aria-label="账号登录">
+            <input name="authUserId" placeholder="账号" value="demo_creator" autocomplete="username" />
+            <input name="authPassword" type="password" placeholder="密码" autocomplete="current-password" />
+            <button type="button" data-auth-action="login">登录</button>
+            <button type="button" data-auth-action="register">注册</button>
+            <span id="authStatus">未登录</span>
+          </form>
+        </header>
+
+        <section class="toolbar" aria-label="作品筛选">
+          <div class="segmented" role="tablist">
+            <button class="selected" type="button" data-category="">全部</button>
+            <button type="button" data-category="精选画布">精选画布</button>
+            <button type="button" data-category="短片剧集">短片剧集</button>
+            <button type="button" data-category="AI 漫剧">AI 漫剧</button>
+            <button type="button" data-category="动画短片">动画短片</button>
+            <button type="button" data-category="概念设计">概念设计</button>
+            <button type="button" data-category="经典衍生">经典衍生</button>
+            <button type="button" data-category="广告短片">广告短片</button>
+          </div>
+          <button class="primary-action" type="button" id="newProjectButton">新建项目</button>
+        </section>
+
+        <section class="workspace-grid">
+          <section class="panel gallery-panel" id="gallery">
+            <div class="panel-head">
+              <div>
+                <h1>作品广场</h1>
+                <p>已发布作品、模板复刻和成片案例</p>
+              </div>
+              <select id="sortSelect" aria-label="排序">
+                <option value="latest">最近发布</option>
+                <option value="most_favorited">最多收藏</option>
+                <option value="most_viewed">最多浏览</option>
+                <option value="most_liked">最多点赞</option>
+              </select>
+            </div>
+            <div class="work-grid" id="workGrid"></div>
+            <aside class="work-detail" id="workDetail" aria-label="作品详情">
+              <div class="empty-state compact">选择作品查看详情</div>
+            </aside>
+          </section>
+
+          <aside class="panel create-panel" id="create">
+            <div class="panel-head compact">
+              <h2>创作工作台</h2>
+              <span class="badge">草稿</span>
+            </div>
+            <form class="create-form" id="projectForm">
+              <label>
+                项目标题
+                <input name="title" value="雨夜重逢的漫剧短片" />
+              </label>
+              <label>
+                创作类型
+                <select name="projectType">
+                  <option>脚本成片</option>
+                  <option>图片成片</option>
+                  <option>模板复刻</option>
+                  <option>空白项目</option>
+                </select>
+              </label>
+              <label>
+                脚本文本
+                <textarea name="script" rows="6">女主在雨夜车站等待失联多年的哥哥，一辆旧出租车停下，车窗里出现熟悉的护身符。</textarea>
+              </label>
+              <label>
+                参考图 URL
+                <input name="referenceImageUrl" placeholder="图片成片可填写首帧或角色参考图 URL" />
+              </label>
+              <button class="primary-action full" type="submit">生成分镜草稿</button>
+            </form>
+            <div class="form-status" id="projectFormStatus" role="status">等待提交</div>
+            <section class="project-list-panel" aria-label="项目草稿">
+              <div class="asset-library-head">
+                <h3>项目草稿</h3>
+                <button class="ghost-button" type="button" id="refreshProjects">刷新项目</button>
+              </div>
+              <div class="project-list" id="projectList">
+                <div class="empty-state compact">暂无项目草稿</div>
+              </div>
+            </section>
+            <section class="character-panel" aria-label="角色设定">
+              <div class="asset-library-head">
+                <h3>角色设定</h3>
+                <button class="ghost-button" type="button" id="refreshCharacters">刷新角色</button>
+              </div>
+              <div class="character-list" id="characterList">
+                <div class="empty-state compact">暂无角色设定</div>
+              </div>
+            </section>
+
+            <div class="task-list" aria-label="生成任务">
+              <div class="task-row">
+                <span>脚本分析</span>
+                <strong>可提交</strong>
+              </div>
+              <div class="task-row">
+                <span>分镜图生成</span>
+                <strong>等待脚本</strong>
+              </div>
+              <div class="task-row failed">
+                <span>镜头视频</span>
+                <strong>可重试</strong>
+              </div>
+              <div class="task-row">
+                <span>旁白配音</span>
+                <strong>等待脚本</strong>
+              </div>
+            </div>
+            <section class="project-task-panel" aria-label="项目任务队列">
+              <div class="asset-library-head">
+                <h3>项目任务队列</h3>
+                <div>
+                  <select id="projectTaskStatusFilter" aria-label="任务状态筛选">
+                    <option value="">全部状态</option>
+                    <option value="pending">待处理</option>
+                    <option value="running">运行中</option>
+                    <option value="completed">已完成</option>
+                    <option value="failed">失败</option>
+                    <option value="cancelled">已取消</option>
+                  </select>
+                  <button class="ghost-button" type="button" id="refreshProjectTasks">刷新任务</button>
+                </div>
+              </div>
+              <div class="project-task-list" id="projectTaskList">
+                <div class="empty-state compact">暂无项目任务</div>
+              </div>
+            </section>
+            <div class="compose-bar">
+              <button class="ghost-button full" type="button" id="batchImageButton">批量生成分镜图</button>
+              <button class="ghost-button full" type="button" id="batchTtsButton">批量生成旁白配音</button>
+              <button class="ghost-button full" type="button" id="buildTimelineButton">生成时间线与字幕</button>
+              <button class="primary-action full" type="button" id="composeButton">合成成片</button>
+              <div class="publish-settings" aria-label="发布信息">
+                <input name="publishTitle" placeholder="发布标题，默认使用项目标题" />
+                <select name="publishCategory">
+                  <option value="AI 漫剧">AI 漫剧</option>
+                  <option value="短片剧集">短片剧集</option>
+                  <option value="动画短片">动画短片</option>
+                  <option value="概念设计">概念设计</option>
+                  <option value="经典衍生">经典衍生</option>
+                  <option value="广告短片">广告短片</option>
+                  <option value="精选画布">精选画布</option>
+                </select>
+                <input name="publishTags" placeholder="标签，用逗号或顿号分隔" value="AI 漫剧" />
+                <input name="publishCoverUrl" placeholder="封面 URL，可选" />
+                <textarea name="publishDescription" rows="3" placeholder="作品简介">由漫剧工坊生成的短视频作品</textarea>
+              </div>
+              <button class="ghost-button full" type="button" id="publishButton">提交发布审核</button>
+              <button class="ghost-button full" type="button" id="refreshExportButton">刷新导出状态</button>
+              <div class="compose-status" id="composeStatus">等待分镜</div>
+              <div class="export-panel" id="exportPanel">
+                <div class="empty-state compact">暂无成片导出</div>
+              </div>
+            </div>
+            <section class="timeline-panel" aria-label="时间线与字幕">
+              <div class="asset-library-head">
+                <h3>时间线与字幕</h3>
+                <div>
+                  <button class="ghost-button" type="button" id="exportSubtitlesButton">导出字幕</button>
+                  <button class="ghost-button" type="button" id="refreshTimeline">刷新时间线</button>
+                </div>
+              </div>
+            <div class="timeline-list" id="timelineList">
+                <div class="empty-state compact">暂无时间线草稿</div>
+              </div>
+            </section>
+            <section class="shot-create-panel" aria-label="新增分镜">
+              <div class="asset-library-head">
+                <h3>新增分镜</h3>
+                <span class="compose-status compact" id="newShotStatus">可手动补充分镜</span>
+              </div>
+              <form class="shot-create-form" id="newShotForm">
+                <input name="newShotNarration" placeholder="分镜旁白" />
+                <input name="newShotVisual" placeholder="画面描述" />
+                <input name="newShotPrompt" placeholder="画面提示词，可选" />
+                <button class="ghost-button" type="submit">添加分镜</button>
+              </form>
+            </section>
+            <div class="shot-list" id="shotList" aria-label="分镜草稿">
+              <div class="empty-state compact">暂无分镜草稿</div>
+            </div>
+            <section class="asset-library" aria-label="项目素材库">
+              <div class="asset-library-head">
+                <h3>项目素材库</h3>
+                <button class="ghost-button" type="button" id="refreshAssets">刷新素材</button>
+              </div>
+              <div class="asset-list" id="assetList">
+                <div class="empty-state compact">暂无归档素材</div>
+              </div>
+            </section>
+          </aside>
+        </section>
+
+        <section class="lower-grid">
+          <section class="panel" id="templates">
+            <div class="panel-head compact">
+              <h2>模板市场</h2>
+              <button class="ghost-button" type="button" id="refreshTemplates">刷新</button>
+            </div>
+            <div class="workflow-list" id="templateList"></div>
+          </section>
+
+          <section class="panel" id="authorProfile">
+            <div class="panel-head compact">
+              <h2>作者主页</h2>
+              <button class="ghost-button" type="button" id="followAuthorButton" disabled>关注作者</button>
+            </div>
+            <div class="author-card" id="authorCard">
+              <div class="empty-state compact">选择作品作者查看主页</div>
+            </div>
+          </section>
+
+          <section class="panel" id="review">
+            <div class="panel-head compact">
+              <h2>发布审核</h2>
+              <button class="ghost-button" type="button" id="refreshAdminOverview">刷新运营状态</button>
+            </div>
+            <div class="platform-health" id="platformHealth">
+              <div class="empty-state compact">平台健康检查中</div>
+            </div>
+            <div class="admin-overview" id="adminOverview">
+              <div class="empty-state compact">运营概览加载中</div>
+            </div>
+            <div class="panel-head compact">
+              <h2>审核队列</h2>
+              <span class="badge warning">待审核 3</span>
+            </div>
+            <div class="review-list" id="reviewList">
+              <div class="empty-state compact">审核队列加载中</div>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>

@@ -1,0 +1,16 @@
+[Unit]
+Description=VideoGen Platform arq Worker
+After=network-online.target redis.service postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/video_gen
+EnvironmentFile=/opt/video_gen/deploy/env.example
+Environment=PLATFORM_TASK_QUEUE_DRIVER=arq
+ExecStart=/opt/video_gen/.venv/bin/arq app.backend.worker.WorkerSettings
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

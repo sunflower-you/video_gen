@@ -1,10 +1,18 @@
-# 类 Liblib 的中文短视频/漫剧制作平台方案
+# 基于 ComfyUI 的类 LibTV/Liblib 中文短视频/漫剧制作平台方案
 
 ## 1. 总览
 
-首版按“平台社区优先”建设：既做可用的 AI 创作链路，也做作品广场、作者主页、模板/工作流复用、点赞收藏和发布审核。生成能力接入本机/内网 ComfyUI，优先复用 Pixelle-Video 现有的 ComfyUI 工作流、TTS、图像、视频、任务管理能力。
+产品采用“ComfyUI 生成底座 + 平台产品层”的混合方案。首版不大改 ComfyUI 本体，而是把本机/内网 ComfyUI 作为核心生成后端，平台侧负责工作流注册、任务编排、状态查询、输出归档、中文错误处理、项目资产管理、模板复刻、作品发布和社区互动。后续将稳定的图像、视频、TTS、脚本分析、合成流程逐步沉淀为 ComfyUI 自定义节点、插件或预设工作流包。
 
-对标 LibTV/Liblib 的核心形态：专业视频创作工具、作品/模板画布、短片剧集、动画短片、概念设计、经典衍生、AI 漫剧赛道、作者等级、成片展示、点赞收藏、封面和最终视频输出。
+前端实现类似 LibTV/Liblib 的产品体验：作品广场、模板/工作流市场、创作工作台、作者主页、短片剧集、动画短片、概念设计、经典衍生、AI 漫剧赛道、成片展示、点赞收藏、封面和最终视频输出。用户在平台化节点画布中编排文本、图片、视频、音频、脚本和生成节点；平台仍只接收业务节点和白名单参数，不允许前端直接提交任意 ComfyUI 原始节点图。
+
+### 当前实现状态
+
+- 已落地可运行 MVP：FastAPI 平台编排层、静态前端原型、Next.js + TypeScript + Tailwind 组件化路由初版、JSON 文件仓储、本地文件存储、Workflow Registry、ComfyUI 任务提交/同步/取消/重试、输出归档、项目工作台、模板市场、作品广场、作品详情、作者主页、互动、发布审核、后台概览、存储清理和中文错误。
+- 已覆盖核心创作闭环：创建项目、脚本分析、角色和分镜编辑、手动新增/删除分镜、分镜图/镜头视频/TTS 任务、批量生成、任务队列、素材库、时间线和字幕、SRT 导出、成片合成任务、成片归档、提交审核和公开展示。
+- 已完成 LibTV 风格节点画布创作端：用户端与后台端分离，`/workspace/[projectId]` 进入全画幅节点画布，可添加、拖拽、连线、保存和运行文本、图片、视频、音频、脚本 Beta、分镜图、镜头视频、TTS、合成和演示节点；节点图支持后端持久化与本地草稿兜底。
+- 已做稳定性边界：项目作者权限、审核角色权限、可选平台 API 访问令牌、账号注册、密码登录、通用 OAuth/OIDC 第三方登录入口、轻量 HMAC 会话令牌与刷新、会话身份中间件、请求体/query 用户冒用拦截、基础限流、Prometheus 文本指标、Webhook 主动告警、告警 Webhook 探针、告警指纹冷却降噪、静态前端托管、CORS 白名单配置、JSON 文件仓储与可选 PostgreSQL JSONB 仓储、PostgreSQL 关系投影表与高频查询索引、本地归档与 S3/OSS/COS/MinIO 兼容对象存储上传适配、对象存储厂商配置校验、管理员存储读写探针、管理员工作流注册表探针、管理员支付回调探针、管理员打款 Webhook 探针、可选 Redis/arq 任务投递、arq 常驻 worker 入口、Docker Compose 和 systemd 部署模板、运行中任务批量同步、轻量 worker CLI、ComfyUI 图像/视频/TTS/合成基础自定义节点包、ComfyUI 插件安装校验工具、ComfyUI HTTP/API Key/队列状态处理、ComfyUI `/view` 远端输出下载兜底、任务失败诊断、存储路径安全、孤儿文件清理、素材引用完整性检查、内部积分账户、生成任务扣费、运营调账、支付订单、支付收银台 URL 模板、签名支付回调、支付成功幂等入账、作品收益分账、业务参数白名单和数值/布尔参数严格校验。
+- 仍属生产化目标：更多真实表单提交流程、具体第三方平台联调、对象存储真实厂商账号联调、更多告警渠道真实机器人联调、更多 ComfyUI 生产 workflow 节点适配和安装联调、微信/支付宝/Stripe 等真实支付账号联调，以及会员订阅收单、提现打款等外部渠道账号联调。
 
 ## 2. 核心产品模块
 
@@ -17,13 +25,15 @@
 
 ## 3. 技术架构
 
-- 前端：Next.js + TypeScript + Tailwind CSS，所有用户可见文案使用中文；首屏直接进入平台型工作界面，不做营销落地页。
-- 后端：FastAPI，提供创作、任务、资源、作品、模板、用户、互动接口。
-- 数据库：PostgreSQL 存储用户、项目、分镜、任务、作品、模板、互动数据。
-- 队列：Redis + arq，用于 ComfyUI 长任务、视频合成、发布审核。
+- 前端产品层：生产目标使用 Next.js + TypeScript + Tailwind CSS，所有用户可见文案使用中文；首屏直接进入作品广场和创作入口，不做营销落地页。当前 `frontend-next/` 已拆分 `AppShell`、作品广场、作品详情、作者主页、创作工作台、独立项目工作台、模板市场、积分充值、账号令牌、发布审核等组件，并提供 `/create`、`/workspace/[projectId]`、`/templates`、`/billing`、`/account`、`/account/oauth/callback`、`/works/[id]`、`/users/[id]`、`/admin/review` 核心路由；作品广场卡片展示封面、成片标记、模板来源、标签和互动计数，并已将分类筛选、关键词搜索和排序接入 `/api/works` 查询参数，首页工作台已接入项目草稿列表、快速创建空白项目和项目工作台跳转，首页发布导出区会读取当前用户最近项目，并提供合成、字幕导出、提交审核和审核队列导航，无项目时回到创建入口；`/create` 已接入项目创建、脚本分析、图片成片参考图、空白项目创建、模板列表读取、模板选择、目标画幅、分镜图生成、批量生成、时间线和合成任务 API，`/workspace/[projectId]` 已接入项目详情、角色设定编辑、分镜、手动新增分镜、分镜修订、分镜删除、任务队列、素材库、素材删除、时间线、字幕编辑、字幕导出、生成任务提交/同步/取消/重试、成片合成和提交发布审核 API，`/templates` 已接入 `/api/templates` 并支持模板复刻创建项目，复刻时可填写项目标题和目标画幅，模板卡片展示适用场景、默认参数、示例输入、封面、成片示例和使用次数，`/works/[id]` 已接入 `/api/works/{work_id}` 和作品点赞/收藏互动，`/users/[id]` 已接入 `/api/users/{user_id}` 和关注作者互动，`/admin/review` 已接入未发布作品队列、作品审核通过/驳回/下架、待审核提现队列、打款通知待处理队列、提现通过/驳回、打款通知重试、运营概览、部署自检、平台健康、工作流注册表探针、存储读写探针、支付回调探针、告警 Webhook 探针、打款 Webhook 探针、存储清理和运行中任务同步 API，`/billing` 已接入 `/api/billing/account`、`/api/billing/payment-orders`、`/api/billing/subscriptions`、`/api/billing/withdrawals`、`/api/admin/billing/credits`、`/api/admin/billing/works/{work_id}/revenue`、`/api/admin/billing/withdrawals/{withdrawal_id}/review` 和 `/api/admin/billing/withdrawals/{withdrawal_id}/retry-payout`，覆盖积分账户、支付订单、支付收银台入口、会员订阅、创作者提现、运营提现审核、运营调账、打款通知重试和作品收益分账，`/account` 已接入 `/api/auth/register`、`/api/auth/login`、`/api/auth/oauth/{provider}/start`、OAuth 回调会话保存、`/api/auth/session/refresh` 和 `/api/auth/session/me`；Next 运行时通过 `PLATFORM_API_BASE_URL` 将 `/api/*` 和 `/storage/*` 代理到 FastAPI，并已加入 API 兼容测试服务 + Next smoke 联调，覆盖代理、项目创建/读取、作品查询参数、模板复刻参数、支付订单创建、会员订阅、提现申请、后台提现队列、打款通知重试、支付回调探针、告警 Webhook 探针、打款 Webhook 探针、工作流注册表探针、部署自检、存储读写探针、OAuth 发起登录、OAuth 回调页和核心页面访问；前端依赖已生成 `package-lock.json`，并通过 TypeScript 检查、Next 生产构建和运行时 smoke。保留 `frontend/` 静态原型作为 MVP 可运行入口。
+- 平台编排层：FastAPI 作为轻量业务 API，不承载模型推理；负责用户、项目、分镜、任务、素材、作品、模板、互动、审核和权限。
+- 生成后端：ComfyUI 是首版唯一默认生成后端，平台通过 HTTP/WebSocket 调用 ComfyUI 的 prompt、history、queue、view 等接口提交任务、轮询状态、读取输出。
+- 数据库：默认 JSON 文件仓储用于开发；生产可通过 `PLATFORM_REPOSITORY_DRIVER=postgres` 切换到 PostgreSQL JSONB 仓储，存储平台业务数据、任务状态、ComfyUI prompt_id、workflow_key、输入参数、输出资产、审核状态和互动计数。PostgreSQL 模式会同步维护关系投影表和高频查询索引，覆盖项目作者、任务项目/状态、作品审核/分类、模板 workflow、互动目标、素材来源任务等关联查询。
+- 队列：Redis + arq 用于平台侧异步编排，包括 ComfyUI 任务提交、状态同步、输出归档、视频合成、发布审核和失败重试。
 - 文件存储：开发期本地 `storage/`，生产期抽象为 S3/OSS 兼容存储；数据库只存文件 URL、hash、mime、尺寸、时长。
-- AI 能力层：封装 `ComfyProvider`，支持 `selfhost` ComfyUI URL、API Key、workflow JSON、任务状态查询和输出归档。
-- 可复用能力：参考 Pixelle-Video 的 `workflows/selfhost/*`、`workflows/runninghub/*`、任务状态模型、TTS/图像/视频生成服务。
+- Workflow Registry：平台维护工作流注册表，声明 `workflow_key`、ComfyUI workflow JSON、参数 schema、默认参数、输出节点映射、适用场景和中文说明。
+- ComfyUI 改造路径：首版通过外接工作流集成；当工作流稳定后，再封装为 ComfyUI 自定义节点、插件、工作流包或模型预设，减少平台侧对节点 ID 的硬编码。
+- 可复用能力：优先复用 Pixelle-Video 的 `workflows/selfhost/*`、`workflows/runninghub/*`、任务状态模型、TTS/图像/视频生成服务。
 
 ## 4. 数据模型
 
@@ -32,58 +42,114 @@
 - `Script`：原始文本、改写文本、风格、目标时长、语言。
 - `Character`：角色名、设定、参考图、统一风格提示词、LoRA/模型配置。
 - `StoryboardShot`：镜头序号、旁白、画面描述、景别、角色、提示词、负面提示词、生成状态、关联素材。
+- `SubtitleCue`：字幕序号、起止时间、字幕文本、字幕样式、关联项目和分镜。
+- `TimelineItem`：时间线序号、起止时间、镜头视频、配音素材、字幕 cue、转场方式、关联项目和分镜。
 - `GenerationTask`：任务类型、状态、进度、错误、ComfyUI prompt_id、输入参数、输出文件。
 - `Asset`：类型、URL、本地路径、mime、宽高、时长、hash、来源任务。
-- `WorkTemplate`：名称、描述、分类、封面、示例视频、workflow key、参数 schema、发布状态。
-- `PublishedWork`：标题、描述、封面、视频、分类标签、作者、审核状态、点赞数、收藏数、浏览数。
+- `WorkTemplate`：名称、描述、分类、封面、示例视频、workflow key、参数 schema、默认参数、示例输入、适用场景、发布状态。
+- `PublishedWork`：标题、描述、封面、视频、分类标签、作者、模板来源、审核状态、点赞数、收藏数、浏览数。
 - `Interaction`：用户、目标类型、目标 ID、类型：like/favorite/follow。
 
 ## 5. API 接口
 
 - `POST /api/projects`：创建项目，输入标题、类型、目标比例、默认模板。
+- `POST /api/auth/register` / `POST /api/auth/login` / `POST /api/auth/session/refresh` / `GET /api/auth/session/me`：注册、密码登录、刷新和校验会话。
+- `GET /api/auth/oauth/{provider}/start` / `GET /api/auth/oauth/{provider}/callback`：通用 OAuth/OIDC 第三方登录入口，支持签名 state、授权码换 token、userinfo 拉取和平台会话签发。
 - `GET /api/projects` / `GET /api/projects/{id}`：项目列表和详情。
+- `GET /api/projects/{id}/assets` / `DELETE /api/projects/{id}/assets/{asset_id}`：查询和清理项目归档素材。
 - `POST /api/projects/{id}/script/analyze`：脚本分析，生成角色、剧情段落和分镜草稿。
+- `PATCH /api/projects/{id}/characters/{character_id}`：编辑项目角色设定、参考图和统一风格提示词。
+- `POST /api/projects/{id}/shots`：手动新增分镜，用于空白项目或补充分镜。
+- `PATCH /api/projects/{id}/shots/{shot_id}`：编辑分镜旁白、画面描述、提示词、负面提示词和出场角色。
+- `DELETE /api/projects/{id}/shots/{shot_id}`：删除分镜并清理关联任务、素材、时间线和字幕草稿。
 - `POST /api/projects/{id}/shots/{shot_id}/generate-image`：生成单个分镜图。
 - `POST /api/projects/{id}/shots/{shot_id}/generate-video`：生成单个镜头视频。
+- `POST /api/projects/{id}/shots/{shot_id}/generate-tts`：生成单个分镜旁白配音。
+- `POST /api/projects/{id}/batch-generate`：批量创建分镜图或旁白配音任务。
+- `POST /api/projects/{id}/timeline/build`：根据分镜顺序生成时间线草稿和字幕 cue，并绑定已有视频/音频素材。
+- `PATCH /api/projects/{id}/subtitles/{subtitle_id}`：编辑字幕文本、样式和起止时间。
+- `POST /api/projects/{id}/subtitles/export`：导出 SRT 字幕文件并登记为项目素材。
 - `POST /api/projects/{id}/compose`：合成字幕、配音、BGM、镜头片段，输出成片。
 - `GET /api/tasks/{task_id}`：查询生成/合成进度。
+- `GET /api/comfy/status`：检查 ComfyUI 连接状态、队列状态和系统信息，未连接时返回中文错误。
+- `GET /api/health`：平台健康检查，汇总 ComfyUI 连接、失败任务、缺失素材、待审核积压和运营告警。
+- `GET /api/metrics`：Prometheus 文本指标，暴露 ComfyUI 连接、队列、项目、任务、素材、审核、存储和引用完整性指标。
+- `GET /api/workflows`：读取平台已注册的 ComfyUI 工作流、参数 schema、默认参数和适用场景。
+- `POST /api/comfy/tasks/{task_id}/sync`：同步指定 ComfyUI 任务状态和输出文件，用于重试或人工修复。
 - `POST /api/works/{project_id}/publish`：提交发布审核。
+- `POST /api/admin/review/{work_id}`：运营/审核角色执行作品通过、驳回或下架。
+- `GET /api/admin/overview`：后台运营概览，统计项目、任务、素材、存储和待审核情况。
+- `GET /api/admin/runtime-config`：后台部署自检，脱敏返回 ComfyUI、ComfyUI 平台插件、工作流注册表、仓储、存储、队列、鉴权、告警、支付、打款和前端托管配置状态，并给出生产就绪检查项、阻塞项和警告项。
+- `POST /api/admin/workflows/probe`：运营/审核角色执行工作流注册表探针，验证参数 schema、adapter 输出节点映射、生成类型覆盖和 ComfyUI 提交 payload 构建。
+- `POST /api/admin/alerts/probe`：运营/审核角色发送一条告警 Webhook 探针，用于验证告警机器人地址、渠道格式和签名配置。
+- `POST /api/admin/comfyui/plugin/install`：后台安装平台 ComfyUI 自定义节点插件到 `COMFYUI_ROOT/custom_nodes/video_gen_platform_nodes`，支持覆盖安装并返回节点清单。
+- `POST /api/admin/storage/probe`：运营/审核角色执行一次存储读写探针，验证本地归档写入、S3 兼容上传和探针清理链路。
+- `POST /api/admin/storage/cleanup`：运营/审核角色清理未被素材记录引用的孤儿归档文件，并返回缺失素材报告。
+- `POST /api/admin/tasks/sync-running`：运营/审核角色批量同步运行中的 ComfyUI 任务，支持预检和数量限制。
+- `GET /api/billing/account`：查询当前用户积分账户、余额和最近流水。
+- `POST /api/billing/payment-orders`：创建积分充值支付订单，可通过通用或渠道专用 checkout URL 模板生成收银台入口。
+- `POST /api/billing/payment-webhook/{channel}`：第三方支付渠道签名回调，确认成功后幂等入账积分。
+- `GET /api/billing/subscriptions` / `POST /api/billing/subscriptions`：查询和开通会员订阅，开通时扣除积分并写入流水。
+- `GET /api/billing/withdrawals` / `POST /api/billing/withdrawals`：查询和提交创作者提现申请，申请时冻结积分并进入待审核状态。
+- `POST /api/admin/billing/credits`：运营/审核角色为用户充值、扣减或修正积分，并写入审计流水。
+- `POST /api/admin/billing/works/{work_id}/revenue`：运营/审核角色为已发布作品记录收益，按平台比例拆分作者收益和平台收益。
+- `POST /api/admin/billing/payment-webhook/probe`：运营/审核角色创建小额测试支付订单，生成平台签名并走真实支付回调确认逻辑，用于验证支付密钥、签名和入账链路。
+- `POST /api/admin/billing/withdrawals/{withdrawal_id}/review`：运营/审核角色审核提现申请，通过时可通过 `PLATFORM_PAYOUT_WEBHOOK_URL` 通知外部打款系统并记录通知状态、失败原因和渠道流水号，驳回时退回冻结积分。
+- `POST /api/admin/billing/withdrawals/{withdrawal_id}/retry-payout`：运营/审核角色重试已通过提现的外部打款通知，适用于打款通知失败或未配置时的恢复处理。
+- `POST /api/admin/billing/payout-webhook/probe`：运营/审核角色发送一条无资金变动的打款 Webhook 探针，用于验证打款系统地址、签名、渠道 payload 和回执解析。
 - `GET /api/works`：作品广场列表，支持分类、排序、关键词。
-- `GET /api/templates`：模板/工作流市场列表。
+- `GET /api/templates`：可复刻模板/工作流市场列表；内部编排 workflow 保留在 `/api/workflows` 和后台注册表探针中，不作为项目模板复刻。
 - `POST /api/interactions`：点赞、收藏、关注。
 
-## 6. ComfyUI 工作流
+## 6. ComfyUI 集成边界与工作流
 
+- ComfyUI 默认地址为 `http://127.0.0.1:8188`，通过环境变量覆盖；生产环境支持内网地址、API Key、反向代理和访问白名单。
+- 平台 API 支持基础限流，通过 `PLATFORM_RATE_LIMIT_PER_MINUTE` 开启分钟级请求限制，超限返回中文错误。
+- 平台 API 支持可选访问令牌，通过 `PLATFORM_API_TOKEN` 保护写接口和 `/api/admin/*` 后台接口；静态前端从 `localStorage.platform_api_token` 读取令牌并透传。
+- 平台 API 支持账号注册、密码登录、通用 OAuth/OIDC 第三方登录和轻量 HMAC 会话令牌，通过 `PLATFORM_SESSION_SECRET` 开启；密码使用 PBKDF2 摘要存储，可通过 `PLATFORM_SESSION_TTL_SECONDS` 配置会话有效期，常见创作、任务、互动、发布和后台审核接口可从 `X-User-Session` 补齐用户身份。会话身份由中间件统一解析，若请求体或 query 中显式用户与会话用户不一致会直接拒绝，避免客户端伪造 `user_id` 越权。
+- 平台 API 提供 `/api/metrics` Prometheus 文本指标；开启 `PLATFORM_API_TOKEN` 后该监控端点也需要访问令牌。worker 可通过 `--notify-alerts` 将 `/api/health` 同类告警推送到 `PLATFORM_ALERT_WEBHOOK_URL`，可用 `PLATFORM_ALERT_CHANNEL` 选择通用、飞书/Lark、钉钉或 Slack Webhook payload，可用 `PLATFORM_ALERT_WEBHOOK_SECRET` 增加 HMAC 签名，并通过 `PLATFORM_ALERT_COOLDOWN_SECONDS` 与 `PLATFORM_ALERT_STATE_PATH` 对相同告警做指纹冷却降噪。运营后台可发送唯一告警 Webhook 探针，验证机器人地址、渠道 payload 和签名配置。
+- FastAPI 可直接托管静态前端目录，并通过 `PLATFORM_CORS_ORIGINS` 配置允许访问 API 的前端域名，便于先用单服务部署 MVP。
+- 归档存储支持本地模式和 `PLATFORM_STORAGE_DRIVER=s3` S3/OSS/COS/MinIO 兼容上传模式；对象存储模式保留本地 `local_path` 审计副本，并通过 `PLATFORM_S3_PUBLIC_BASE_URL` 生成公开 URL。`PLATFORM_S3_VENDOR` 支持 `aws-s3`、`aliyun-oss`、`tencent-cos`、`minio` 和 `custom`，配置层会校验 endpoint、bucket、prefix、HTTPS 策略、路径风格和上传超时。运营后台提供存储读写探针，S3 模式会在上传探针后尝试 DELETE 清理远端对象。
+- 平台只暴露业务化参数，例如脚本、角色、镜头描述、景别、尺寸、时长、fps、seed、音色、模板 ID；不让前端直接提交任意 ComfyUI 节点图。
 - 图像生成：默认接 `selfhost/image_flux.json` 或 `selfhost/image_qwen.json`，输入镜头提示词、角色参考图、尺寸、seed。
 - 视频生成：默认接 `selfhost/video_wan2.1_fusionx.json`，输入首帧/参考图、动作描述、时长、fps。
 - TTS：默认接 `selfhost/tts_edge.json`，输入旁白文本、音色、语速。
-- 分析能力：可接 `analyse_image.json`、`analyse_video.json` 做素材理解。
-- 每个 workflow 在平台侧注册为 `workflow_key`，并声明参数 schema，避免前端直接依赖 ComfyUI 节点 ID。
-- 任务状态映射：`pending/running/completed/failed/cancelled`；失败必须记录中文错误和原始 ComfyUI 错误摘要。
+- 分析能力：可接 `analyse_image.json`、`analyse_video.json` 做素材理解，也可接脚本分析类 workflow 生成角色和分镜草稿。
+- Workflow Registry 必须为每个 workflow 声明 `workflow_key`、版本、输入 schema、默认值、输出节点映射、生成类型、中文展示名和失败提示。
+- 运营后台提供工作流注册表探针，读取所有注册 workflow 并构造示例业务参数，校验 schema、adapter `workflow_key`、输出节点映射、必需生成类型覆盖和 ComfyUI payload 占位符替换结果。
+- 任务状态映射为 `pending/running/completed/failed/cancelled`；失败必须记录中文错误、原始 ComfyUI 错误摘要、prompt_id、workflow_key 和可重试建议。
+- 默认 inline 模式下任务提交会同步调用 ComfyUI；设置 `PLATFORM_TASK_QUEUE_DRIVER=arq`、`PLATFORM_REDIS_URL` 和 `PLATFORM_TASK_QUEUE_NAME` 后，平台会把任务提交投递到 Redis/arq，并由 `app.backend.worker.WorkerSettings` 中的 worker 函数执行实际 ComfyUI 提交。仓库提供 `deploy/docker-compose.yml`、`deploy/systemd/*` 和 `deploy/env.example` 用于 API、arq worker、巡检 worker、Redis、PostgreSQL 的部署联调。运营后台仍提供运行中任务批量同步接口，并提供 `python -m app.backend.worker` 轻量 CLI 供 cron/systemd 巡检。
+- 输出归档流程：平台优先从共享的 ComfyUI 输出目录读取文件；若本地缺文件且输出路径合法，会通过 ComfyUI `/view` 下载远端输出到平台临时区，再计算 hash、识别 mime/尺寸/时长，最后登记为 `Asset` 并绑定项目、分镜、任务或作品。
+- ComfyUI 改造不在首版强行 fork 主项目；仓库已提供 `comfyui_plugin/video_gen_platform_nodes` 基础插件包，包含平台业务输入、镜头输入、配音输入、合成清单和平台归档回调节点，并提供 `python -m comfyui_plugin.installer --check` 与 `--comfyui-root` 安装校验工具。后续继续扩展更贴近具体模型和生产 workflow 的素材归档、字幕/TTS 和视频合成节点。
 
 ## 7. 前端页面
 
 - `/`：作品广场，顶部分类、搜索、排序，主体作品瀑布流。
 - `/create`：创作入口，选择“脚本成片 / 图片成片 / 模板复刻 / 空白项目”。
-- `/workspace/:projectId`：三栏工作台：左侧项目结构，中间分镜/时间线，右侧参数面板与生成按钮。
+- `/workspace/:projectId`：全画幅节点画布：左侧添加节点和素材/任务入口，中间无限画布，右侧节点参数面板，支持节点拖拽、连线、保存、运行和删除。
 - `/templates`：模板市场，展示示例封面、成片、适用场景、使用次数。
+- `/billing`：积分账户和充值页，查看余额、流水，创建支付订单并在支付渠道返回 `checkout_url` 时打开收银台，开通会员订阅，提交创作者提现申请并由运营审核。
+- `/account`：账号令牌页，注册登录、发起第三方登录、刷新会话、校验当前会话并保存平台访问令牌。
+- `/account/oauth/callback`：第三方登录回调页，保存后端签发的平台会话并返回账号页。
 - `/works/:id`：作品详情，视频播放、描述、作者、模板来源、点赞收藏。
 - `/users/:id`：作者主页，作品、模板、作者等级、关注按钮。
-- `/admin/review`：发布审核队列，支持通过、驳回、下架。
+- `/admin/review`：发布审核和运营审核队列，仅运营/审核角色可操作，支持作品通过、驳回、下架，可处理待审核提现申请，并提供部署自检、工作流注册表探针、存储读写探针、支付/告警/打款 Webhook 探针和运行中任务同步。
 
 ## 8. 交付阶段
 
-- 第 1 阶段：基础平台骨架。初始化 Next.js + FastAPI + PostgreSQL + Redis；完成中文 UI 框架、用户/项目/资产/任务基础模型；接入本地文件存储。
-- 第 2 阶段：ComfyUI 生成闭环。实现 ComfyUI provider、workflow 注册、任务队列、任务进度查询；完成分镜图、镜头视频、TTS 三类生成。
-- 第 3 阶段：创作工作台。完成脚本拆解、角色设定、分镜表格、单镜头重试、批量生成、成片合成和导出。
-- 第 4 阶段：社区和模板。完成作品发布、广场、作品详情、作者主页、点赞收藏、模板市场、模板复刻。
-- 第 5 阶段：审核与稳定性。加入发布审核、失败重试、任务取消、生成日志、后台管理、基础限流和存储清理。
+- 第 1 阶段：ComfyUI 外接闭环和平台骨架。初始化 Next.js + FastAPI + PostgreSQL + Redis；完成中文 UI 框架、ComfyUI 健康检查、workflow registry、任务提交/查询、输出归档、本地文件存储和基础项目模型。
+- 第 2 阶段：核心生成能力。跑通分镜图、镜头视频、TTS、脚本分析四类 workflow；完成任务队列、状态同步、失败重试、中文错误和生成日志。
+- 第 3 阶段：创作工作台。完成脚本拆解、角色设定、分镜表格、单镜头重试、批量生成、素材预览、时间线编排、成片合成和导出。已追加完成 LibTV 风格全画幅节点画布，支持平台业务节点编排、保存和运行。
+- 第 4 阶段：LibTV/Liblib 类社区和模板。完成作品广场、作品详情、作者主页、点赞收藏、模板市场、模板复刻、分类筛选和发布审核。
+- 第 5 阶段：ComfyUI 插件化与稳定性。将稳定流程封装为 ComfyUI 自定义节点、插件或工作流包；加入任务取消、后台管理、基础限流、存储清理、权限控制和监控告警。
 
 ## 9. 测试计划
 
 - ComfyUI 健康检查：未启动时显示“ComfyUI 未连接”，启动后能读取系统状态。
-- 生成任务：提交图像/视频/TTS 任务后，状态从 `pending` 到 `running` 到 `completed`，失败时返回中文错误。
-- 工作台流程：脚本输入后能生成分镜，单个分镜可重试，批量生成不会阻塞页面。
+- Workflow Registry：每个注册 workflow 都能校验输入 schema、默认参数、adapter 输出节点映射和 ComfyUI 提交 payload；前端不能直接依赖节点 ID。
+- 生成任务：提交图像/视频/TTS/脚本分析任务后，状态从 `pending` 到 `running` 到 `completed`，失败时返回中文错误、prompt_id 和可重试建议。
+- 输出归档：ComfyUI 输出文件能被复制或转存到平台存储，生成 `Asset` 记录并绑定项目、分镜或作品。
+- 工作台流程：脚本输入后能生成分镜，单个分镜可重试，批量生成不会阻塞页面；全画幅节点画布可添加、连线、保存、删除和运行平台业务节点。
 - 合成导出：多镜头视频、字幕、配音、BGM 可合成最终 MP4，并生成可访问 URL。
 - 社区流程：草稿作品不可见，审核通过后出现在作品广场；点赞、收藏、浏览计数正确。
 - 模板复刻：从模板创建项目后，workflow、默认参数、示例提示词能正确带入。
@@ -91,7 +157,8 @@
 
 ## 10. 默认假设
 
-- 首版按“平台社区优先”，但生成链路仍必须先跑通，否则社区内容无法生产。
-- 本机 ComfyUI 作为默认生成后端，地址为 `http://127.0.0.1:8188`。
-- 首版不做真实支付、积分消耗和商业分账，只预留字段；后续再接会员、点数、创作者收益。
+- 首版采用混合方案：外接 ComfyUI 先跑通生成闭环，后续再把稳定能力沉淀为 ComfyUI 自定义节点、插件或工作流包。
+- 本机 ComfyUI 作为默认生成后端，地址为 `http://127.0.0.1:8188`，生产环境通过环境变量切换到内网 ComfyUI。
+- 平台编排层不直接训练或推理模型，只做业务数据、任务编排、状态同步、资产归档、模板和社区能力。
+- 首版已提供内部积分账本、生成消耗、运营调账、支付订单、支付收银台 URL 模板、签名支付回调、支付成功幂等入账、支付回调探针、会员订阅、提现申请/审核、提现打款 Webhook 通知审计、打款 Webhook 探针和作品收益分账；真实微信/支付宝/Stripe 账号、第三方收单和提现打款账号仍待后续渠道联调。
 - 用户可见内容全部使用简体中文，代码命名保持英文。

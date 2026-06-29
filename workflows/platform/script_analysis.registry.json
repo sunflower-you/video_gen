@@ -1,0 +1,26 @@
+{
+  "workflow_key": "platform/script_analysis",
+  "version": "1.0.0",
+  "display_name": "平台脚本分镜分析",
+  "generation_type": "script_analysis",
+  "workflow_path": "workflows/platform/script_analysis.json",
+  "description": "把短视频或漫剧脚本拆解为角色设定和可编辑分镜草稿。",
+  "applicable_scenarios": ["脚本拆解", "分镜草稿", "角色设定"],
+  "input_schema": {
+    "script": {"type": "string", "required": true, "label": "脚本文本"},
+    "style": {"type": "string", "required": false, "label": "风格"},
+    "target_duration_seconds": {"type": "integer", "required": false, "label": "目标时长"},
+    "main_character": {"type": "string", "required": false, "label": "主角名称"},
+    "reference_image_url": {"type": "string", "required": false, "label": "参考图 URL"}
+  },
+  "default_params": {
+    "style": "电影感国漫短剧",
+    "target_duration_seconds": 60,
+    "main_character": "主角",
+    "reference_image_url": ""
+  },
+  "output_nodes": {
+    "storyboard": "other"
+  },
+  "failure_hint": "请检查脚本文本是否完整，必要时缩短脚本后重新生成分镜草稿。"
+}

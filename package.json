@@ -1,0 +1,12 @@
+{
+  "name": "video-gen-platform",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/frontend.test.mjs",
+    "test:python": "python3 -m unittest discover -s tests -v",
+    "check": "python3 -m unittest discover -s tests -v && python3 -m compileall app && node --test tests/frontend.test.mjs tests/frontend_next.test.mjs",
+    "check:next": "npm --prefix frontend-next run typecheck && PLATFORM_API_BASE_URL=http://127.0.0.1:8128 npm --prefix frontend-next run build && node tests/next_runtime_smoke.mjs"
+  }
+}

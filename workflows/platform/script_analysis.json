@@ -1,0 +1,24 @@
+{
+  "workflow_key": "platform/script_analysis",
+  "adapter_type": "platform",
+  "description": "平台脚本分析流程说明。该流程由平台编排脚本规范化、角色设定和分镜草稿生成，输出可编辑的分镜结构。",
+  "inputs": {
+    "script": "{{script}}",
+    "style": "{{style}}",
+    "target_duration_seconds": "{{target_duration_seconds}}",
+    "main_character": "{{main_character}}",
+    "reference_image_url": "{{reference_image_url}}"
+  },
+  "outputs": {
+    "storyboard": {
+      "asset_type": "other",
+      "field": "storyboard"
+    }
+  },
+  "analysis_steps": [
+    "规范化脚本文本和目标时长",
+    "生成主角设定与统一风格提示词",
+    "按剧情段落拆分分镜草稿",
+    "写入脚本分析任务日志并进入项目工作台"
+  ]
+}

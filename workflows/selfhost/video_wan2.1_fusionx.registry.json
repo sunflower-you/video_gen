@@ -1,0 +1,23 @@
+{
+  "workflow_key": "selfhost/video_wan2.1_fusionx",
+  "version": "1.0.0",
+  "display_name": "Wan2.1 镜头视频生成",
+  "generation_type": "video",
+  "workflow_path": "workflows/selfhost/video_wan2.1_fusionx.json",
+  "description": "基于首帧和动作描述生成单个镜头视频。",
+  "applicable_scenarios": ["镜头视频", "动画短片", "短片剧集"],
+  "input_schema": {
+    "prompt": {"type": "string", "required": true, "label": "动作描述"},
+    "first_frame_url": {"type": "string", "required": true, "label": "首帧图片"},
+    "duration": {"type": "number", "required": true, "label": "时长"},
+    "fps": {"type": "integer", "required": true, "label": "帧率"}
+  },
+  "default_params": {
+    "duration": 4,
+    "fps": 16
+  },
+  "output_nodes": {
+    "18": "video"
+  },
+  "failure_hint": "请检查首帧图片、Wan2.1 模型、显存占用和 ComfyUI 队列状态后重试。"
+}

@@ -1,0 +1,26 @@
+{
+  "workflow_key": "platform/compose",
+  "adapter_type": "platform",
+  "description": "平台成片合成流程说明。该流程由平台编排字幕、配音、BGM 和镜头素材，输出最终视频资产。",
+  "inputs": {
+    "project_id": "{{project_id}}",
+    "shot_ids": "{{shot_ids}}",
+    "timeline": "{{timeline}}",
+    "subtitles": "{{subtitles}}",
+    "subtitle": "{{subtitle}}",
+    "voice": "{{voice}}",
+    "bgm_url": "{{bgm_url}}"
+  },
+  "outputs": {
+    "30": {
+      "asset_type": "video",
+      "field": "videos"
+    }
+  },
+  "compose_steps": [
+    "按时间线读取镜头视频素材",
+    "混合旁白配音与可选 BGM",
+    "按字幕 cue 压制字幕",
+    "输出最终 MP4 并登记为项目成片素材"
+  ]
+}

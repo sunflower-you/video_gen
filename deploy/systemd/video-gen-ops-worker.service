@@ -1,0 +1,10 @@
+[Unit]
+Description=VideoGen Platform Ops Worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/video_gen
+EnvironmentFile=/opt/video_gen/deploy/env.example
+ExecStart=/opt/video_gen/.venv/bin/python -m app.backend.worker --user-id system_admin --sync-running --cleanup-storage --notify-alerts --limit 20

@@ -1,0 +1,15 @@
+[Unit]
+Description=VideoGen Platform API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/video_gen
+EnvironmentFile=/opt/video_gen/deploy/env.example
+ExecStart=/opt/video_gen/.venv/bin/uvicorn app.backend.api:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

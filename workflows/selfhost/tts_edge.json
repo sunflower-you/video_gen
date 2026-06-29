@@ -1,0 +1,33 @@
+{
+  "workflow_key": "selfhost/tts_edge",
+  "adapter_type": "comfyui",
+  "description": "中文旁白配音工作流适配说明。平台提交时只传业务 inputs，部署时由该文件对应的 ComfyUI 节点图承接 text、voice 和 rate。",
+  "inputs": {
+    "text": "{{text}}",
+    "voice": "{{voice}}",
+    "rate": "{{rate}}"
+  },
+  "outputs": {
+    "6": {
+      "asset_type": "audio",
+      "field": "audio"
+    }
+  },
+  "comfy_workflow": {
+    "1": {
+      "class_type": "PlatformBusinessInput",
+      "inputs": {
+        "text": "{{text}}",
+        "voice": "{{voice}}",
+        "rate": "{{rate}}"
+      }
+    },
+    "6": {
+      "class_type": "SaveAudio",
+      "inputs": {
+        "audio": ["1", 0],
+        "filename_prefix": "video_gen/narration"
+      }
+    }
+  }
+}

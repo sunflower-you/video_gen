@@ -1,0 +1,10 @@
+[Unit]
+Description=Run VideoGen Platform Ops Worker Every 5 Minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Unit=video-gen-ops-worker.service
+
+[Install]
+WantedBy=timers.target

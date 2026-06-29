@@ -1,0 +1,22 @@
+{
+  "workflow_key": "selfhost/tts_edge",
+  "version": "1.0.0",
+  "display_name": "中文旁白配音",
+  "generation_type": "tts",
+  "workflow_path": "workflows/selfhost/tts_edge.json",
+  "description": "为分镜旁白生成中文音频。",
+  "applicable_scenarios": ["旁白配音", "字幕口播", "角色独白"],
+  "input_schema": {
+    "text": {"type": "string", "required": true, "label": "旁白文本"},
+    "voice": {"type": "string", "required": true, "label": "音色"},
+    "rate": {"type": "number", "required": false, "label": "语速"}
+  },
+  "default_params": {
+    "voice": "zh-CN-XiaoxiaoNeural",
+    "rate": 1.0
+  },
+  "output_nodes": {
+    "6": "audio"
+  },
+  "failure_hint": "请检查旁白文本、TTS 节点配置和网络语音服务状态后重试。"
+}

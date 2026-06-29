@@ -1,0 +1,35 @@
+{
+  "workflow_key": "selfhost/video_wan2.1_fusionx",
+  "adapter_type": "comfyui",
+  "description": "Wan2.1 镜头视频生成工作流适配说明。平台提交时只传业务 inputs，部署时由该文件对应的 ComfyUI 节点图承接 prompt、first_frame_url、duration 和 fps。",
+  "inputs": {
+    "prompt": "{{prompt}}",
+    "first_frame_url": "{{first_frame_url}}",
+    "duration": "{{duration}}",
+    "fps": "{{fps}}"
+  },
+  "outputs": {
+    "18": {
+      "asset_type": "video",
+      "field": "videos"
+    }
+  },
+  "comfy_workflow": {
+    "1": {
+      "class_type": "PlatformBusinessInput",
+      "inputs": {
+        "prompt": "{{prompt}}",
+        "first_frame_url": "{{first_frame_url}}",
+        "duration": "{{duration}}",
+        "fps": "{{fps}}"
+      }
+    },
+    "18": {
+      "class_type": "SaveVideo",
+      "inputs": {
+        "video": ["1", 0],
+        "filename_prefix": "video_gen/shot"
+      }
+    }
+  }
+}

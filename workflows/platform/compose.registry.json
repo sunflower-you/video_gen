@@ -1,0 +1,27 @@
+{
+  "workflow_key": "platform/compose",
+  "version": "1.0.0",
+  "display_name": "平台成片合成",
+  "generation_type": "compose",
+  "workflow_path": "workflows/platform/compose.json",
+  "description": "把镜头视频、旁白、字幕和背景音乐合成为最终成片。",
+  "applicable_scenarios": ["成片合成", "字幕压制", "批量导出"],
+  "input_schema": {
+    "project_id": {"type": "string", "required": true, "label": "项目 ID"},
+    "shot_ids": {"type": "array", "required": true, "label": "分镜列表"},
+    "timeline": {"type": "array", "required": true, "label": "时间线"},
+    "subtitles": {"type": "array", "required": true, "label": "字幕列表"},
+    "subtitle": {"type": "boolean", "required": false, "label": "字幕"},
+    "voice": {"type": "string", "required": false, "label": "音色"},
+    "bgm_url": {"type": "string", "required": false, "label": "背景音乐"}
+  },
+  "default_params": {
+    "subtitle": true,
+    "voice": "zh-CN-XiaoxiaoNeural",
+    "bgm_url": ""
+  },
+  "output_nodes": {
+    "30": "video"
+  },
+  "failure_hint": "请检查镜头视频、字幕、配音和背景音乐素材是否完整后重试。"
+}

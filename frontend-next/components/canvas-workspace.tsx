@@ -708,6 +708,11 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     return selectedNode ? [selectedNode] : [];
   }, [nodes, selectedNode]);
   const selectedNodeIds = useMemo(() => new Set(selectedNodes.map((item) => item.id)), [selectedNodes]);
+  const selectedEdges = useMemo(() => {
+    const picked = edges.filter((item) => item.selected);
+    if (picked.length) return picked;
+    return selectedEdge ? [selectedEdge] : [];
+  }, [edges, selectedEdge]);
   const selectedSelectionEdges = useMemo(() => edges.filter((edge) => selectedNodeIds.has(edge.source) && selectedNodeIds.has(edge.target)), [edges, selectedNodeIds]);
   const selectedGroupTitles = useMemo(() => {
     const titles = new Set(selectedNodes.map((node) => String((node.data as Record<string, unknown>).group_title || "")).filter(Boolean));
@@ -993,6 +998,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setSelectedEdgeId(edgeId);
     setSelectedNodeId("");
     setNodeContextMenu(null);
+    setNodes((items) => items.map((node) => ({ ...node, selected: false })));
+    setEdges((items) => items.map((edge) => ({ ...edge, selected: edge.id === edgeId })));
   }
 
   function openNodeContextMenu(event: ReactMouseEvent, nodeId: string) {
@@ -1507,45 +1514,49 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function updateSelectedEdgeLabel(label: string) {
     if (!selectedEdge) return;
-    setEdges((items) => items.map((edge) => edge.id === selectedEdge.id ? {
+    const selectedEdgeIds = new Set(selectedEdges.map((edge) => edge.id));
+    setEdges((items) => items.map((edge) => selectedEdgeIds.has(edge.id) ? {
       ...edge,
       label,
       data: { ...(edge.data as Record<string, unknown> | undefined), label }
     } : edge));
-    setStatus(label.trim() ? "连线标签已更新。" : "连线标签已清空。");
+    setStatus(label.trim() ? `已更新 ${selectedEdgeIds.size} 条连线标签。` : `已清空 ${selectedEdgeIds.size} 条连线标签。`);
   }
 
   function updateSelectedEdgeColor(color: string) {
     if (!selectedEdge) return;
     const markerColor = edgeMarkerColorByValue.get(color) || edgeMarkerColorByValue.get("");
+    const selectedEdgeIds = new Set(selectedEdges.map((edge) => edge.id));
     rememberGraphHistory();
-    setEdges((items) => items.map((edge) => edge.id === selectedEdge.id ? edgeWithDefaultHandles({
+    setEdges((items) => items.map((edge) => selectedEdgeIds.has(edge.id) ? edgeWithDefaultHandles({
       ...edge,
       data: { ...(edge.data as Record<string, unknown> | undefined), edge_color: markerColor?.value || "" }
     }) : edge));
-    setStatus(markerColor?.value ? `连线颜色标记已设置为${markerColor.label}。` : "连线颜色标记已清空。");
+    setStatus(markerColor?.value ? `已将 ${selectedEdgeIds.size} 条连线颜色标记设置为${markerColor.label}。` : `已清空 ${selectedEdgeIds.size} 条连线颜色标记。`);
   }
 
   function updateSelectedEdgeStyle(style: string) {
     if (!selectedEdge) return;
     const lineStyle = edgeLineStyleByValue.get(style) || edgeLineStyleByValue.get("");
+    const selectedEdgeIds = new Set(selectedEdges.map((edge) => edge.id));
     rememberGraphHistory();
-    setEdges((items) => items.map((edge) => edge.id === selectedEdge.id ? edgeWithDefaultHandles({
+    setEdges((items) => items.map((edge) => selectedEdgeIds.has(edge.id) ? edgeWithDefaultHandles({
       ...edge,
       data: { ...(edge.data as Record<string, unknown> | undefined), edge_style: lineStyle?.value || "" }
     }) : edge));
-    setStatus(lineStyle?.value ? `连线样式已设置为${lineStyle.label}。` : "连线样式已恢复默认实线。");
+    setStatus(lineStyle?.value ? `已将 ${selectedEdgeIds.size} 条连线样式设置为${lineStyle.label}。` : `已将 ${selectedEdgeIds.size} 条连线恢复为默认实线。`);
   }
 
   function toggleSelectedEdgeDisabled() {
     if (!selectedEdge) return;
     const nextDisabled = !isEdgeDisabled(selectedEdge);
+    const selectedEdgeIds = new Set(selectedEdges.map((edge) => edge.id));
     rememberGraphHistory();
-    setEdges((items) => items.map((edge) => edge.id === selectedEdge.id ? edgeWithDefaultHandles({
+    setEdges((items) => items.map((edge) => selectedEdgeIds.has(edge.id) ? edgeWithDefaultHandles({
       ...edge,
       data: { ...(edge.data as Record<string, unknown> | undefined), disabled: nextDisabled }
     }) : edge));
-    setStatus(nextDisabled ? "连线已禁用，运行和上游输入会跳过这条连线。" : "连线已启用，可继续参与上游输入和运行。");
+    setStatus(nextDisabled ? `已禁用 ${selectedEdgeIds.size} 条连线，运行和上游输入会跳过。` : `已启用 ${selectedEdgeIds.size} 条连线，可继续参与上游输入和运行。`);
   }
 
   function updateSelectedEdgePort(side: "source" | "target", handleId: string) {
@@ -1571,12 +1582,12 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function deleteSelectedEdge() {
     if (!selectedEdge) return;
-    const edgeId = selectedEdge.id;
+    const selectedEdgeIds = new Set(selectedEdges.map((edge) => edge.id));
     rememberGraphHistory();
-    setEdges((items) => items.filter((edge) => edge.id !== edgeId));
+    setEdges((items) => items.filter((edge) => !selectedEdgeIds.has(edge.id)));
     setSelectedEdgeId("");
     setEdgeContextMenu(null);
-    setStatus("连线已删除。");
+    setStatus(`已删除 ${selectedEdgeIds.size} 条连线。`);
   }
 
   function insertNodeOnSelectedEdge(type: string) {
@@ -1630,6 +1641,71 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const nodeId = direction === "source" ? selectedEdge.source : selectedEdge.target;
     focusCanvasNode(nodeId);
     setEdgeContextMenu(null);
+  }
+
+  function selectCanvasEdgesByIds(edgeIds: string[], label: string) {
+    const idSet = new Set(edgeIds);
+    const matchedEdges = edges.filter((edge) => idSet.has(edge.id));
+    if (!matchedEdges.length) {
+      setStatus(`${label}暂无可选连线。`);
+      return;
+    }
+    setNodes((items) => items.map((node) => ({ ...node, selected: false })));
+    setEdges((items) => items.map((edge) => ({ ...edge, selected: idSet.has(edge.id) })));
+    setSelectedNodeId("");
+    setSelectedEdgeId(matchedEdges[0].id);
+    setNodeContextMenu(null);
+    setEdgeContextMenu(null);
+    setStatus(`已选中${label}：${matchedEdges.length} 条连线，可继续禁用、标记、改样式或删除。`);
+  }
+
+  function selectSameSourceEdges() {
+    if (!selectedEdge) {
+      setStatus("请先选择一条连线，再选中同起点连线。");
+      return;
+    }
+    selectCanvasEdgesByIds(edges.filter((edge) => edge.source === selectedEdge.source).map((edge) => edge.id), "同起点连线");
+  }
+
+  function selectSameTargetEdges() {
+    if (!selectedEdge) {
+      setStatus("请先选择一条连线，再选中同终点连线。");
+      return;
+    }
+    selectCanvasEdgesByIds(edges.filter((edge) => edge.target === selectedEdge.target).map((edge) => edge.id), "同终点连线");
+  }
+
+  function selectSameLabelEdges() {
+    if (!selectedEdge) {
+      setStatus("请先选择一条连线，再选中同标签连线。");
+      return;
+    }
+    const label = String((selectedEdge.data as Record<string, unknown> | undefined)?.label || "").trim();
+    if (!label) {
+      setStatus("当前连线没有标签，无法选中同标签连线。");
+      return;
+    }
+    selectCanvasEdgesByIds(edges.filter((edge) => String((edge.data as Record<string, unknown> | undefined)?.label || "").trim() === label).map((edge) => edge.id), "同标签连线");
+  }
+
+  function selectSameColorEdges() {
+    if (!selectedEdge) {
+      setStatus("请先选择一条连线，再选中同颜色连线。");
+      return;
+    }
+    const color = String((selectedEdge.data as Record<string, unknown> | undefined)?.edge_color || "");
+    const markerColor = edgeMarkerColorByValue.get(color) || edgeMarkerColorByValue.get("");
+    selectCanvasEdgesByIds(edges.filter((edge) => String((edge.data as Record<string, unknown> | undefined)?.edge_color || "") === color).map((edge) => edge.id), `${markerColor?.label || "同颜色"}连线`);
+  }
+
+  function selectSameStyleEdges() {
+    if (!selectedEdge) {
+      setStatus("请先选择一条连线，再选中同样式连线。");
+      return;
+    }
+    const style = String((selectedEdge.data as Record<string, unknown> | undefined)?.edge_style || "");
+    const lineStyle = edgeLineStyleByValue.get(style) || edgeLineStyleByValue.get("");
+    selectCanvasEdgesByIds(edges.filter((edge) => String((edge.data as Record<string, unknown> | undefined)?.edge_style || "") === style).map((edge) => edge.id), `${lineStyle?.label || "同样式"}连线`);
   }
 
   async function taskAction(taskId: string, action: "submit" | "sync" | "cancel" | "retry") {
@@ -2868,6 +2944,11 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => insertNodeOnSelectedEdge("tts_generation")}>插入配音节点</button>
           <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => focusEdgeNode("source")}>定位起点节点</button>
           <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => focusEdgeNode("target")}>定位终点节点</button>
+          <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => selectSameSourceEdges()}>选中同起点连线</button>
+          <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => selectSameTargetEdges()}>选中同终点连线</button>
+          <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => selectSameLabelEdges()}>选中同标签连线</button>
+          <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => selectSameColorEdges()}>选中同颜色连线</button>
+          <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => selectSameStyleEdges()}>选中同样式连线</button>
           <button className="rounded px-2 py-2 text-left text-red-100 hover:bg-red-500/10" onClick={deleteSelectedEdge}>删除连线</button>
         </div>
       </div>}
@@ -3202,7 +3283,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <section className="rounded-md border border-white/10 bg-white/[0.03] p-3">
             <p className="text-xs text-slate-400">连线编辑</p>
             <h3 className="mt-1 truncate font-semibold text-white">{selectedEdgeSource ? String((selectedEdgeSource.data as Record<string, unknown>).title || selectedEdgeSource.id) : selectedEdge.source} → {selectedEdgeTarget ? String((selectedEdgeTarget.data as Record<string, unknown>).title || selectedEdgeTarget.id) : selectedEdge.target}</h3>
-            <p className="mt-2 text-xs leading-5 text-slate-400">{selectedEdgeDisabled ? "这条连线已禁用，不参与上游输入、整理和运行。" : "为连线添加用途说明，保存后会随工作流 JSON 和项目画布持久化。"}</p>
+            <p className="mt-2 text-xs leading-5 text-slate-400">{selectedEdges.length > 1 ? `当前已选中 ${selectedEdges.length} 条连线，可继续批量定位、标记或删除。` : selectedEdgeDisabled ? "这条连线已禁用，不参与上游输入、整理和运行。" : "为连线添加用途说明，保存后会随工作流 JSON 和项目画布持久化。"}</p>
           </section>
           <label className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
             <span className="text-slate-300">禁用这条连线</span>
@@ -3224,6 +3305,16 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
               <label className="grid gap-1"><span className="text-slate-400">输入端口</span><select className="rounded-md border border-white/10 bg-slate-900 px-2 py-2 outline-none" value={selectedEdge.targetHandle || "input"} onChange={(event) => updateSelectedEdgePort("target", event.target.value)}>
                 {selectedEdgeTargetPorts.map((port) => <option key={port.id} value={port.id}>{port.label}</option>)}
               </select></label>
+            </div>
+          </section>
+          <section className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+            <p className="text-xs text-slate-400">连线选择</p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <button className="rounded-md border border-white/10 px-2 py-2 text-xs text-slate-200 hover:bg-white/10" onClick={selectSameSourceEdges}>同起点</button>
+              <button className="rounded-md border border-white/10 px-2 py-2 text-xs text-slate-200 hover:bg-white/10" onClick={selectSameTargetEdges}>同终点</button>
+              <button className="rounded-md border border-white/10 px-2 py-2 text-xs text-slate-200 hover:bg-white/10" onClick={selectSameLabelEdges}>同标签</button>
+              <button className="rounded-md border border-white/10 px-2 py-2 text-xs text-slate-200 hover:bg-white/10" onClick={selectSameColorEdges}>同颜色</button>
+              <button className="rounded-md border border-white/10 px-2 py-2 text-xs text-slate-200 hover:bg-white/10" onClick={selectSameStyleEdges}>同样式</button>
             </div>
           </section>
           <section className="rounded-md border border-white/10 bg-white/[0.03] p-3">

@@ -259,6 +259,13 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /selectTerminalNodes/);
   assert.match(canvasWorkspace, /selectValidationIssueNodes/);
   assert.match(canvasWorkspace, /selectTaskStatusNodes/);
+  assert.match(canvasWorkspace, /selectedEdges/);
+  assert.match(canvasWorkspace, /selectCanvasEdgesByIds/);
+  assert.match(canvasWorkspace, /selectSameSourceEdges/);
+  assert.match(canvasWorkspace, /selectSameTargetEdges/);
+  assert.match(canvasWorkspace, /selectSameLabelEdges/);
+  assert.match(canvasWorkspace, /selectSameColorEdges/);
+  assert.match(canvasWorkspace, /selectSameStyleEdges/);
   assert.match(canvasWorkspace, /选中当前结果/);
   assert.match(canvasWorkspace, /选中问题节点/);
   assert.match(canvasWorkspace, /链路选择/);
@@ -275,6 +282,15 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /选中提醒节点/);
   assert.match(canvasWorkspace, /选中运行中任务节点/);
   assert.match(canvasWorkspace, /选中失败任务节点/);
+  assert.match(canvasWorkspace, /连线选择/);
+  assert.match(canvasWorkspace, /选中同起点连线/);
+  assert.match(canvasWorkspace, /选中同终点连线/);
+  assert.match(canvasWorkspace, /选中同标签连线/);
+  assert.match(canvasWorkspace, /选中同颜色连线/);
+  assert.match(canvasWorkspace, /选中同样式连线/);
+  assert.match(canvasWorkspace, /当前连线没有标签/);
+  assert.match(canvasWorkspace, /可继续禁用、标记、改样式或删除/);
+  assert.match(canvasWorkspace, /已选中\$\{label\}/);
   assert.match(canvasWorkspace, /同类型/);
   assert.match(canvasWorkspace, /同状态/);
   assert.match(canvasWorkspace, /同标记/);
@@ -464,7 +480,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /edge_color/);
   assert.match(canvasWorkspace, /updateSelectedEdgeColor/);
   assert.match(canvasWorkspace, /连线颜色标记/);
-  assert.match(canvasWorkspace, /连线颜色标记已设置为/);
+  assert.match(canvasWorkspace, /已将 \$\{selectedEdgeIds\.size\} 条连线颜色标记设置为/);
   assert.match(canvasWorkspace, /edgeLineStyles/);
   assert.match(canvasWorkspace, /edgeLineStyleByValue/);
   assert.match(canvasWorkspace, /edge_style/);
@@ -472,7 +488,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /连线样式/);
   assert.match(canvasWorkspace, /虚线参考/);
   assert.match(canvasWorkspace, /重点主链路/);
-  assert.match(canvasWorkspace, /连线样式已设置为/);
+  assert.match(canvasWorkspace, /已将 \$\{selectedEdgeIds\.size\} 条连线样式设置为/);
   assert.match(canvasWorkspace, /禁用这条连线/);
   assert.match(canvasWorkspace, /禁用连线/);
   assert.match(canvasWorkspace, /启用连线/);

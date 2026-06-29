@@ -4479,6 +4479,9 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         </div>
         <div className="flex items-center gap-2 text-sm">
           <span className="max-w-[420px] truncate rounded border border-white/10 bg-white/5 px-3 py-2 text-slate-300">{status}</span>
+          <button title="追加 Seedance 2.0 图生视频链路" disabled={busy} className="inline-flex items-center gap-1 rounded-md border border-blue-400/30 bg-blue-500/10 px-2 py-2 text-blue-50 hover:bg-blue-500/20 disabled:opacity-50" onClick={() => addWorkflowPreset("seedance2_image_video")}><Sparkles size={15} />Seedance</button>
+          <button title="追加 TV Show 剧集开场链路" disabled={busy} className="inline-flex items-center gap-1 rounded-md border border-white/15 px-2 py-2 text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPreset("tv_show_storyboard")}><Clapperboard size={15} />TV Show</button>
+          <button title="追加创作者挑战赛参赛片链路" disabled={busy} className="inline-flex items-center gap-1 rounded-md border border-white/15 px-2 py-2 text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPreset("creator_challenge_entry")}><Star size={15} />挑战赛</button>
           <button className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 text-slate-100 hover:bg-white/10" onClick={() => { setShowCommandPalette(true); setCommandQuery(""); setActiveCommandPaletteIndex(0); }}><Search size={16} />命令</button>
           <button disabled={busy} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={() => void refreshAll()}><RefreshCcw size={16} />刷新</button>
           <button disabled={busy || !graphPast.length} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={undoGraphChange}><Undo2 size={16} />撤销</button>

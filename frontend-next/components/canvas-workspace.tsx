@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useMemo, useState, type DragEvent as ReactDragEvent, type MouseEvent as ReactMouseEvent } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent as ReactChangeEvent, type DragEvent as ReactDragEvent, type MouseEvent as ReactMouseEvent } from "react";
 import {
   Background,
   Controls,
@@ -3089,6 +3089,27 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已导入工作流：${importedNodes.length} 个节点、${importedEdges.length} 条连线。`);
   }
 
+  async function loadImportJsonFile(event: ReactChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (file.type && file.type !== "application/json" && !file.name.toLowerCase().endsWith(".json")) {
+      setStatus("请选择从画布导出的 JSON 文件。");
+      return;
+    }
+    try {
+      const text = await file.text();
+      if (!text.trim()) {
+        setStatus("导入文件为空，请选择有效的 ProjectGraph JSON 文件。");
+        return;
+      }
+      setImportText(text);
+      setStatus(`已读取导入文件：${file.name}，确认后会追加到当前画布。`);
+    } catch {
+      setStatus("导入文件读取失败，请重新选择 JSON 文件。");
+    }
+  }
+
   const selectedData = (selectedNode?.data || {}) as Record<string, unknown>;
   const selectedType = String(selectedData.nodeType || "text");
   const selectedEdgeSource = selectedEdge ? nodes.find((node) => node.id === selectedEdge.source) || null : null;
@@ -3301,6 +3322,11 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           </div>
           <button className="rounded-md border border-white/10 px-2 py-1 text-xs text-slate-300 hover:bg-white/10" onClick={() => setShowImport(false)}>关闭</button>
         </div>
+        <label className="mt-3 flex cursor-pointer items-center justify-between gap-3 rounded-md border border-dashed border-white/15 bg-white/[0.03] px-3 py-2 text-sm text-slate-200 hover:bg-white/[0.06]">
+          <span>选择 JSON 文件导入</span>
+          <span className="inline-flex items-center gap-2 rounded-md border border-white/10 px-2 py-1 text-xs text-slate-300"><Upload size={14} />读取文件</span>
+          <input className="sr-only" type="file" accept="application/json,.json" onChange={(event) => void loadImportJsonFile(event)} />
+        </label>
         <textarea className="mt-3 min-h-64 w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500" placeholder="粘贴从画布导出的 ProjectGraph JSON，导入后会追加到当前画布。" value={importText} onChange={(event) => setImportText(event.target.value)} />
         <div className="mt-3 flex items-center justify-between gap-2 text-sm">
           <span className="text-xs text-slate-400">导入会重置节点状态为草稿，并保留参数、位置和连线。</span>

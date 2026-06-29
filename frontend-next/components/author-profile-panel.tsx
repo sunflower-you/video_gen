@@ -3,6 +3,8 @@
 import { UserPlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { apiFetch, currentUserId, postJson, type AuthorProfile } from "../lib/api";
+import { quickStartHrefForTemplate } from "../lib/template-quick-start";
+import { quickStartHrefForWork } from "../lib/work-quick-start";
 
 const emptyProfile: AuthorProfile = {
   id: "system",
@@ -94,10 +96,16 @@ export function AuthorProfilePanel({ userId }: { userId: string }) {
           <h2 className="font-semibold">公开作品</h2>
           <div className="mt-3 grid gap-2">
             {profile.works.map((work) => (
-              <a key={work.id} className="rounded-md border border-line px-3 py-2 text-sm hover:border-accent" href={`/works/${work.id}`}>
-                <strong className="block">{work.title}</strong>
-                <span className="text-muted">{work.category} · {work.view_count || 0} 浏览 · {work.like_count || 0} 点赞</span>
-              </a>
+              <article key={work.id} className="rounded-md border border-line px-3 py-2 text-sm hover:border-accent">
+                <a className="block" href={`/works/${work.id}`}>
+                  <strong className="block">{work.title}</strong>
+                  <span className="text-muted">{work.category} · {work.view_count || 0} 浏览 · {work.like_count || 0} 点赞</span>
+                </a>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <a className="rounded-md bg-accent px-3 py-1 text-xs text-white" href={quickStartHrefForWork(work)}>同款创作</a>
+                  <a className="rounded-md border border-line px-3 py-1 text-xs" href={`/works/${work.id}`}>查看详情</a>
+                </div>
+              </article>
             ))}
             {!profile.works.length && <p className="rounded-md border border-line px-3 py-2 text-sm text-muted">暂无公开作品</p>}
           </div>
@@ -107,10 +115,16 @@ export function AuthorProfilePanel({ userId }: { userId: string }) {
           <h2 className="font-semibold">发布模板</h2>
           <div className="mt-3 grid gap-2 text-sm">
             {profile.templates.map((template) => (
-              <a key={template.id} className="rounded-md border border-line px-3 py-2 hover:border-accent" href="/templates">
-                <strong className="block">{template.name}</strong>
-                <span className="text-muted">{template.category} · {template.workflow_key}</span>
-              </a>
+              <article key={template.id} className="rounded-md border border-line px-3 py-2 hover:border-accent">
+                <a className="block" href="/templates">
+                  <strong className="block">{template.name}</strong>
+                  <span className="text-muted">{template.category} · {template.workflow_key}</span>
+                </a>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <a className="rounded-md bg-accent px-3 py-1 text-xs text-white" href={quickStartHrefForTemplate(template)}>快速同款创作</a>
+                  <a className="rounded-md border border-line px-3 py-1 text-xs" href="/templates">查看模板市场</a>
+                </div>
+              </article>
             ))}
             {!profile.templates.length && <p className="rounded-md border border-line px-3 py-2 text-muted">暂无公开模板</p>}
           </div>

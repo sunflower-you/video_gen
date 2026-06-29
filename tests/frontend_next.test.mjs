@@ -1236,10 +1236,14 @@ test("Next 作者主页读取真实作者聚合并支持关注", () => {
   assert.match(authorProfile, /target_type: "author"/);
   assert.match(authorProfile, /interaction_type: "follow"/);
   assert.match(authorProfile, /href=\{`\/works\/\$\{work\.id\}`\}/);
+  assert.match(authorProfile, /quickStartHrefForWork\(work\)/);
+  assert.match(authorProfile, /quickStartHrefForTemplate\(template\)/);
+  assert.match(authorProfile, /查看详情/);
+  assert.match(authorProfile, /查看模板市场/);
   assert.match(api, /export type AuthorProfile/);
   assert.match(api, /export function currentUserId/);
   assert.match(api, /export function saveCurrentUser/);
-  for (const text of ["作者主页", "关注作者", "公开作品", "发布模板", "暂无公开作品"]) {
+  for (const text of ["作者主页", "关注作者", "公开作品", "同款创作", "发布模板", "快速同款创作", "暂无公开作品"]) {
     assert.match(authorProfile, new RegExp(text));
   }
 });

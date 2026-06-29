@@ -710,6 +710,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [showMiniMap, setShowMiniMap] = useState(true);
   const [showPalette, setShowPalette] = useState(true);
   const [paletteQuery, setPaletteQuery] = useState("");
+  const [paletteCategoryFilter, setPaletteCategoryFilter] = useState("all");
   const [commandQuery, setCommandQuery] = useState("");
   const [outlineQuery, setOutlineQuery] = useState("");
   const [outlineIssuesOnly, setOutlineIssuesOnly] = useState(false);
@@ -861,26 +862,32 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     });
   }, [graphOutlineNodes, outlineIssueNodeIds, outlineIssuesOnly, outlineQuery]);
   const terminalNodeIdSet = useMemo(() => new Set(terminalNodeIds(nodes, edges)), [nodes, edges]);
+  const recentNodeTypeSet = useMemo(() => new Set(recentNodeTypes), [recentNodeTypes]);
+  const favoriteNodeTypeSet = useMemo(() => new Set(favoriteNodeTypes), [favoriteNodeTypes]);
   const filteredAddableNodes = useMemo(() => {
     const keyword = paletteQuery.trim().toLowerCase();
     return addableNodes.filter((item) => {
       const text = `${item.label} ${item.category} ${item.description} ${nodeLabels[item.type]}`.toLowerCase();
-      return !keyword || text.includes(keyword);
+      const matchesKeyword = !keyword || text.includes(keyword);
+      const matchesCategory = paletteCategoryFilter === "all"
+        || item.category === paletteCategoryFilter
+        || (paletteCategoryFilter === "favorite" && favoriteNodeTypeSet.has(item.type))
+        || (paletteCategoryFilter === "recent" && recentNodeTypeSet.has(item.type));
+      return matchesKeyword && matchesCategory;
     });
-  }, [paletteQuery]);
+  }, [favoriteNodeTypeSet, paletteCategoryFilter, paletteQuery, recentNodeTypeSet]);
   const recentAddableNodes = useMemo(() => recentNodeTypes.flatMap((type) => {
     const node = addableNodes.find((item) => item.type === type);
     if (!node) return [];
-    if (paletteQuery.trim() && !filteredAddableNodes.some((item) => item.type === type)) return [];
+    if (!filteredAddableNodes.some((item) => item.type === type)) return [];
     return [node];
-  }), [filteredAddableNodes, paletteQuery, recentNodeTypes]);
+  }), [filteredAddableNodes, recentNodeTypes]);
   const favoriteAddableNodes = useMemo(() => favoriteNodeTypes.flatMap((type) => {
     const node = addableNodes.find((item) => item.type === type);
     if (!node) return [];
-    if (paletteQuery.trim() && !filteredAddableNodes.some((item) => item.type === type)) return [];
+    if (!filteredAddableNodes.some((item) => item.type === type)) return [];
     return [node];
-  }), [favoriteNodeTypes, filteredAddableNodes, paletteQuery]);
-  const favoriteNodeTypeSet = useMemo(() => new Set(favoriteNodeTypes), [favoriteNodeTypes]);
+  }), [favoriteNodeTypes, filteredAddableNodes]);
   const viewBookmarkStorageKey = useMemo(() => `${viewBookmarkStoragePrefix}:${projectId}`, [projectId]);
   const graphVersionStorageKey = useMemo(() => `${graphVersionStoragePrefix}:${projectId}`, [projectId]);
   const eventLogStorageKey = useMemo(() => `${eventLogStoragePrefix}:${projectId}`, [projectId]);
@@ -3779,6 +3786,20 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <Search size={16} className="text-slate-400" />
           <input className="w-full bg-transparent outline-none placeholder:text-slate-500" placeholder="搜索图片、视频、配音、合成" value={paletteQuery} onChange={(event) => setPaletteQuery(event.target.value)} />
         </label>
+        <div aria-label="节点分类筛选" className="mt-3 flex flex-wrap gap-1 text-[11px]">
+          {[
+            { value: "all", label: "全部" },
+            { value: "favorite", label: "收藏" },
+            { value: "recent", label: "最近" },
+            { value: "平台生成", label: "平台生成" },
+            { value: "素材节点", label: "素材" },
+            { value: "基础节点", label: "基础" }
+          ].map((item) => <button
+            key={item.value}
+            className={`rounded border px-2 py-1 ${paletteCategoryFilter === item.value ? "border-blue-400/50 bg-blue-500/15 text-blue-50" : "border-white/10 text-slate-300 hover:bg-white/10"}`}
+            onClick={() => setPaletteCategoryFilter(item.value)}
+          >{item.label}</button>)}
+        </div>
         {!!favoriteAddableNodes.length && <section className="mt-4 grid gap-2 rounded-md border border-amber-300/20 bg-amber-400/[0.06] p-3">
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-xs font-medium text-amber-100">收藏节点</h3>
@@ -3866,6 +3887,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
               })}
             </section>;
           })}
+          {!filteredAddableNodes.length && <p className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-4 text-sm text-slate-400">没有匹配节点，请切换分类或调整关键词。</p>}
         </div>
       </aside>}
 

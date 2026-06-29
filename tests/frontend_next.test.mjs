@@ -757,6 +757,9 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /project_graph_clipboard_/);
   assert.match(canvasWorkspace, /添加节点/);
   assert.match(canvasWorkspace, /搜索图片、视频、配音、合成/);
+  assert.match(canvasWorkspace, /paletteCategoryFilter/);
+  assert.match(canvasWorkspace, /节点分类筛选/);
+  assert.match(canvasWorkspace, /没有匹配节点，请切换分类或调整关键词/);
   assert.match(canvasWorkspace, /favoriteNodeStorageKey/);
   assert.match(canvasWorkspace, /favoriteNodeTypes/);
   assert.match(canvasWorkspace, /收藏节点/);

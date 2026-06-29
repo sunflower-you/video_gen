@@ -11,11 +11,17 @@
     "shot_ids": {"type": "array", "required": true, "label": "分镜列表"},
     "timeline": {"type": "array", "required": true, "label": "时间线"},
     "subtitles": {"type": "array", "required": true, "label": "字幕列表"},
+    "duration_per_shot": {"type": "number", "required": false, "label": "单镜头时长"},
+    "subtitle_style": {"type": "string", "required": false, "label": "字幕样式"},
+    "transition": {"type": "string", "required": false, "label": "转场方式"},
     "subtitle": {"type": "boolean", "required": false, "label": "字幕"},
     "voice": {"type": "string", "required": false, "label": "音色"},
     "bgm_url": {"type": "string", "required": false, "label": "背景音乐"}
   },
   "default_params": {
+    "duration_per_shot": 4,
+    "subtitle_style": "底部白字黑描边",
+    "transition": "cut",
     "subtitle": true,
     "voice": "zh-CN-XiaoxiaoNeural",
     "bgm_url": ""

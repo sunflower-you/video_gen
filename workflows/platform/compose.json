@@ -7,6 +7,9 @@
     "shot_ids": "{{shot_ids}}",
     "timeline": "{{timeline}}",
     "subtitles": "{{subtitles}}",
+    "duration_per_shot": "{{duration_per_shot}}",
+    "subtitle_style": "{{subtitle_style}}",
+    "transition": "{{transition}}",
     "subtitle": "{{subtitle}}",
     "voice": "{{voice}}",
     "bgm_url": "{{bgm_url}}"

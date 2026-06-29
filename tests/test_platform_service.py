@@ -2524,15 +2524,35 @@ class PlatformServiceTest(unittest.TestCase):
             project = service.create_project({"title": "合成项目", "owner_id": "author_001"})
             service.analyze_script(project["id"], {"script": "镜头一。镜头二。", "user_id": "author_001"})
             task = service.compose_project(
-                project["id"], {"user_id": "author_001", "subtitle": True, "voice": "zh-CN-YunxiNeural"}
+                project["id"],
+                {
+                    "user_id": "author_001",
+                    "subtitle": True,
+                    "voice": "zh-CN-YunxiNeural",
+                    "bgm_url": "/storage/bgm.mp3",
+                    "duration_per_shot": 3.5,
+                    "subtitle_style": "底部黄字黑描边",
+                    "transition": "fade",
+                },
             )
             self.assertEqual(task["task_type"], "compose")
             self.assertEqual(task["input_params"]["project_id"], project["id"])
+            self.assertTrue(task["input_params"]["subtitle"])
             self.assertEqual(task["input_params"]["voice"], "zh-CN-YunxiNeural")
+            self.assertEqual(task["input_params"]["bgm_url"], "/storage/bgm.mp3")
+            self.assertEqual(task["input_params"]["duration_per_shot"], 3.5)
+            self.assertEqual(task["input_params"]["subtitle_style"], "底部黄字黑描边")
+            self.assertEqual(task["input_params"]["transition"], "fade")
             self.assertEqual(len(task["input_params"]["timeline"]), 2)
             self.assertEqual(len(task["input_params"]["subtitles"]), 2)
+            self.assertEqual(task["input_params"]["timeline"][0]["end_seconds"], 3.5)
+            self.assertEqual(task["input_params"]["timeline"][0]["transition"], "fade")
+            self.assertEqual(task["input_params"]["subtitles"][0]["style"], "底部黄字黑描边")
             no_subtitle_task = service.compose_project(project["id"], {"user_id": "author_001", "subtitle": False})
             self.assertFalse(no_subtitle_task["input_params"]["subtitle"])
+            self.assertEqual(no_subtitle_task["input_params"]["duration_per_shot"], 3.5)
+            self.assertEqual(no_subtitle_task["input_params"]["subtitle_style"], "底部黄字黑描边")
+            self.assertEqual(no_subtitle_task["input_params"]["transition"], "fade")
             with self.assertRaisesRegex(WorkflowValidationError, "字幕.*布尔值"):
                 service.compose_project(project["id"], {"user_id": "author_001", "subtitle": "false"})
             submitted = service.submit_task(task["id"], {})

@@ -1671,7 +1671,8 @@ class PlatformService:
         self._assert_project_owner(project, payload.get("user_id"))
         if not project.shot_ids:
             raise WorkflowValidationError("项目还没有分镜，无法合成成片。")
-        if not project.timeline_item_ids:
+        timeline_overrides = {"duration_per_shot", "subtitle_style", "transition"}
+        if not project.timeline_item_ids or any(key in payload for key in timeline_overrides):
             self.build_project_timeline(
                 project.id,
                 {
@@ -1692,6 +1693,15 @@ class PlatformService:
             for item in project.subtitle_ids
             if item in self.repository.subtitles
         ]
+        duration_per_shot = payload.get("duration_per_shot")
+        if duration_per_shot is None and timeline:
+            duration_per_shot = float(timeline[0].get("end_seconds", 4)) - float(timeline[0].get("start_seconds", 0))
+        subtitle_style = payload.get("subtitle_style")
+        if subtitle_style is None and subtitles:
+            subtitle_style = subtitles[0].get("style")
+        transition = payload.get("transition")
+        if transition is None and timeline:
+            transition = timeline[0].get("transition")
         workflow_key = str(payload.get("workflow_key") or "platform/compose")
         spec = self.registry.get(workflow_key)
         input_params = self.registry.validate_params(
@@ -1701,6 +1711,9 @@ class PlatformService:
                 "shot_ids": list(project.shot_ids),
                 "timeline": timeline,
                 "subtitles": subtitles,
+                "duration_per_shot": _coerce_float_param(duration_per_shot or 4, "单镜头时长"),
+                "subtitle_style": str(subtitle_style or "底部白字黑描边"),
+                "transition": str(transition or "cut"),
                 "subtitle": _coerce_bool_param(payload.get("subtitle", True), "字幕"),
                 "voice": str(payload.get("voice", "zh-CN-XiaoxiaoNeural")),
                 "bgm_url": str(payload.get("bgm_url", "")),
@@ -2111,7 +2124,16 @@ class PlatformService:
                     })
                     task = self.generate_shot_tts(project_id, shot_id, tts_payload)
                 else:
-                    task = self.compose_project(project_id, {"user_id": payload.get("user_id"), "subtitle": bool(data.get("subtitle", True))})
+                    task = self.compose_project(project_id, _compact_payload({
+                        "user_id": payload.get("user_id"),
+                        "workflow_key": data.get("workflow_key"),
+                        "duration_per_shot": data.get("duration_per_shot"),
+                        "subtitle_style": data.get("subtitle_style"),
+                        "transition": data.get("transition"),
+                        "subtitle": bool(data.get("subtitle", True)),
+                        "voice": data.get("voice"),
+                        "bgm_url": data.get("bgm_url"),
+                    }))
                 node["status"] = task.get("status", "pending")
                 node["data"] = {
                     **data,
@@ -2180,7 +2202,7 @@ class PlatformService:
                     graph.edges.append(edge)
         compose_id = f"compose-{project.id}"
         if project.shot_ids and compose_id not in existing_ids:
-            graph.nodes.append(_sanitize_graph_node({"id": compose_id, "type": "compose_generation", "position": {"x": 420 + len(project.shot_ids) * 300, "y": 360}, "data": {"title": "成片合成", "subtitle": True}, "source_entity_type": "project", "source_entity_id": project.id, "status": "draft"}))
+            graph.nodes.append(_sanitize_graph_node({"id": compose_id, "type": "compose_generation", "position": {"x": 420 + len(project.shot_ids) * 300, "y": 360}, "data": {"title": "成片合成", "duration_per_shot": "4", "subtitle_style": "底部白字黑描边", "transition": "cut", "subtitle": True, "voice": "zh-CN-XiaoxiaoNeural", "bgm_url": ""}, "source_entity_type": "project", "source_entity_id": project.id, "status": "draft"}))
         graph.edges = _sanitize_graph_edges(graph.edges, {str(node.get("id")) for node in graph.nodes})
         graph.touch()
         return graph

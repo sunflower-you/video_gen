@@ -20,7 +20,7 @@ import {
   type NodeProps,
   type ReactFlowInstance
 } from "@xyflow/react";
-import { AlertTriangle, AlignHorizontalDistributeCenter, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, AlignHorizontalJustifyStart, AlignVerticalDistributeCenter, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, Ban, Boxes, BringToFront, CheckSquare, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, Focus, GitBranch, Image, LayoutGrid, Library, ListTree, Lock, Map as MapIcon, Maximize2, Minimize2, Music, Play, Plus, Redo2, RefreshCcw, RotateCcw, Save, Scissors, Search, SendToBack, Sparkles, StickyNote, Trash2, Undo2, Unlock, Upload, Video, Wand2, XSquare, ZoomIn, ZoomOut } from "lucide-react";
+import { AlertTriangle, AlignHorizontalDistributeCenter, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, AlignHorizontalJustifyStart, AlignVerticalDistributeCenter, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, Ban, Boxes, BringToFront, CheckSquare, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, Focus, GitBranch, Image, LayoutGrid, Library, ListTree, Lock, Map as MapIcon, Maximize2, Minimize2, Music, Play, Plus, Redo2, RefreshCcw, RotateCcw, Save, Scissors, Search, SendToBack, Sparkles, Star, StickyNote, Trash2, Undo2, Unlock, Upload, Video, Wand2, XSquare, ZoomIn, ZoomOut } from "lucide-react";
 import { apiFetch, currentUserId, deleteJson, postJson, type Asset, type GenerationTask, type Project, type ProjectGraph, type ProjectGraphNode, type StoryboardShot } from "../lib/api";
 
 const nodeLabels: Record<string, string> = {
@@ -678,6 +678,7 @@ type CanvasEventLogEntry = { key: string; message: string; created_at: string };
 
 const customPresetStorageKey = "video_gen_canvas_custom_presets";
 const recentNodeStorageKey = "video_gen_canvas_recent_nodes";
+const favoriteNodeStorageKey = "video_gen_canvas_favorite_nodes";
 const viewBookmarkStoragePrefix = "video_gen_canvas_view_bookmarks";
 const graphVersionStoragePrefix = "video_gen_canvas_graph_versions";
 const eventLogStoragePrefix = "video_gen_canvas_event_log";
@@ -725,6 +726,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [importText, setImportText] = useState("");
   const [customWorkflowPresets, setCustomWorkflowPresets] = useState<CustomWorkflowPreset[]>([]);
   const [recentNodeTypes, setRecentNodeTypes] = useState<string[]>([]);
+  const [favoriteNodeTypes, setFavoriteNodeTypes] = useState<string[]>([]);
   const [presetTitle, setPresetTitle] = useState("自定义工作流");
   const [viewBookmarks, setViewBookmarks] = useState<CanvasViewBookmark[]>([]);
   const [viewBookmarkTitle, setViewBookmarkTitle] = useState("当前视图");
@@ -872,6 +874,13 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     if (paletteQuery.trim() && !filteredAddableNodes.some((item) => item.type === type)) return [];
     return [node];
   }), [filteredAddableNodes, paletteQuery, recentNodeTypes]);
+  const favoriteAddableNodes = useMemo(() => favoriteNodeTypes.flatMap((type) => {
+    const node = addableNodes.find((item) => item.type === type);
+    if (!node) return [];
+    if (paletteQuery.trim() && !filteredAddableNodes.some((item) => item.type === type)) return [];
+    return [node];
+  }), [favoriteNodeTypes, filteredAddableNodes, paletteQuery]);
+  const favoriteNodeTypeSet = useMemo(() => new Set(favoriteNodeTypes), [favoriteNodeTypes]);
   const viewBookmarkStorageKey = useMemo(() => `${viewBookmarkStoragePrefix}:${projectId}`, [projectId]);
   const graphVersionStorageKey = useMemo(() => `${graphVersionStoragePrefix}:${projectId}`, [projectId]);
   const eventLogStorageKey = useMemo(() => `${eventLogStoragePrefix}:${projectId}`, [projectId]);
@@ -1042,6 +1051,16 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       if (Array.isArray(saved)) setRecentNodeTypes(saved.map(String).filter((type) => allowed.has(type)).slice(0, 6));
     } catch {
       window.localStorage.removeItem(recentNodeStorageKey);
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      const allowed = new Set(addableNodes.map((item) => item.type));
+      const saved = JSON.parse(window.localStorage.getItem(favoriteNodeStorageKey) || "[]");
+      if (Array.isArray(saved)) setFavoriteNodeTypes(saved.map(String).filter((type) => allowed.has(type)).slice(0, 12));
+    } catch {
+      window.localStorage.removeItem(favoriteNodeStorageKey);
     }
   }, []);
 
@@ -1378,6 +1397,17 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setRecentNodeTypes((items) => {
       const next = [type, ...items.filter((item) => item !== type)].slice(0, 6);
       window.localStorage.setItem(recentNodeStorageKey, JSON.stringify(next));
+      return next;
+    });
+  }
+
+  function toggleFavoriteNodeType(type: string) {
+    if (!nodeLabels[type]) return;
+    setFavoriteNodeTypes((items) => {
+      const exists = items.includes(type);
+      const next = exists ? items.filter((item) => item !== type) : [type, ...items].slice(0, 12);
+      window.localStorage.setItem(favoriteNodeStorageKey, JSON.stringify(next));
+      setStatus(exists ? `已取消收藏${nodeLabels[type]}。` : `已收藏${nodeLabels[type]}，会显示在收藏节点区。`);
       return next;
     });
   }
@@ -3749,6 +3779,24 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <Search size={16} className="text-slate-400" />
           <input className="w-full bg-transparent outline-none placeholder:text-slate-500" placeholder="搜索图片、视频、配音、合成" value={paletteQuery} onChange={(event) => setPaletteQuery(event.target.value)} />
         </label>
+        {!!favoriteAddableNodes.length && <section className="mt-4 grid gap-2 rounded-md border border-amber-300/20 bg-amber-400/[0.06] p-3">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-xs font-medium text-amber-100">收藏节点</h3>
+            <span className="rounded border border-amber-300/20 px-2 py-1 text-[11px] text-amber-100">{favoriteAddableNodes.length} 个</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {favoriteAddableNodes.map((item) => {
+              const Icon = item.icon;
+              return <div key={item.type} className="flex items-center gap-1 rounded-md border border-amber-300/20 bg-black/15 p-1">
+                <button draggable title={`添加${item.label}`} className="flex min-w-0 flex-1 items-center gap-2 rounded px-1 py-1.5 text-left text-sm text-slate-100 hover:bg-white/10" onClick={() => addNode(item.type)} onDragStart={(event) => handlePaletteNodeDragStart(event, item.type)}>
+                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded bg-white/10"><Icon size={15} /></span>
+                  <span className="min-w-0 truncate">{item.label}</span>
+                </button>
+                <button title={`取消收藏${item.label}`} className="grid h-7 w-7 shrink-0 place-items-center rounded text-amber-100 hover:bg-amber-400/10" onClick={() => toggleFavoriteNodeType(item.type)}><Star size={15} fill="currentColor" /></button>
+              </div>;
+            })}
+          </div>
+        </section>}
         {!!recentAddableNodes.length && <section className="mt-4 grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-xs font-medium text-slate-400">最近使用节点</h3>
@@ -3804,13 +3852,17 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
               <h3 className="text-xs font-medium text-slate-400">{category}</h3>
               {items.map((item) => {
                 const Icon = item.icon;
-                return <button key={item.type} draggable className="flex items-start gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-3 text-left hover:bg-white/10" onClick={() => addNode(item.type)} onDragStart={(event) => handlePaletteNodeDragStart(event, item.type)}>
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white/10 text-slate-100"><Icon size={17} /></span>
-                  <span className="min-w-0">
-                    <span className="block text-sm font-medium text-white">{item.label}</span>
-                    <span className="mt-1 block text-xs leading-5 text-slate-400">{item.description}</span>
-                  </span>
-                </button>;
+                const isFavorite = favoriteNodeTypeSet.has(item.type);
+                return <article key={item.type} className="flex items-start gap-2 rounded-md border border-white/10 bg-white/[0.03] p-2 hover:bg-white/10">
+                  <button draggable className="flex min-w-0 flex-1 items-start gap-3 rounded px-1 py-1 text-left" onClick={() => addNode(item.type)} onDragStart={(event) => handlePaletteNodeDragStart(event, item.type)}>
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white/10 text-slate-100"><Icon size={17} /></span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium text-white">{item.label}</span>
+                      <span className="mt-1 block text-xs leading-5 text-slate-400">{item.description}</span>
+                    </span>
+                  </button>
+                  <button title={isFavorite ? `取消收藏${item.label}` : `收藏${item.label}`} className={`grid h-8 w-8 shrink-0 place-items-center rounded-md border border-white/10 ${isFavorite ? "text-amber-100" : "text-slate-400 hover:text-white"}`} onClick={() => toggleFavoriteNodeType(item.type)}><Star size={16} fill={isFavorite ? "currentColor" : "none"} /></button>
+                </article>;
               })}
             </section>;
           })}

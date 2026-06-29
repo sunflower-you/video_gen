@@ -2336,7 +2336,15 @@ class PlatformServiceTest(unittest.TestCase):
         task = service.generate_shot_image(project["id"], shot["id"], {"user_id": "author_001", "seed": 123})
         self.assertEqual(task["workflow_key"], "selfhost/image_flux")
         self.assertEqual(task["input_params"]["prompt"], shot["prompt"])
+        self.assertEqual(task["input_params"]["negative_prompt"], shot["negative_prompt"])
         self.assertEqual(task["input_params"]["seed"], 123)
+
+        video_task = service.generate_shot_video(
+            project["id"],
+            shot["id"],
+            {"user_id": "author_001", "first_frame_url": "/storage/first.png", "negative_prompt": "抖动、穿帮、低清"},
+        )
+        self.assertEqual(video_task["input_params"]["negative_prompt"], "抖动、穿帮、低清")
 
     def test_generation_entrypoints_reject_unknown_business_fields(self) -> None:
         service = self.make_service()

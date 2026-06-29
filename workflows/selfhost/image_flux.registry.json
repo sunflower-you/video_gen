@@ -8,11 +8,13 @@
   "applicable_scenarios": ["分镜首帧", "角色海报", "概念设计"],
   "input_schema": {
     "prompt": {"type": "string", "required": true, "label": "画面提示词"},
+    "negative_prompt": {"type": "string", "required": false, "label": "负面提示词"},
     "width": {"type": "integer", "required": true, "label": "宽度"},
     "height": {"type": "integer", "required": true, "label": "高度"},
     "seed": {"type": "integer", "required": false, "label": "随机种子"}
   },
   "default_params": {
+    "negative_prompt": "",
     "width": 768,
     "height": 1344,
     "seed": -1

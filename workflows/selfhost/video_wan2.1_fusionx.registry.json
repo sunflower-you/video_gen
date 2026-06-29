@@ -8,11 +8,13 @@
   "applicable_scenarios": ["镜头视频", "动画短片", "短片剧集"],
   "input_schema": {
     "prompt": {"type": "string", "required": true, "label": "动作描述"},
+    "negative_prompt": {"type": "string", "required": false, "label": "负面提示词"},
     "first_frame_url": {"type": "string", "required": true, "label": "首帧图片"},
     "duration": {"type": "number", "required": true, "label": "时长"},
     "fps": {"type": "integer", "required": true, "label": "帧率"}
   },
   "default_params": {
+    "negative_prompt": "",
     "duration": 4,
     "fps": 16
   },

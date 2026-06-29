@@ -1365,13 +1365,14 @@ class PlatformService:
         return to_jsonable(shot)
 
     def generate_shot_image(self, project_id: str, shot_id: str, payload: dict[str, Any]) -> dict[str, Any]:
-        _reject_unknown_payload_fields(payload, {"user_id", "workflow_key", "prompt", "width", "height", "seed"})
+        _reject_unknown_payload_fields(payload, {"user_id", "workflow_key", "prompt", "negative_prompt", "width", "height", "seed"})
         project, shot = self._project_shot(project_id, shot_id)
         self._assert_project_owner(project, payload.get("user_id"))
         workflow_key = str(payload.get("workflow_key") or self._project_workflow_key(project, TaskType.IMAGE, "selfhost/image_flux"))
         default_params = self._project_workflow_defaults(project, workflow_key)
         params = {
             "prompt": payload.get("prompt") or shot.prompt,
+            "negative_prompt": payload.get("negative_prompt") or shot.negative_prompt or DEFAULT_NEGATIVE_PROMPT,
             "width": _coerce_int_param(payload.get("width", default_params.get("width", 768)), "宽度"),
             "height": _coerce_int_param(payload.get("height", default_params.get("height", 1344)), "高度"),
             "seed": _coerce_int_param(payload.get("seed", default_params.get("seed", -1)), "随机种子"),
@@ -1391,7 +1392,7 @@ class PlatformService:
         return task
 
     def generate_shot_video(self, project_id: str, shot_id: str, payload: dict[str, Any]) -> dict[str, Any]:
-        _reject_unknown_payload_fields(payload, {"user_id", "workflow_key", "prompt", "first_frame_url", "duration", "fps"})
+        _reject_unknown_payload_fields(payload, {"user_id", "workflow_key", "prompt", "negative_prompt", "first_frame_url", "duration", "fps"})
         project, shot = self._project_shot(project_id, shot_id)
         self._assert_project_owner(project, payload.get("user_id"))
         first_frame_url = str(payload.get("first_frame_url", "")).strip()
@@ -1403,6 +1404,7 @@ class PlatformService:
         default_params = self._project_workflow_defaults(project, workflow_key)
         params = {
             "prompt": payload.get("prompt") or shot.visual_description,
+            "negative_prompt": payload.get("negative_prompt") or shot.negative_prompt or DEFAULT_NEGATIVE_PROMPT,
             "first_frame_url": first_frame_url,
             "duration": _coerce_float_param(payload.get("duration", default_params.get("duration", 4)), "时长"),
             "fps": _coerce_int_param(payload.get("fps", default_params.get("fps", 16)), "帧率"),
@@ -2064,6 +2066,7 @@ class PlatformService:
                         "user_id": payload.get("user_id"),
                         "workflow_key": data.get("workflow_key"),
                         "prompt": data.get("prompt") or _first_non_empty(incoming_data, "prompt", "text", "script", "narration"),
+                        "negative_prompt": data.get("negative_prompt") or _first_non_empty(incoming_data, "negative_prompt"),
                         "width": data.get("width"),
                         "height": data.get("height"),
                         "seed": data.get("seed"),
@@ -2074,6 +2077,7 @@ class PlatformService:
                         "user_id": payload.get("user_id"),
                         "workflow_key": data.get("workflow_key"),
                         "prompt": data.get("prompt") or _first_non_empty(incoming_data, "prompt", "text", "script", "narration"),
+                        "negative_prompt": data.get("negative_prompt") or _first_non_empty(incoming_data, "negative_prompt"),
                         "first_frame_url": data.get("first_frame_url") or _first_non_empty(incoming_data, "image_url"),
                         "duration": data.get("duration"),
                         "fps": data.get("fps"),

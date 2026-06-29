@@ -165,6 +165,14 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /addAllShotWorkflows/);
   assert.match(canvasWorkspace, /buildShotWorkflow/);
   assert.match(canvasWorkspace, /保存画布/);
+  assert.match(canvasWorkspace, /画布自检/);
+  assert.match(canvasWorkspace, /运行前检查/);
+  assert.match(canvasWorkspace, /validateCanvasGraph/);
+  assert.match(canvasWorkspace, /GraphValidationIssue/);
+  assert.match(canvasWorkspace, /incomingNodeData/);
+  assert.match(canvasWorkspace, /firstNonEmpty/);
+  assert.match(canvasWorkspace, /focusCanvasNode/);
+  assert.match(canvasWorkspace, /自检通过/);
   assert.match(canvasWorkspace, /导出工作流/);
   assert.match(canvasWorkspace, /导入工作流/);
   assert.match(canvasWorkspace, /导入工作流 JSON/);

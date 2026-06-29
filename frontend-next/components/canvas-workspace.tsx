@@ -18,7 +18,7 @@ import {
   type NodeProps,
   type ReactFlowInstance
 } from "@xyflow/react";
-import { Boxes, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, GitBranch, Image, LayoutGrid, Library, Music, Play, Plus, RefreshCcw, Save, Search, Sparkles, Trash2, Upload, Video, Wand2 } from "lucide-react";
+import { AlertTriangle, Boxes, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, GitBranch, Image, LayoutGrid, Library, Music, Play, Plus, RefreshCcw, Save, Search, Sparkles, Trash2, Upload, Video, Wand2 } from "lucide-react";
 import { apiFetch, currentUserId, deleteJson, postJson, type Asset, type GenerationTask, type Project, type ProjectGraph, type ProjectGraphNode, type StoryboardShot } from "../lib/api";
 
 const nodeLabels: Record<string, string> = {
@@ -209,6 +209,79 @@ function layoutGraphNodes(nodes: Node[], edges: Edge[]) {
   });
 }
 
+function incomingNodeData(nodeId: string, nodes: Node[], edges: Edge[]) {
+  const dataById = new Map(nodes.map((node) => [node.id, node.data as Record<string, unknown>]));
+  return edges
+    .filter((edge) => edge.target === nodeId)
+    .map((edge) => dataById.get(edge.source))
+    .filter((data): data is Record<string, unknown> => Boolean(data));
+}
+
+function firstNonEmpty(items: Record<string, unknown>[], ...keys: string[]) {
+  for (const item of items) {
+    for (const key of keys) {
+      const value = item[key];
+      if (typeof value === "string" && value.trim()) return value.trim();
+      if (value !== undefined && value !== null && value !== "") return String(value);
+    }
+  }
+  return "";
+}
+
+type GraphValidationIssue = {
+  id: string;
+  level: "error" | "warning";
+  nodeId?: string;
+  title: string;
+  detail: string;
+};
+
+function validateCanvasGraph(nodes: Node[], edges: Edge[]) {
+  const nodeIds = new Set(nodes.map((node) => node.id));
+  const issues: GraphValidationIssue[] = [];
+  for (const edge of edges) {
+    if (!nodeIds.has(edge.source) || !nodeIds.has(edge.target)) {
+      issues.push({
+        id: `edge-${edge.id}`,
+        level: "error",
+        title: "连线引用了不存在的节点",
+        detail: `连线 ${edge.id} 的起点或终点已丢失。`
+      });
+    }
+  }
+  for (const node of nodes) {
+    const data = node.data as Record<string, unknown>;
+    const type = String(data.nodeType || "text");
+    const incoming = incomingNodeData(node.id, nodes, edges);
+    const title = String(data.title || nodeLabels[type] || node.id);
+    const hasIncoming = edges.some((edge) => edge.target === node.id);
+    const hasOutgoing = edges.some((edge) => edge.source === node.id);
+    if (!hasIncoming && !hasOutgoing && nodes.length > 1) {
+      issues.push({ id: `isolated-${node.id}`, level: "warning", nodeId: node.id, title: "节点未接入链路", detail: `${title} 暂未连接到其他节点。` });
+    }
+    if (type === "image_generation") {
+      if (!String(data.shot_id || firstNonEmpty(incoming, "shot_id")).trim()) issues.push({ id: `shot-${node.id}`, level: "error", nodeId: node.id, title: "分镜图缺少绑定分镜", detail: `${title} 需要绑定分镜或从上游补全 shot_id。` });
+      if (!String(data.prompt || firstNonEmpty(incoming, "prompt", "text", "script", "narration")).trim()) issues.push({ id: `prompt-${node.id}`, level: "error", nodeId: node.id, title: "分镜图缺少提示词", detail: `${title} 需要提示词或上游文本。` });
+    }
+    if (type === "video_generation") {
+      if (!String(data.shot_id || firstNonEmpty(incoming, "shot_id")).trim()) issues.push({ id: `shot-${node.id}`, level: "error", nodeId: node.id, title: "视频节点缺少绑定分镜", detail: `${title} 需要绑定分镜或从上游补全 shot_id。` });
+      if (!String(data.prompt || firstNonEmpty(incoming, "prompt", "text", "script", "narration")).trim()) issues.push({ id: `prompt-${node.id}`, level: "error", nodeId: node.id, title: "视频节点缺少动作提示词", detail: `${title} 需要提示词或上游文本。` });
+      if (!String(data.first_frame_url || firstNonEmpty(incoming, "image_url")).trim()) issues.push({ id: `frame-${node.id}`, level: "warning", nodeId: node.id, title: "视频节点缺少首帧", detail: `${title} 未填写首帧图片，也没有上游图片节点。` });
+    }
+    if (type === "tts_generation" && !String(data.text || firstNonEmpty(incoming, "narration", "text", "script")).trim()) {
+      issues.push({ id: `tts-${node.id}`, level: "error", nodeId: node.id, title: "配音节点缺少文本", detail: `${title} 需要旁白文本或上游文本。` });
+    }
+    if (type === "compose_generation" && !hasIncoming) {
+      issues.push({ id: `compose-${node.id}`, level: "warning", nodeId: node.id, title: "合成节点没有输入", detail: `${title} 建议连接视频和配音节点后再运行。` });
+    }
+  }
+  return {
+    issues,
+    errorCount: issues.filter((issue) => issue.level === "error").length,
+    warningCount: issues.filter((issue) => issue.level === "warning").length
+  };
+}
+
 const addableNodes = [
   { type: "text", label: "文本", category: "基础节点", description: "承载提示词、旁白、备注。", icon: FileText },
   { type: "image", label: "图片", category: "素材节点", description: "放入参考图或生成图。", icon: Image },
@@ -284,6 +357,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [showTasks, setShowTasks] = useState(false);
   const [showShots, setShowShots] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
   const [showPalette, setShowPalette] = useState(true);
   const [paletteQuery, setPaletteQuery] = useState("");
   const [importText, setImportText] = useState("");
@@ -302,6 +376,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     counts[task.status] = (counts[task.status] || 0) + 1;
     return counts;
   }, {}), [tasks]);
+  const graphValidation = useMemo(() => validateCanvasGraph(nodes, edges), [nodes, edges]);
   const filteredAddableNodes = useMemo(() => {
     const keyword = paletteQuery.trim().toLowerCase();
     return addableNodes.filter((item) => {
@@ -703,6 +778,17 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus("已定位到任务关联节点。");
   }
 
+  function focusCanvasNode(nodeId: string) {
+    const node = nodes.find((item) => item.id === nodeId);
+    if (!node) {
+      setStatus("画布中暂未找到这个节点。");
+      return;
+    }
+    setSelectedNodeId(node.id);
+    flowInstance?.setCenter(node.position.x + 120, node.position.y + 80, { duration: 420, zoom: 1 });
+    setStatus("已定位到自检问题节点。");
+  }
+
   async function runSelectedNode() {
     if (!selectedNode) return;
     await saveGraph();
@@ -977,6 +1063,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <button disabled={busy} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={() => void refreshAll()}><RefreshCcw size={16} />刷新</button>
           <button disabled={busy || !nodes.length} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={exportWorkflowJson}><Download size={16} />导出工作流</button>
           <button disabled={busy} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={() => setShowImport((value) => !value)}><Upload size={16} />导入工作流</button>
+          <button disabled={busy || !nodes.length} className="inline-flex items-center gap-2 rounded-md border border-amber-400/40 bg-amber-500/10 px-3 py-2 disabled:opacity-50" onClick={() => setShowValidation((value) => !value)}><AlertTriangle size={16} />画布自检 {graphValidation.errorCount ? graphValidation.errorCount : ""}</button>
           <button disabled={busy || !nodes.length} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={autoLayoutGraph}><LayoutGrid size={16} />整理画布</button>
           <button disabled={busy || !nodes.length} className="inline-flex items-center gap-2 rounded-md border border-blue-400/40 bg-blue-500/10 px-3 py-2 disabled:opacity-50" onClick={() => void runCanvasGraph()}><GitBranch size={16} />运行全图</button>
           <button disabled={busy} className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 disabled:opacity-50" onClick={() => void saveGraph()}><Save size={16} />保存画布</button>
@@ -1061,6 +1148,33 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         <div className="mt-3 flex items-center justify-between gap-2 text-sm">
           <span className="text-xs text-slate-400">导入会重置节点状态为草稿，并保留参数、位置和连线。</span>
           <button disabled={busy || !importText.trim()} className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 disabled:opacity-50" onClick={importWorkflowJson}><Upload size={15} />确认导入</button>
+        </div>
+      </aside>}
+
+      {showValidation && <aside className="absolute left-20 top-28 z-30 max-h-[620px] w-[420px] overflow-auto rounded-lg border border-white/10 bg-slate-950/95 p-4 shadow-2xl backdrop-blur">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs text-slate-400">运行前检查</p>
+            <h2 className="font-semibold">画布自检</h2>
+          </div>
+          <button className="rounded-md border border-white/10 px-2 py-1 text-xs text-slate-300 hover:bg-white/10" onClick={() => setShowValidation(false)}>关闭</button>
+        </div>
+        <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-slate-300">
+          <span className="rounded border border-white/10 px-2 py-2">节点 {nodes.length}</span>
+          <span className="rounded border border-white/10 px-2 py-2">错误 {graphValidation.errorCount}</span>
+          <span className="rounded border border-white/10 px-2 py-2">提醒 {graphValidation.warningCount}</span>
+        </div>
+        <div className="mt-3 grid gap-2 text-sm">
+          {graphValidation.issues.map((issue) => <article key={issue.id} className={`rounded-md border px-3 py-2 ${issue.level === "error" ? "border-red-400/30 bg-red-500/10" : "border-amber-400/30 bg-amber-500/10"}`}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <strong className="block text-white">{issue.title}</strong>
+                <span className="mt-1 block text-xs leading-5 text-slate-300">{issue.detail}</span>
+              </div>
+              {issue.nodeId && <button className="shrink-0 rounded border border-white/10 px-2 py-1 text-xs text-white" onClick={() => focusCanvasNode(issue.nodeId || "")}>定位</button>}
+            </div>
+          </article>)}
+          {!graphValidation.issues.length && <p className="rounded-md border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-emerald-100">自检通过，当前画布没有发现阻断性问题。</p>}
         </div>
       </aside>}
 

@@ -20,7 +20,7 @@ import {
   type NodeProps,
   type ReactFlowInstance
 } from "@xyflow/react";
-import { AlertTriangle, AlignHorizontalDistributeCenter, AlignHorizontalJustifyStart, AlignVerticalDistributeCenter, AlignVerticalJustifyStart, Ban, Boxes, CheckSquare, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, Focus, GitBranch, Image, LayoutGrid, Library, ListTree, Lock, Maximize2, Minimize2, Music, Play, Plus, Redo2, RefreshCcw, RotateCcw, Save, Search, Sparkles, Trash2, Undo2, Unlock, Upload, Video, Wand2, XSquare } from "lucide-react";
+import { AlertTriangle, AlignHorizontalDistributeCenter, AlignHorizontalJustifyStart, AlignVerticalDistributeCenter, AlignVerticalJustifyStart, Ban, Boxes, CheckSquare, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, Focus, GitBranch, Image, LayoutGrid, Library, ListTree, Lock, Map as MapIcon, Maximize2, Minimize2, Music, Play, Plus, Redo2, RefreshCcw, RotateCcw, Save, Search, Sparkles, Trash2, Undo2, Unlock, Upload, Video, Wand2, XSquare } from "lucide-react";
 import { apiFetch, currentUserId, deleteJson, postJson, type Asset, type GenerationTask, type Project, type ProjectGraph, type ProjectGraphNode, type StoryboardShot } from "../lib/api";
 
 const nodeLabels: Record<string, string> = {
@@ -682,6 +682,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [showValidation, setShowValidation] = useState(false);
   const [showOutline, setShowOutline] = useState(false);
   const [showViewBookmarks, setShowViewBookmarks] = useState(false);
+  const [showMiniMap, setShowMiniMap] = useState(true);
   const [showPalette, setShowPalette] = useState(true);
   const [paletteQuery, setPaletteQuery] = useState("");
   const [outlineQuery, setOutlineQuery] = useState("");
@@ -2103,6 +2104,14 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     });
   }
 
+  function toggleMiniMap() {
+    setShowMiniMap((value) => {
+      const next = !value;
+      setStatus(next ? "已开启画布导航器，可在迷你地图中查看全局节点结构。" : "已隐藏画布导航器，释放右下角预览空间。");
+      return next;
+    });
+  }
+
   function blockingValidationIssues(nodeIds: string[], includeGlobalIssues = false) {
     const nodeIdSet = new Set(nodeIds);
     return graphValidation.issues.filter((issue) => issue.level === "error" && ((issue.nodeId && nodeIdSet.has(issue.nodeId)) || (includeGlobalIssues && !issue.nodeId)));
@@ -2794,6 +2803,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         <button title="适配选中节点" disabled={!selectedNodes.length} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={fitSelectedNodeView}><Focus size={18} /></button>
         <button title="重置画布视口" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={resetCanvasViewport}><RotateCcw size={18} /></button>
         <button title="视图书签" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowViewBookmarks((value) => !value)}><Save size={18} /></button>
+        <button title={showMiniMap ? "隐藏画布导航器" : "显示画布导航器"} className={`grid h-10 w-10 place-items-center rounded-md hover:bg-white/10 ${showMiniMap ? "bg-blue-500/15 text-blue-50" : "text-slate-200"}`} onClick={toggleMiniMap}><MapIcon size={18} /></button>
         <button title="分镜列表" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowShots((value) => !value)}><Clapperboard size={18} /></button>
         <button title="素材库" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowAssets((value) => !value)}><Library size={18} /></button>
         <button title="任务队列" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowTasks((value) => !value)}><Boxes size={18} /></button>
@@ -3027,7 +3037,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       >
         <Background color="#334155" gap={24} />
         <Controls className="!bottom-6 !left-1/2 !-translate-x-1/2 !rounded-lg !border !border-white/10 !bg-slate-950/90 !shadow-2xl" />
-        <MiniMap className="!bottom-6 !right-6 !rounded-lg !border !border-white/10 !bg-slate-950/90" nodeColor="#2563eb" />
+        {showMiniMap && <MiniMap className="!bottom-6 !right-6 !rounded-lg !border !border-white/10 !bg-slate-950/90" nodeColor="#2563eb" />}
       </ReactFlow>
 
       {edgeContextMenu && selectedEdge && <div

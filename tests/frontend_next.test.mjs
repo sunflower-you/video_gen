@@ -953,6 +953,9 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /工作流预设/);
   assert.match(canvasWorkspace, /我的工作流预设/);
   assert.match(canvasWorkspace, /保存当前画布为预设/);
+  assert.match(canvasWorkspace, /add-seedance-preset/);
+  assert.match(canvasWorkspace, /add-tv-show-preset/);
+  assert.match(canvasWorkspace, /add-creator-challenge-preset/);
   assert.match(canvasWorkspace, /CustomWorkflowPreset/);
   assert.match(canvasWorkspace, /customPresetStorageKey/);
   assert.match(canvasWorkspace, /customWorkflowPresets/);

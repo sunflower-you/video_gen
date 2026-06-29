@@ -529,10 +529,12 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /运行节点/);
   assert.match(canvasWorkspace, /运行链路/);
   assert.match(canvasWorkspace, /复制节点/);
+  assert.match(canvasWorkspace, /剪切节点/);
   assert.match(canvasWorkspace, /复制链路/);
   assert.match(canvasWorkspace, /粘贴链路/);
   assert.match(canvasWorkspace, /选区操作/);
   assert.match(canvasWorkspace, /复制选区/);
+  assert.match(canvasWorkspace, /剪切选区/);
   assert.match(canvasWorkspace, /整理选区/);
   assert.match(canvasWorkspace, /connectSelectedNodesInOrder/);
   assert.match(canvasWorkspace, /串联选区/);
@@ -600,6 +602,11 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /duplicateSelectedNode/);
   assert.match(canvasWorkspace, /duplicateSelectedNodes/);
   assert.match(canvasWorkspace, /copySelectedNodes/);
+  assert.match(canvasWorkspace, /cutSelectedNodes/);
+  assert.match(canvasWorkspace, /event\.key\.toLowerCase\(\) === "x"/);
+  assert.match(canvasWorkspace, /已剪切选区到画布剪贴板/);
+  assert.match(canvasWorkspace, /请先框选或点选节点，再剪切选区/);
+  assert.match(canvasWorkspace, /选区节点均已锁定，请先解锁再剪切/);
   assert.match(canvasWorkspace, /deleteSelectedNodes/);
   assert.match(canvasWorkspace, /autoLayoutSelectedNodes/);
   assert.match(canvasWorkspace, /setSelectedNodesDisabled/);

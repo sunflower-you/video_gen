@@ -270,6 +270,10 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /application\/x-video-gen-node-type/);
   assert.match(canvasWorkspace, /draggable/);
   assert.match(canvasWorkspace, /已在落点添加/);
+  assert.match(canvasWorkspace, /addConnectedNodeFromSelected/);
+  assert.match(canvasWorkspace, /快速添加下游/);
+  assert.match(canvasWorkspace, /添加下游分镜图/);
+  assert.match(canvasWorkspace, /已从当前节点添加并连接/);
   assert.match(canvasWorkspace, /保存画布/);
   assert.match(canvasWorkspace, /画布自检/);
   assert.match(canvasWorkspace, /运行前检查/);

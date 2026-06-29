@@ -2571,6 +2571,20 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     selectCanvasNodesByIds(colorNodes.map((node) => node.id), `${markerColor?.label || "同标记"}节点`);
   }
 
+  function selectSameShotNodes() {
+    if (!selectedNode) {
+      setStatus("请先选择一个绑定分镜的节点，再选中同分镜节点。");
+      return;
+    }
+    const shotId = String((selectedNode.data as Record<string, unknown>).shot_id || "");
+    if (!shotId) {
+      setStatus("当前节点没有绑定分镜，无法选中同分镜节点。");
+      return;
+    }
+    const sameShotNodes = nodes.filter((node) => String((node.data as Record<string, unknown>).shot_id || "") === shotId);
+    selectCanvasNodesByIds(sameShotNodes.map((node) => node.id), "同分镜节点");
+  }
+
   function selectDisabledNodes() {
     const disabledNodes = nodes.filter(isNodeDisabled);
     if (!disabledNodes.length) {
@@ -4211,6 +4225,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     { key: "export-event-log", title: "导出画布事件日志", description: "下载并复制当前项目的画布操作追踪 JSON", disabled: !canvasEventLog.length, run: () => void exportCanvasEventLog() },
     { key: "select-all", title: "全选画布节点", description: "选中当前画布所有节点", shortcut: "Ctrl/⌘ A", disabled: !nodes.length, run: selectAllCanvasNodes },
     { key: "invert-selection", title: "反选画布节点", description: "反转当前节点选区", shortcut: "Ctrl/⌘ Shift A", disabled: !nodes.length, run: invertCanvasSelection },
+    { key: "select-same-shot", title: "选中同分镜节点", description: "按当前节点绑定的 shot_id 框选同一分镜链路节点", disabled: !selectedNode || !String((selectedNode.data as Record<string, unknown>).shot_id || ""), run: selectSameShotNodes },
     { key: "select-all-edges", title: "全选画布连线", description: "选中当前画布所有连线，便于批量标记或禁用", disabled: !edges.length, run: selectAllCanvasEdges },
     { key: "invert-edge-selection", title: "反选画布连线", description: "反转当前连线选区，快速排除已选链路", disabled: !edges.length, run: invertCanvasEdgeSelection },
     { key: "expand-selection-video", title: "选区生成视频链", description: "为选区末端批量创建镜头视频生成节点并自动连线", disabled: !selectedNodes.length, run: expandSelectedNodesToVideoGeneration },
@@ -4857,6 +4872,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSelectedDownstreamChain(); setNodeContextMenu(null); }}>选中下游链路</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSameTypeNodes(); setNodeContextMenu(null); }}>选中同类型节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSameStatusNodes(); setNodeContextMenu(null); }}>选中同状态节点</button>
+            <button disabled={busy || !String((selectedNode.data as Record<string, unknown>).shot_id || "")} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSameShotNodes(); setNodeContextMenu(null); }}>选中同分镜节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSameColorNodes(); setNodeContextMenu(null); }}>选中同标记节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectDisabledNodes(); setNodeContextMenu(null); }}>选中禁用节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectIsolatedNodes(); setNodeContextMenu(null); }}>选中孤立节点</button>
@@ -5168,6 +5184,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void copySelectedNodeLink()}><ClipboardCopy size={16} />复制链接</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void copySelectedChain()}><ClipboardCopy size={16} />复制链路</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void pasteCopiedSelection()}><ClipboardPaste size={16} />粘贴链路</button>
+            <button disabled={busy || !String(selectedData.shot_id || "")} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={selectSameShotNodes}><Clapperboard size={16} />同分镜</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesLayer("front")}><BringToFront size={16} />置顶节点</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesLayer("back")}><SendToBack size={16} />置底节点</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={disconnectSelectedNodes}><XSquare size={16} />断开连线</button>

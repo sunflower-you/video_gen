@@ -1527,6 +1527,16 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus("已清空分镜选择。");
   }
 
+  function focusShotWorkflow(shot: StoryboardShot) {
+    const linkedNodes = nodes.filter((node) => String((node.data as Record<string, unknown>).shot_id || "") === shot.id);
+    if (!linkedNodes.length) {
+      setStatus(`分镜 ${shot.index} 暂未铺设生成链路。`);
+      return;
+    }
+    selectCanvasNodesByIds(linkedNodes.map((node) => node.id), `分镜 ${shot.index} 已铺设链路`);
+    setShowShots(false);
+  }
+
   function updateSelectedData(key: string, value: string | boolean) {
     if (!selectedNode) return;
     setNodes((items) => items.map((node) => node.id === selectedNode.id ? { ...node, data: { ...node.data, [key]: value } } : node));
@@ -3523,7 +3533,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
                 <span className={`rounded px-2 py-1 text-[11px] ${shotWorkflowShotIds.has(shot.id) ? "bg-emerald-500/10 text-emerald-100" : "bg-amber-500/10 text-amber-100"}`}>{shotWorkflowShotIds.has(shot.id) ? "已铺设" : "未铺设"}</span>
               </div>
             </div>
-            <button className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-xs text-white hover:bg-blue-500" onClick={() => addShotWorkflow(shot)}><GitBranch size={14} />添加分镜链路</button>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-xs text-white hover:bg-blue-500" onClick={() => addShotWorkflow(shot)}><GitBranch size={14} />添加分镜链路</button>
+              <button disabled={!shotWorkflowShotIds.has(shot.id)} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 text-xs text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={() => focusShotWorkflow(shot)}><Focus size={14} />定位已有链路</button>
+            </div>
           </article>)}
           {!shotOptions.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">暂无分镜，请先从创作入口生成脚本分镜。</p>}
           {!!shotOptions.length && !filteredShots.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">没有匹配分镜，请调整状态或关键词。</p>}

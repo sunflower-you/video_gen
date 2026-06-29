@@ -2080,6 +2080,36 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已选中${label}：${matchedEdges.length} 条连线，可继续禁用、标记、改样式或删除。`);
   }
 
+  function selectAllCanvasEdges() {
+    if (!edges.length) {
+      setStatus("画布暂无连线，无法全选。");
+      return;
+    }
+    setNodes((items) => items.map((node) => ({ ...node, selected: false })));
+    setEdges((items) => items.map((edge) => ({ ...edge, selected: true })));
+    setSelectedNodeId("");
+    setSelectedEdgeId(edges[0]?.id || "");
+    setNodeContextMenu(null);
+    setEdgeContextMenu(null);
+    setStatus(`已全选画布连线：${edges.length} 条，可继续批量禁用、标记、改样式或删除。`);
+  }
+
+  function invertCanvasEdgeSelection() {
+    if (!edges.length) {
+      setStatus("画布暂无连线，无法反选。");
+      return;
+    }
+    const selectedEdgeIds = new Set(selectedEdges.map((edge) => edge.id));
+    const nextSelectedEdges = edges.filter((edge) => !selectedEdgeIds.has(edge.id));
+    setNodes((items) => items.map((node) => ({ ...node, selected: false })));
+    setEdges((items) => items.map((edge) => ({ ...edge, selected: !selectedEdgeIds.has(edge.id) })));
+    setSelectedNodeId("");
+    setSelectedEdgeId(nextSelectedEdges[0]?.id || "");
+    setNodeContextMenu(null);
+    setEdgeContextMenu(null);
+    setStatus(nextSelectedEdges.length ? `已反选画布连线：${nextSelectedEdges.length} 条，可继续批量禁用、标记、改样式或删除。` : "已反选画布连线，当前没有选中连线。");
+  }
+
   function selectSameSourceEdges() {
     if (!selectedEdge) {
       setStatus("请先选择一条连线，再选中同起点连线。");
@@ -3549,6 +3579,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     { key: "export-event-log", title: "导出画布事件日志", description: "下载并复制当前项目的画布操作追踪 JSON", disabled: !canvasEventLog.length, run: () => void exportCanvasEventLog() },
     { key: "select-all", title: "全选画布节点", description: "选中当前画布所有节点", shortcut: "Ctrl/⌘ A", disabled: !nodes.length, run: selectAllCanvasNodes },
     { key: "invert-selection", title: "反选画布节点", description: "反转当前节点选区", shortcut: "Ctrl/⌘ Shift A", disabled: !nodes.length, run: invertCanvasSelection },
+    { key: "select-all-edges", title: "全选画布连线", description: "选中当前画布所有连线，便于批量标记或禁用", disabled: !edges.length, run: selectAllCanvasEdges },
+    { key: "invert-edge-selection", title: "反选画布连线", description: "反转当前连线选区，快速排除已选链路", disabled: !edges.length, run: invertCanvasEdgeSelection },
     { key: "clear-selection", title: "清空当前选区", description: "取消节点和连线选择", shortcut: "Esc", disabled: !selectedNodes.length && !selectedEdge, run: clearCanvasSelection },
     { key: "fit-graph", title: "适配全部节点", description: "把完整节点图适配到当前视图", shortcut: "Ctrl/⌘ 1", disabled: !nodes.length, run: fitGraphView },
     { key: "fit-selection", title: "适配选中节点", description: "把当前选区适配到视图中心", shortcut: "Ctrl/⌘ 2", disabled: !selectedNodes.length, run: fitSelectedNodeView },
@@ -4398,6 +4430,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <section className="rounded-md border border-white/10 bg-white/[0.03] p-3">
             <p className="text-xs text-slate-400">连线选择</p>
             <div className="mt-2 grid grid-cols-2 gap-2">
+              <button className="rounded-md border border-white/10 px-2 py-2 text-xs text-slate-200 hover:bg-white/10" onClick={selectAllCanvasEdges}>全部连线</button>
+              <button className="rounded-md border border-white/10 px-2 py-2 text-xs text-slate-200 hover:bg-white/10" onClick={invertCanvasEdgeSelection}>反选连线</button>
               <button className="rounded-md border border-white/10 px-2 py-2 text-xs text-slate-200 hover:bg-white/10" onClick={selectSameSourceEdges}>同起点</button>
               <button className="rounded-md border border-white/10 px-2 py-2 text-xs text-slate-200 hover:bg-white/10" onClick={selectSameTargetEdges}>同终点</button>
               <button className="rounded-md border border-white/10 px-2 py-2 text-xs text-slate-200 hover:bg-white/10" onClick={selectSameLabelEdges}>同标签</button>

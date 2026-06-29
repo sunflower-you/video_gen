@@ -367,6 +367,8 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /selectTaskStatusNodes/);
   assert.match(canvasWorkspace, /selectedEdges/);
   assert.match(canvasWorkspace, /selectCanvasEdgesByIds/);
+  assert.match(canvasWorkspace, /selectAllCanvasEdges/);
+  assert.match(canvasWorkspace, /invertCanvasEdgeSelection/);
   assert.match(canvasWorkspace, /selectSameSourceEdges/);
   assert.match(canvasWorkspace, /selectSameTargetEdges/);
   assert.match(canvasWorkspace, /selectSameLabelEdges/);
@@ -389,6 +391,14 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /选中运行中任务节点/);
   assert.match(canvasWorkspace, /选中失败任务节点/);
   assert.match(canvasWorkspace, /连线选择/);
+  assert.match(canvasWorkspace, /全选画布连线/);
+  assert.match(canvasWorkspace, /反选画布连线/);
+  assert.match(canvasWorkspace, /画布暂无连线，无法全选/);
+  assert.match(canvasWorkspace, /画布暂无连线，无法反选/);
+  assert.match(canvasWorkspace, /已全选画布连线/);
+  assert.match(canvasWorkspace, /已反选画布连线/);
+  assert.match(canvasWorkspace, /全部连线/);
+  assert.match(canvasWorkspace, /反选连线/);
   assert.match(canvasWorkspace, /选中同起点连线/);
   assert.match(canvasWorkspace, /选中同终点连线/);
   assert.match(canvasWorkspace, /选中同标签连线/);

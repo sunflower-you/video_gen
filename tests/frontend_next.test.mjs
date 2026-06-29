@@ -389,6 +389,9 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /选区操作/);
   assert.match(canvasWorkspace, /复制选区/);
   assert.match(canvasWorkspace, /整理选区/);
+  assert.match(canvasWorkspace, /connectSelectedNodesInOrder/);
+  assert.match(canvasWorkspace, /串联选区/);
+  assert.match(canvasWorkspace, /已按从左到右顺序串联选区/);
   assert.match(canvasWorkspace, /禁用选区/);
   assert.match(canvasWorkspace, /锁定选区/);
   assert.match(canvasWorkspace, /锁定节点/);

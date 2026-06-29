@@ -2008,6 +2008,35 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(markerColor?.value ? `已设置选区颜色标记：${markerColor.label}，共 ${selectedNodes.length} 个节点。` : `已清空选区颜色标记：${selectedNodes.length} 个节点。`);
   }
 
+  function setSelectedSelectionEdgesDisabled(disabled: boolean) {
+    if (!selectedSelectionEdges.length) {
+      setStatus("当前选区没有内部连线可批量操作。");
+      return;
+    }
+    const edgeIds = new Set(selectedSelectionEdges.map((edge) => edge.id));
+    rememberGraphHistory();
+    setEdges((items) => items.map((edge) => edgeIds.has(edge.id) ? edgeWithDefaultHandles({
+      ...edge,
+      data: { ...(edge.data as Record<string, unknown> | undefined), disabled }
+    }) : edge));
+    setStatus(disabled ? `已禁用选区内部连线：${selectedSelectionEdges.length} 条。` : `已启用选区内部连线：${selectedSelectionEdges.length} 条。`);
+  }
+
+  function setSelectedSelectionEdgesColor(color: string) {
+    if (!selectedSelectionEdges.length) {
+      setStatus("当前选区没有内部连线可设置颜色。");
+      return;
+    }
+    const markerColor = edgeMarkerColorByValue.get(color) || edgeMarkerColorByValue.get("");
+    const edgeIds = new Set(selectedSelectionEdges.map((edge) => edge.id));
+    rememberGraphHistory();
+    setEdges((items) => items.map((edge) => edgeIds.has(edge.id) ? edgeWithDefaultHandles({
+      ...edge,
+      data: { ...(edge.data as Record<string, unknown> | undefined), edge_color: markerColor?.value || "" }
+    }) : edge));
+    setStatus(markerColor?.value ? `已设置选区内部连线颜色：${markerColor.label}，共 ${selectedSelectionEdges.length} 条。` : `已清空选区内部连线颜色：${selectedSelectionEdges.length} 条。`);
+  }
+
   function groupSelectedNodes() {
     if (selectedNodes.length <= 1) {
       setStatus("请先框选多个节点，再打组为工作流片段。");
@@ -2460,6 +2489,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { ungroupSelectedNodes(); setNodeContextMenu(null); }}>取消分组</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesDisabled(true); setNodeContextMenu(null); }}>禁用选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesDisabled(false); setNodeContextMenu(null); }}>启用选区</button>
+            <button disabled={busy || !selectedSelectionEdges.length} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedSelectionEdgesDisabled(true); setNodeContextMenu(null); }}>禁用内部连线</button>
+            <button disabled={busy || !selectedSelectionEdges.length} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedSelectionEdgesDisabled(false); setNodeContextMenu(null); }}>启用内部连线</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesCollapsed(true); setNodeContextMenu(null); }}>折叠选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesCollapsed(false); setNodeContextMenu(null); }}>展开选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesLocked(true); setNodeContextMenu(null); }}>锁定选区</button>
@@ -2509,6 +2540,16 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <span className="text-xs text-slate-400">选区颜色标记</span>
             <div className="grid grid-cols-3 gap-2">
               {nodeMarkerColors.map((item) => <button key={item.value || "default"} className={`rounded-md border px-2 py-1.5 text-xs ${item.value ? `${item.className} text-white` : "border-white/10 bg-white/5 text-slate-200"} hover:ring-1 hover:ring-white/60`} onClick={() => setSelectedNodesColor(item.value)}>{item.label}</button>)}
+            </div>
+          </section>
+          <section className="grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">
+            <span className="text-xs text-slate-400">选区内部连线</span>
+            <div className="grid grid-cols-2 gap-2">
+              <button disabled={busy || !selectedSelectionEdges.length} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 text-xs disabled:opacity-50" onClick={() => setSelectedSelectionEdgesDisabled(true)}><Ban size={14} />禁用内部连线</button>
+              <button disabled={busy || !selectedSelectionEdges.length} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 text-xs disabled:opacity-50" onClick={() => setSelectedSelectionEdgesDisabled(false)}><Play size={14} />启用内部连线</button>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {edgeMarkerColors.map((item) => <button key={item.value || "default"} disabled={busy || !selectedSelectionEdges.length} className={`rounded-md border px-2 py-1.5 text-xs disabled:opacity-50 ${item.value ? "text-white" : "border-white/10 bg-white/5 text-slate-200"} hover:ring-1 hover:ring-white/60`} style={item.value ? { borderColor: item.stroke, backgroundColor: `${item.stroke}33` } : undefined} onClick={() => setSelectedSelectionEdgesColor(item.value)}>{item.label}</button>)}
             </div>
           </section>
           <section className="grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">

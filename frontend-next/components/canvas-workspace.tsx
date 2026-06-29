@@ -127,7 +127,7 @@ const sameShotSyncKeysByType: Record<string, string[]> = {
   compose_generation: ["subtitle"]
 };
 
-function sameShotSyncPatch(type: string, data: Record<string, unknown>) {
+function nodeBusinessParamPatch(type: string, data: Record<string, unknown>) {
   const keys = sameShotSyncKeysByType[type] || [];
   return Object.fromEntries(keys.filter((key) => key in data).map((key) => [key, data[key]]));
 }
@@ -2613,7 +2613,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       return;
     }
     const type = String(selectedDataForSync.nodeType || "text");
-    const patch = sameShotSyncPatch(type, selectedDataForSync);
+    const patch = nodeBusinessParamPatch(type, selectedDataForSync);
     if (!Object.keys(patch).length) {
       setStatus("当前节点没有可同步的业务参数。");
       return;
@@ -2630,6 +2630,31 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     rememberGraphHistory();
     setNodes((items) => items.map((node) => targetIds.has(node.id) ? { ...node, data: { ...node.data, ...patch } } : node));
     setStatus(`已把当前${nodeLabels[type] || "节点"}参数同步到同分镜 ${targetIds.size} 个同类型节点。`);
+  }
+
+  function applySelectedNodeParamsToSelection() {
+    if (!selectedNode || selectedNodes.length <= 1) {
+      setStatus("请先选择一个源节点和至少一个同类型目标节点，再应用当前参数到选区。");
+      return;
+    }
+    const sourceData = selectedNode.data as Record<string, unknown>;
+    const type = String(sourceData.nodeType || "text");
+    const patch = nodeBusinessParamPatch(type, sourceData);
+    if (!Object.keys(patch).length) {
+      setStatus("当前节点没有可应用到选区的业务参数。");
+      return;
+    }
+    const targetIds = new Set(selectedNodes
+      .filter((node) => node.id !== selectedNode.id)
+      .filter((node) => String((node.data as Record<string, unknown>).nodeType || "text") === type)
+      .map((node) => node.id));
+    if (!targetIds.size) {
+      setStatus("当前选区没有其它同类型节点可应用参数。");
+      return;
+    }
+    rememberGraphHistory();
+    setNodes((items) => items.map((node) => targetIds.has(node.id) ? { ...node, data: { ...node.data, ...patch } } : node));
+    setStatus(`已把当前${nodeLabels[type] || "节点"}参数应用到选区 ${targetIds.size} 个同类型节点。`);
   }
 
   function selectDisabledNodes() {
@@ -4274,6 +4299,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     { key: "invert-selection", title: "反选画布节点", description: "反转当前节点选区", shortcut: "Ctrl/⌘ Shift A", disabled: !nodes.length, run: invertCanvasSelection },
     { key: "select-same-shot", title: "选中同分镜节点", description: "按当前节点绑定的 shot_id 框选同一分镜链路节点", disabled: !selectedNode || !String((selectedNode.data as Record<string, unknown>).shot_id || ""), run: selectSameShotNodes },
     { key: "sync-same-shot-params", title: "同步同分镜参数", description: "把当前节点业务参数同步到同一分镜的其它同类型节点", disabled: !selectedNode || !String((selectedNode.data as Record<string, unknown>).shot_id || ""), run: syncSelectedNodeParamsToSameShot },
+    { key: "apply-params-to-selection", title: "应用当前参数到选区", description: "把当前节点业务参数批量应用到选区内其它同类型节点", disabled: !selectedNode || selectedNodes.length <= 1, run: applySelectedNodeParamsToSelection },
     { key: "select-all-edges", title: "全选画布连线", description: "选中当前画布所有连线，便于批量标记或禁用", disabled: !edges.length, run: selectAllCanvasEdges },
     { key: "invert-edge-selection", title: "反选画布连线", description: "反转当前连线选区，快速排除已选链路", disabled: !edges.length, run: invertCanvasEdgeSelection },
     { key: "expand-selection-video", title: "选区生成视频链", description: "为选区末端批量创建镜头视频生成节点并自动连线", disabled: !selectedNodes.length, run: expandSelectedNodesToVideoGeneration },
@@ -4922,6 +4948,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSameStatusNodes(); setNodeContextMenu(null); }}>选中同状态节点</button>
             <button disabled={busy || !String((selectedNode.data as Record<string, unknown>).shot_id || "")} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSameShotNodes(); setNodeContextMenu(null); }}>选中同分镜节点</button>
             <button disabled={busy || !String((selectedNode.data as Record<string, unknown>).shot_id || "")} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { syncSelectedNodeParamsToSameShot(); setNodeContextMenu(null); }}>同步同分镜参数</button>
+            <button disabled={busy || selectedNodes.length <= 1} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { applySelectedNodeParamsToSelection(); setNodeContextMenu(null); }}>应用当前参数到选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSameColorNodes(); setNodeContextMenu(null); }}>选中同标记节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectDisabledNodes(); setNodeContextMenu(null); }}>选中禁用节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectIsolatedNodes(); setNodeContextMenu(null); }}>选中孤立节点</button>
@@ -4985,6 +5012,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <div className="grid grid-cols-2 gap-2">
               {nodeParameterPresets.map((preset) => <button key={preset.key} disabled={busy || !selectedNodes.some((node) => preset.nodeTypes.includes(String((node.data as Record<string, unknown>).nodeType || "")))} className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={() => applySelectedNodesParameterPreset(preset)}>{preset.label}</button>)}
             </div>
+            <button disabled={busy || !selectedNode || selectedNodes.length <= 1} className="inline-flex items-center justify-center gap-2 rounded-md border border-emerald-400/30 px-3 py-2 text-xs text-emerald-50 disabled:opacity-50" onClick={applySelectedNodeParamsToSelection}><Wand2 size={14} />应用当前参数到选区</button>
             <button disabled={busy || !selectedGenerationNodes.length} className="inline-flex items-center justify-center gap-2 rounded-md border border-amber-400/30 px-3 py-2 text-xs text-amber-50 disabled:opacity-50" onClick={clearSelectedGenerationOutputs}><RotateCcw size={14} />清空生成结果</button>
             <button disabled={busy || !selectedImageGenerationNodes.length} className="inline-flex items-center justify-center gap-2 rounded-md border border-blue-400/30 px-3 py-2 text-xs text-blue-50 disabled:opacity-50" onClick={randomizeSelectedImageSeeds}><RefreshCcw size={14} />随机 seed 重跑分镜图</button>
           </section>

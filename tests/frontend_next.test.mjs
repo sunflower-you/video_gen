@@ -225,6 +225,14 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /删除节点/);
   assert.match(canvasWorkspace, /upstreamNodeIds/);
   assert.match(canvasWorkspace, /orderedChainNodes/);
+  assert.match(canvasWorkspace, /selectedEdge/);
+  assert.match(canvasWorkspace, /onEdgeClick/);
+  assert.match(canvasWorkspace, /onEdgeContextMenu/);
+  assert.match(canvasWorkspace, /连线编辑/);
+  assert.match(canvasWorkspace, /连线标签/);
+  assert.match(canvasWorkspace, /删除连线/);
+  assert.match(canvasWorkspace, /updateSelectedEdgeLabel/);
+  assert.match(canvasWorkspace, /deleteSelectedEdge/);
   assert.match(canvasWorkspace, /runSelectedChain/);
   assert.match(canvasWorkspace, /运行全图/);
   assert.match(canvasWorkspace, /整理画布/);

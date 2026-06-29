@@ -141,13 +141,16 @@ function fromFlowNode(item: Node): ProjectGraphNode {
 }
 
 function toFlowEdge(edge: ProjectGraph["edges"][number]): Edge {
+  const data = edge.data || {};
+  const label = typeof data.label === "string" ? data.label : "";
   return {
     id: edge.id,
     source: edge.source,
     target: edge.target,
     sourceHandle: edge.sourceHandle || undefined,
     targetHandle: edge.targetHandle || undefined,
-    data: edge.data || {}
+    label,
+    data
   };
 }
 
@@ -420,6 +423,7 @@ type GraphHistorySnapshot = {
   nodes: Node[];
   edges: Edge[];
   selectedNodeId: string;
+  selectedEdgeId: string;
 };
 
 const customPresetStorageKey = "video_gen_canvas_custom_presets";
@@ -429,6 +433,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [selectedNodeId, setSelectedNodeId] = useState("");
+  const [selectedEdgeId, setSelectedEdgeId] = useState("");
   const [flowInstance, setFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [copiedSelection, setCopiedSelection] = useState<{ nodes: Node[]; edges: Edge[] } | null>(null);
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -446,11 +451,13 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [customWorkflowPresets, setCustomWorkflowPresets] = useState<CustomWorkflowPreset[]>([]);
   const [presetTitle, setPresetTitle] = useState("自定义工作流");
   const [nodeContextMenu, setNodeContextMenu] = useState<{ nodeId: string; x: number; y: number } | null>(null);
+  const [edgeContextMenu, setEdgeContextMenu] = useState<{ edgeId: string; x: number; y: number } | null>(null);
   const [graphPast, setGraphPast] = useState<GraphHistorySnapshot[]>([]);
   const [graphFuture, setGraphFuture] = useState<GraphHistorySnapshot[]>([]);
   const [busy, setBusy] = useState(false);
 
   const selectedNode = useMemo(() => nodes.find((item) => item.id === selectedNodeId) || null, [nodes, selectedNodeId]);
+  const selectedEdge = useMemo(() => edges.find((item) => item.id === selectedEdgeId) || null, [edges, selectedEdgeId]);
   const shotOptions = useMemo(() => project?.shots || [], [project]);
   const taskById = useMemo(() => new Map(tasks.map((task) => [task.id, task])), [tasks]);
   const selectedTask = useMemo(() => {
@@ -474,11 +481,12 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     });
   }, [paletteQuery]);
 
-  function cloneGraphSnapshot(snapshotNodes = nodes, snapshotEdges = edges, snapshotSelectedNodeId = selectedNodeId): GraphHistorySnapshot {
+  function cloneGraphSnapshot(snapshotNodes = nodes, snapshotEdges = edges, snapshotSelectedNodeId = selectedNodeId, snapshotSelectedEdgeId = selectedEdgeId): GraphHistorySnapshot {
     return {
       nodes: snapshotNodes.map((node) => ({ ...node, position: { ...node.position }, data: { ...(node.data as Record<string, unknown>) } })),
       edges: snapshotEdges.map((edge) => ({ ...edge, data: { ...(edge.data as Record<string, unknown> | undefined) } })),
-      selectedNodeId: snapshotSelectedNodeId
+      selectedNodeId: snapshotSelectedNodeId,
+      selectedEdgeId: snapshotSelectedEdgeId
     };
   }
 
@@ -491,7 +499,9 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setNodes(snapshot.nodes.map((node) => ({ ...node, position: { ...node.position }, data: { ...(node.data as Record<string, unknown>) } })));
     setEdges(snapshot.edges.map((edge) => ({ ...edge, data: { ...(edge.data as Record<string, unknown> | undefined) } })));
     setSelectedNodeId(snapshot.selectedNodeId);
+    setSelectedEdgeId(snapshot.selectedEdgeId || "");
     setNodeContextMenu(null);
+    setEdgeContextMenu(null);
   }
 
   function undoGraphChange() {
@@ -535,6 +545,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const handleCanvasKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setNodeContextMenu(null);
+        setEdgeContextMenu(null);
         return;
       }
       const target = event.target as HTMLElement | null;
@@ -582,6 +593,11 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       if ((event.key === "Delete" || event.key === "Backspace") && selectedNode) {
         event.preventDefault();
         void deleteSelectedNode();
+        return;
+      }
+      if ((event.key === "Delete" || event.key === "Backspace") && selectedEdge) {
+        event.preventDefault();
+        deleteSelectedEdge();
       }
     };
     window.addEventListener("keydown", handleCanvasKeyDown);
@@ -603,10 +619,24 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setEdges((items) => addEdge({ ...connection, id: `edge-${connection.source}-${connection.target}-${Date.now()}` }, items));
   }
 
+  function selectEdge(edgeId: string) {
+    setSelectedEdgeId(edgeId);
+    setSelectedNodeId("");
+    setNodeContextMenu(null);
+  }
+
   function openNodeContextMenu(event: ReactMouseEvent, nodeId: string) {
     event.preventDefault();
     setSelectedNodeId(nodeId);
+    setSelectedEdgeId("");
+    setEdgeContextMenu(null);
     setNodeContextMenu({ nodeId, x: event.clientX, y: event.clientY });
+  }
+
+  function openEdgeContextMenu(event: ReactMouseEvent, edgeId: string) {
+    event.preventDefault();
+    selectEdge(edgeId);
+    setEdgeContextMenu({ edgeId, x: event.clientX, y: event.clientY });
   }
 
   async function refreshAll() {
@@ -625,6 +655,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       setProject(projectData as Project);
       setNodes((graphData?.nodes || []).map(toFlowNode));
       setEdges((graphData?.edges || []).map(toFlowEdge));
+      setSelectedEdgeId("");
       setGraphPast([]);
       setGraphFuture([]);
       setAssets(assetResponse.ok ? await assetResponse.json() : []);
@@ -636,6 +667,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         const graph = JSON.parse(cached) as ProjectGraph;
         setNodes((graph.nodes || []).map(toFlowNode));
         setEdges((graph.edges || []).map(toFlowEdge));
+        setSelectedEdgeId("");
         setGraphPast([]);
         setGraphFuture([]);
       }
@@ -967,6 +999,33 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已从上游填充 ${selectedUpstreamInputs.length} 个参数。`);
   }
 
+  function updateSelectedEdgeLabel(label: string) {
+    if (!selectedEdge) return;
+    setEdges((items) => items.map((edge) => edge.id === selectedEdge.id ? {
+      ...edge,
+      label,
+      data: { ...(edge.data as Record<string, unknown> | undefined), label }
+    } : edge));
+    setStatus(label.trim() ? "连线标签已更新。" : "连线标签已清空。");
+  }
+
+  function deleteSelectedEdge() {
+    if (!selectedEdge) return;
+    const edgeId = selectedEdge.id;
+    rememberGraphHistory();
+    setEdges((items) => items.filter((edge) => edge.id !== edgeId));
+    setSelectedEdgeId("");
+    setEdgeContextMenu(null);
+    setStatus("连线已删除。");
+  }
+
+  function focusEdgeNode(direction: "source" | "target") {
+    if (!selectedEdge) return;
+    const nodeId = direction === "source" ? selectedEdge.source : selectedEdge.target;
+    focusCanvasNode(nodeId);
+    setEdgeContextMenu(null);
+  }
+
   async function taskAction(taskId: string, action: "submit" | "sync" | "cancel" | "retry") {
     const path = action === "sync" ? `/api/comfy/tasks/${taskId}/sync` : `/api/tasks/${taskId}/${action}`;
     setBusy(true);
@@ -1005,6 +1064,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       return;
     }
     setSelectedNodeId(node.id);
+    setSelectedEdgeId("");
     flowInstance?.setCenter(node.position.x + 120, node.position.y + 80, { duration: 420, zoom: 1 });
     setStatus("已定位到自检问题节点。");
   }
@@ -1207,6 +1267,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     rememberGraphHistory();
     setNodes((items) => items.filter((node) => node.id !== nodeId));
     setEdges((items) => items.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
+    setSelectedEdgeId("");
     setSelectedNodeId("");
     if (!nodeId.startsWith("local-")) {
       try {
@@ -1309,6 +1370,9 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   const selectedData = (selectedNode?.data || {}) as Record<string, unknown>;
   const selectedType = String(selectedData.nodeType || "text");
+  const selectedEdgeSource = selectedEdge ? nodes.find((node) => node.id === selectedEdge.source) || null : null;
+  const selectedEdgeTarget = selectedEdge ? nodes.find((node) => node.id === selectedEdge.target) || null : null;
+  const selectedEdgeLabel = String((selectedEdge?.data as Record<string, unknown> | undefined)?.label || "");
 
   return (
     <main className="h-screen overflow-hidden bg-[#0b1020] text-white">
@@ -1492,10 +1556,20 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         onDrop={handleCanvasDrop}
         onNodeClick={(_, node) => {
           setSelectedNodeId(node.id);
+          setSelectedEdgeId("");
           setNodeContextMenu(null);
+          setEdgeContextMenu(null);
         }}
         onNodeContextMenu={(event, node) => openNodeContextMenu(event, node.id)}
-        onPaneClick={() => setNodeContextMenu(null)}
+        onEdgeClick={(_, edge) => {
+          selectEdge(edge.id);
+          setEdgeContextMenu(null);
+        }}
+        onEdgeContextMenu={(event, edge) => openEdgeContextMenu(event, edge.id)}
+        onPaneClick={() => {
+          setNodeContextMenu(null);
+          setEdgeContextMenu(null);
+        }}
         fitView
         className="h-full w-full"
       >
@@ -1503,6 +1577,21 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         <Controls className="!bottom-6 !left-1/2 !-translate-x-1/2 !rounded-lg !border !border-white/10 !bg-slate-950/90 !shadow-2xl" />
         <MiniMap className="!bottom-6 !right-6 !rounded-lg !border !border-white/10 !bg-slate-950/90" nodeColor="#2563eb" />
       </ReactFlow>
+
+      {edgeContextMenu && selectedEdge && <div
+        className="fixed z-40 w-52 rounded-lg border border-white/10 bg-slate-950/95 p-2 text-sm text-slate-200 shadow-2xl backdrop-blur"
+        style={{ left: edgeContextMenu.x, top: edgeContextMenu.y }}
+      >
+        <div className="border-b border-white/10 px-2 pb-2">
+          <p className="text-xs text-slate-500">连线快捷菜单</p>
+          <strong className="mt-1 block truncate text-white">{selectedEdgeSource ? String((selectedEdgeSource.data as Record<string, unknown>).title || selectedEdgeSource.id) : selectedEdge.source} → {selectedEdgeTarget ? String((selectedEdgeTarget.data as Record<string, unknown>).title || selectedEdgeTarget.id) : selectedEdge.target}</strong>
+        </div>
+        <div className="mt-2 grid gap-1">
+          <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => focusEdgeNode("source")}>定位起点节点</button>
+          <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => focusEdgeNode("target")}>定位终点节点</button>
+          <button className="rounded px-2 py-2 text-left text-red-100 hover:bg-red-500/10" onClick={deleteSelectedEdge}>删除连线</button>
+        </div>
+      </div>}
 
       {nodeContextMenu && selectedNode && <div
         className="fixed z-40 w-56 rounded-lg border border-white/10 bg-slate-950/95 p-2 text-sm text-slate-200 shadow-2xl backdrop-blur"
@@ -1633,7 +1722,19 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={pasteCopiedSelection}><ClipboardPaste size={16} />粘贴链路</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 text-slate-300 disabled:opacity-50" onClick={() => void deleteSelectedNode()}><Trash2 size={16} />删除节点</button>
           </div>
-        </div> : <p className="mt-4 rounded-md border border-white/10 bg-white/5 p-3 text-sm text-slate-400">点击画布节点后可编辑参数、运行生成或删除节点。</p>}
+        </div> : selectedEdge ? <div className="mt-4 grid gap-3 text-sm">
+          <section className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+            <p className="text-xs text-slate-400">连线编辑</p>
+            <h3 className="mt-1 truncate font-semibold text-white">{selectedEdgeSource ? String((selectedEdgeSource.data as Record<string, unknown>).title || selectedEdgeSource.id) : selectedEdge.source} → {selectedEdgeTarget ? String((selectedEdgeTarget.data as Record<string, unknown>).title || selectedEdgeTarget.id) : selectedEdge.target}</h3>
+            <p className="mt-2 text-xs leading-5 text-slate-400">为连线添加用途说明，保存后会随工作流 JSON 和项目画布持久化。</p>
+          </section>
+          <label className="grid gap-1"><span className="text-slate-400">连线标签</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" placeholder="例如：提示词、首帧、配音输入" value={selectedEdgeLabel} onChange={(event) => updateSelectedEdgeLabel(event.target.value)} /></label>
+          <div className="grid grid-cols-2 gap-2">
+            <button className="rounded-md border border-white/10 px-3 py-2 text-slate-200 hover:bg-white/10" onClick={() => focusEdgeNode("source")}>定位起点</button>
+            <button className="rounded-md border border-white/10 px-3 py-2 text-slate-200 hover:bg-white/10" onClick={() => focusEdgeNode("target")}>定位终点</button>
+            <button className="col-span-2 rounded-md border border-red-400/30 px-3 py-2 text-red-100 hover:bg-red-500/10" onClick={deleteSelectedEdge}>删除连线</button>
+          </div>
+        </div> : <p className="mt-4 rounded-md border border-white/10 bg-white/5 p-3 text-sm text-slate-400">点击画布节点或连线后可编辑参数、运行生成或删除节点。</p>}
       </section>
 
       {showAssets && <aside className="absolute bottom-6 left-24 z-20 max-h-[320px] w-[360px] overflow-auto rounded-lg border border-white/10 bg-slate-950/90 p-4 shadow-2xl backdrop-blur">

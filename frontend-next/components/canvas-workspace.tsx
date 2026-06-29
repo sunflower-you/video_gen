@@ -682,12 +682,14 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [showTasks, setShowTasks] = useState(false);
   const [showShots, setShowShots] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
   const [showOutline, setShowOutline] = useState(false);
   const [showViewBookmarks, setShowViewBookmarks] = useState(false);
   const [showMiniMap, setShowMiniMap] = useState(true);
   const [showPalette, setShowPalette] = useState(true);
   const [paletteQuery, setPaletteQuery] = useState("");
+  const [commandQuery, setCommandQuery] = useState("");
   const [outlineQuery, setOutlineQuery] = useState("");
   const [outlineIssuesOnly, setOutlineIssuesOnly] = useState(false);
   const [assetTypeFilter, setAssetTypeFilter] = useState("all");
@@ -977,6 +979,17 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   useEffect(() => {
     const handleCanvasKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setShowCommandPalette((value) => !value);
+        setCommandQuery("");
+        return;
+      }
+      if (event.key === "Escape" && showCommandPalette) {
+        setShowCommandPalette(false);
+        setCommandQuery("");
+        return;
+      }
       if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
       if (event.key === "Escape") {
         clearCanvasSelection();
@@ -3203,6 +3216,33 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const selectedEdgeDisabled = selectedEdge ? isEdgeDisabled(selectedEdge) : false;
   const selectedEdgeSourcePorts = semanticPortsForNode(selectedEdgeSource, "output");
   const selectedEdgeTargetPorts = semanticPortsForNode(selectedEdgeTarget, "input");
+  const commandPaletteItems: { key: string; title: string; description: string; shortcut?: string; disabled?: boolean; run: () => void }[] = [
+    { key: "save", title: "保存画布", description: "同步当前节点、连线和视口", shortcut: "Ctrl/⌘ S", disabled: busy, run: () => void saveGraph() },
+    { key: "run-graph", title: "运行全图", description: "运行所有终点链路", shortcut: "Ctrl/⌘ R", disabled: busy || !nodes.length, run: () => void runCanvasGraph() },
+    { key: "layout", title: "整理画布", description: "按依赖关系自动整理节点", shortcut: "Ctrl/⌘ L", disabled: busy || !nodes.length, run: autoLayoutGraph },
+    { key: "validate", title: "画布自检", description: "检查断线、缺参、禁用和运行阻断问题", disabled: busy || !nodes.length, run: () => setShowValidation(true) },
+    { key: "import", title: "导入工作流 JSON", description: "把外部 ProjectGraph 追加到当前画布", disabled: busy, run: () => setShowImport(true) },
+    { key: "export", title: "导出工作流 JSON", description: "下载并复制当前完整工作流", disabled: busy || !nodes.length, run: () => void exportWorkflowJson() },
+    { key: "export-selection", title: "导出选区 JSON", description: "下载并复制当前选区节点和连线", disabled: busy || !selectedNodes.length, run: () => void exportSelectedWorkflowJson() },
+    { key: "save-preset", title: "保存当前画布为预设", description: "保存到我的工作流预设", disabled: !nodes.length, run: saveCurrentWorkflowAsPreset },
+    { key: "show-palette", title: "打开节点面板", description: "搜索添加平台生成、素材和基础节点", run: () => setShowPalette(true) },
+    { key: "show-outline", title: "打开节点大纲", description: "搜索、定位和批量选择节点", disabled: !nodes.length, run: () => setShowOutline(true) },
+    { key: "show-shots", title: "打开项目分镜面板", description: "按分镜铺设文本、画面、视频、配音和合成链路", run: () => setShowShots(true) },
+    { key: "show-assets", title: "打开素材库", description: "筛选并拖入项目图片、视频和音频素材", run: () => setShowAssets(true) },
+    { key: "show-tasks", title: "打开任务队列", description: "筛选、定位、同步、重试和取消生成任务", run: () => setShowTasks(true) },
+    { key: "select-all", title: "全选画布节点", description: "选中当前画布所有节点", shortcut: "Ctrl/⌘ A", disabled: !nodes.length, run: selectAllCanvasNodes },
+    { key: "invert-selection", title: "反选画布节点", description: "反转当前节点选区", shortcut: "Ctrl/⌘ Shift A", disabled: !nodes.length, run: invertCanvasSelection },
+    { key: "clear-selection", title: "清空当前选区", description: "取消节点和连线选择", shortcut: "Esc", disabled: !selectedNodes.length && !selectedEdge, run: clearCanvasSelection },
+    { key: "fit-graph", title: "适配全部节点", description: "把完整节点图适配到当前视图", shortcut: "Ctrl/⌘ 1", disabled: !nodes.length, run: fitGraphView },
+    { key: "fit-selection", title: "适配选中节点", description: "把当前选区适配到视图中心", shortcut: "Ctrl/⌘ 2", disabled: !selectedNodes.length, run: fitSelectedNodeView },
+    { key: "reset-view", title: "重置画布视口", description: "恢复默认缩放和平移", shortcut: "Ctrl/⌘ 0", run: resetCanvasViewport },
+    { key: "view-bookmark", title: "打开画布视图书签", description: "保存和恢复常用画布视角", run: () => setShowViewBookmarks(true) }
+  ];
+  const filteredCommandPaletteItems = commandPaletteItems.filter((item) => {
+    const query = commandQuery.trim().toLowerCase();
+    if (!query) return true;
+    return [item.title, item.description, item.shortcut || ""].some((value) => value.toLowerCase().includes(query));
+  });
 
   return (
     <main className="h-screen overflow-hidden bg-[#0b1020] text-white">
@@ -3213,6 +3253,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         </div>
         <div className="flex items-center gap-2 text-sm">
           <span className="max-w-[420px] truncate rounded border border-white/10 bg-white/5 px-3 py-2 text-slate-300">{status}</span>
+          <button className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 text-slate-100 hover:bg-white/10" onClick={() => { setShowCommandPalette(true); setCommandQuery(""); }}><Search size={16} />命令</button>
           <button disabled={busy} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={() => void refreshAll()}><RefreshCcw size={16} />刷新</button>
           <button disabled={busy || !graphPast.length} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={undoGraphChange}><Undo2 size={16} />撤销</button>
           <button disabled={busy || !graphFuture.length} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={redoGraphChange}><Redo2 size={16} />重做</button>
@@ -3225,6 +3266,38 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <button disabled={busy} className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 disabled:opacity-50" onClick={() => void saveGraph()}><Save size={16} />保存画布</button>
         </div>
       </header>
+
+      {showCommandPalette && <div className="absolute inset-0 z-40 bg-black/40 backdrop-blur-sm" onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          setShowCommandPalette(false);
+          setCommandQuery("");
+        }
+      }}>
+        <section className="mx-auto mt-24 w-[min(560px,calc(100vw-32px))] overflow-hidden rounded-lg border border-white/10 bg-slate-950/95 shadow-2xl">
+          <div className="border-b border-white/10 p-3">
+            <label className="flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm">
+              <Search size={16} className="text-slate-400" />
+              <input autoFocus className="w-full bg-transparent outline-none placeholder:text-slate-500" placeholder="搜索命令、面板、导入导出、运行或视图操作" value={commandQuery} onChange={(event) => setCommandQuery(event.target.value)} />
+              <span className="rounded border border-white/10 px-2 py-1 text-[11px] text-slate-400">Ctrl/⌘ K</span>
+            </label>
+          </div>
+          <div className="max-h-[520px] overflow-auto p-2">
+            {filteredCommandPaletteItems.map((item) => <button key={item.key} disabled={item.disabled} className="flex w-full items-start justify-between gap-4 rounded-md px-3 py-3 text-left hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40" onClick={() => {
+              if (item.disabled) return;
+              setShowCommandPalette(false);
+              setCommandQuery("");
+              item.run();
+            }}>
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-white">{item.title}</span>
+                <span className="mt-1 block text-xs leading-5 text-slate-400">{item.description}</span>
+              </span>
+              {item.shortcut && <span className="shrink-0 rounded border border-white/10 px-2 py-1 text-[11px] text-slate-400">{item.shortcut}</span>}
+            </button>)}
+            {!filteredCommandPaletteItems.length && <p className="rounded-md border border-white/10 px-3 py-4 text-sm text-slate-400">没有匹配的画布命令，请换一个关键词。</p>}
+          </div>
+        </section>
+      </div>}
 
       <aside className="absolute left-4 top-28 z-20 grid gap-2 rounded-lg border border-white/10 bg-slate-950/85 p-2 shadow-2xl backdrop-blur">
         <button title="添加节点" className="grid h-10 w-10 place-items-center rounded-md bg-blue-600 text-white hover:bg-blue-500" onClick={() => setShowPalette((value) => !value)}><Plus size={18} /></button>

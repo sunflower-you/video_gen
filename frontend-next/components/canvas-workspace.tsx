@@ -1566,6 +1566,49 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(copiedToClipboard ? `已导出并复制预设 ProjectGraph JSON：${preset.title}。` : "已导出预设 ProjectGraph JSON；浏览器剪贴板不可用，已把内容暂存到本地。");
   }
 
+  async function importCustomWorkflowPresetFromClipboard() {
+    let text = "";
+    const fallbackText = () => window.localStorage.getItem(`project_graph_preset_export_${projectId}`) || window.localStorage.getItem(`project_graph_selection_export_${projectId}`) || window.localStorage.getItem(`project_graph_workflow_export_${projectId}`) || "";
+    try {
+      text = await navigator.clipboard.readText();
+    } catch {
+      text = fallbackText();
+    }
+    if (!text.trim()) text = fallbackText();
+    if (!text.trim()) {
+      setStatus("剪贴板中没有可导入为预设的 ProjectGraph JSON，请先复制或导出预设。");
+      return;
+    }
+    let graph: Partial<ProjectGraph> & { title?: unknown; description?: unknown; nodes?: unknown; edges?: unknown };
+    try {
+      graph = JSON.parse(text);
+    } catch {
+      setStatus("预设 JSON 解析失败，请检查内容格式。");
+      return;
+    }
+    if (!Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) {
+      setStatus("预设 JSON 需要包含 nodes 和 edges。");
+      return;
+    }
+    if (!graph.nodes.length) {
+      setStatus("预设 JSON 中没有节点，无法导入为我的预设。");
+      return;
+    }
+    const preset: CustomWorkflowPreset = {
+      key: `custom-import-${Date.now()}`,
+      title: String(graph.title || presetTitle.trim() || "导入的工作流预设"),
+      description: String(graph.description || `导入预设：${graph.nodes.length} 个节点、${graph.edges.length} 条连线，可在任意项目画布复用。`),
+      nodes: graph.nodes as ProjectGraphNode[],
+      edges: graph.edges as ProjectGraph["edges"],
+      created_at: new Date().toISOString()
+    };
+    const next = [preset, ...customWorkflowPresets].slice(0, 12);
+    setCustomWorkflowPresets(next);
+    window.localStorage.setItem(customPresetStorageKey, JSON.stringify(next));
+    setPresetTitle(preset.title);
+    setStatus(`已导入预设到我的工作流：${preset.title}。`);
+  }
+
   function buildShotWorkflow(shot: StoryboardShot, timestamp: number, baseX: number, baseY: number) {
     const specs = [
       { type: "text", offset: { x: 0, y: 0 }, data: { title: `分镜 ${shot.index}`, text: shot.visual_description, narration: shot.narration, shot_id: shot.id } },
@@ -3323,7 +3366,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             预设名称
             <input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none" value={presetTitle} onChange={(event) => setPresetTitle(event.target.value)} />
           </label>
-          <button disabled={!nodes.length} className="rounded-md border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-left text-sm text-white hover:bg-blue-500/20 disabled:opacity-50" onClick={saveCurrentWorkflowAsPreset}>保存当前画布为预设</button>
+          <div className="grid grid-cols-2 gap-2">
+            <button disabled={!nodes.length} className="rounded-md border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-left text-sm text-white hover:bg-blue-500/20 disabled:opacity-50" onClick={saveCurrentWorkflowAsPreset}>保存当前画布为预设</button>
+            <button className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-sm text-slate-100 hover:bg-white/10" onClick={() => void importCustomWorkflowPresetFromClipboard()}>从剪贴板导入预设</button>
+          </div>
           {customWorkflowPresets.map((preset) => <article key={preset.key} className="rounded-md border border-white/10 bg-black/15 p-2">
             <button className="w-full text-left" onClick={() => addCustomWorkflowPreset(preset.key)}>
               <span className="block text-sm font-medium text-white">{preset.title}</span>

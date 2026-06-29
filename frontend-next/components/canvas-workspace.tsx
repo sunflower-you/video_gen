@@ -712,6 +712,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [graphFuture, setGraphFuture] = useState<GraphHistorySnapshot[]>([]);
   const [snapToGrid, setSnapToGrid] = useState(true);
   const [selectionOnDrag, setSelectionOnDrag] = useState(false);
+  const [linkedNodeIdHandled, setLinkedNodeIdHandled] = useState("");
   const [busy, setBusy] = useState(false);
 
   const selectedNode = useMemo(() => nodes.find((item) => item.id === selectedNodeId) || null, [nodes, selectedNodeId]);
@@ -892,9 +893,33 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   }, [projectId]);
 
   useEffect(() => {
+    setLinkedNodeIdHandled("");
+  }, [projectId]);
+
+  useEffect(() => {
     if (!flowInstance) return;
     void flowInstance.setViewport(initialViewport, { duration: 0 });
   }, [flowInstance, initialViewport]);
+
+  useEffect(() => {
+    if (!flowInstance || !nodes.length) return;
+    const linkedNodeId = new URLSearchParams(window.location.search).get("node") || "";
+    if (!linkedNodeId || linkedNodeId === linkedNodeIdHandled) return;
+    const linkedNode = nodes.find((node) => node.id === linkedNodeId);
+    setLinkedNodeIdHandled(linkedNodeId);
+    if (!linkedNode) {
+      setStatus("节点链接已打开，但当前画布没有找到对应节点。");
+      return;
+    }
+    setSelectedNodeId(linkedNode.id);
+    setSelectedEdgeId("");
+    setNodeContextMenu(null);
+    setEdgeContextMenu(null);
+    setNodes((items) => items.map((node) => ({ ...node, selected: node.id === linkedNode.id })));
+    setEdges((items) => items.map((edge) => ({ ...edge, selected: false })));
+    void flowInstance.setCenter(linkedNode.position.x + 120, linkedNode.position.y + 80, { duration: 420, zoom: 1 });
+    setStatus("已通过节点链接定位到画布节点。");
+  }, [flowInstance, linkedNodeIdHandled, nodes]);
 
   useEffect(() => {
     try {
@@ -2488,6 +2513,18 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(copiedToClipboard ? "已复制节点参数 JSON 到系统剪贴板。" : "浏览器剪贴板不可用，已把节点参数 JSON 暂存到本地。");
   }
 
+  async function copySelectedNodeLink() {
+    if (!selectedNode) {
+      setStatus("请先选择一个节点，再复制节点定位链接。");
+      return;
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.set("node", selectedNode.id);
+    url.hash = "";
+    const copiedToClipboard = await copyTextToSystemClipboard(url.toString(), `project_graph_node_link_${projectId}`);
+    setStatus(copiedToClipboard ? "已复制节点定位链接到系统剪贴板。" : "浏览器剪贴板不可用，已把节点定位链接暂存到本地。");
+  }
+
   function pasteCopiedSelection() {
     let cached = copiedSelection;
     if (!cached) {
@@ -3320,6 +3357,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { duplicateSelectedNode(); setNodeContextMenu(null); }}>复制节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { void copySelectedNodeId(); setNodeContextMenu(null); }}>复制节点 ID</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { void copySelectedNodeParams(); setNodeContextMenu(null); }}>复制节点参数 JSON</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { void copySelectedNodeLink(); setNodeContextMenu(null); }}>复制节点定位链接</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesLayer("front"); setNodeContextMenu(null); }}>置顶节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesLayer("back"); setNodeContextMenu(null); }}>置底节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => addUpstreamNodeForSelected("text")}>添加上游文本</button>
@@ -3623,6 +3661,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void cutSelectedNodes()}><Scissors size={16} />剪切节点</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void copySelectedNodeId()}><ClipboardCopy size={16} />复制 ID</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void copySelectedNodeParams()}><FileText size={16} />复制参数</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void copySelectedNodeLink()}><ClipboardCopy size={16} />复制链接</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={copySelectedChain}><ClipboardCopy size={16} />复制链路</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={pasteCopiedSelection}><ClipboardPaste size={16} />粘贴链路</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesLayer("front")}><BringToFront size={16} />置顶节点</button>

@@ -1768,6 +1768,26 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     selectCanvasNodesByIds(isolatedNodes.map((node) => node.id), "孤立节点");
   }
 
+  function selectSourceNodes() {
+    const activeEdges = activeGraphEdges(edges);
+    const sourceNodes = nodes.filter((node) => !isNodeDisabled(node) && !activeEdges.some((edge) => edge.target === node.id));
+    if (!sourceNodes.length) {
+      setStatus("画布暂无可选起点节点。");
+      return;
+    }
+    selectCanvasNodesByIds(sourceNodes.map((node) => node.id), "起点节点");
+  }
+
+  function selectTerminalNodes() {
+    const activeEdges = activeGraphEdges(edges);
+    const terminalNodes = nodes.filter((node) => !isNodeDisabled(node) && !activeEdges.some((edge) => edge.source === node.id));
+    if (!terminalNodes.length) {
+      setStatus("画布暂无可选终点节点。");
+      return;
+    }
+    selectCanvasNodesByIds(terminalNodes.map((node) => node.id), "终点节点");
+  }
+
   function selectSelectedGroups() {
     if (!selectedGroupIds.size) {
       setStatus("当前选区没有已打组节点。");
@@ -2873,6 +2893,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSameColorNodes(); setNodeContextMenu(null); }}>选中同标记节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectDisabledNodes(); setNodeContextMenu(null); }}>选中禁用节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectIsolatedNodes(); setNodeContextMenu(null); }}>选中孤立节点</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSourceNodes(); setNodeContextMenu(null); }}>选中起点节点</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectTerminalNodes(); setNodeContextMenu(null); }}>选中终点节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { copySelectedChain(); setNodeContextMenu(null); }}>复制上游链路</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { void runSelectedChain(); setNodeContextMenu(null); }}>运行上游链路</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { toggleSelectedNodeDisabled(); setNodeContextMenu(null); }}>{(selectedNode.data as Record<string, unknown>).disabled === true ? "启用节点" : "禁用节点"}</button>
@@ -2993,6 +3015,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
               <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 text-xs text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={selectSameColorNodes}><CheckSquare size={14} />同标记</button>
               <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 text-xs text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={selectDisabledNodes}><Ban size={14} />禁用节点</button>
               <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 text-xs text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={selectIsolatedNodes}><AlertTriangle size={14} />孤立节点</button>
+              <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 text-xs text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={selectSourceNodes}><GitBranch size={14} />起点节点</button>
+              <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 text-xs text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={selectTerminalNodes}><GitBranch size={14} />终点节点</button>
             </div>
           </section>
           <section className="grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">

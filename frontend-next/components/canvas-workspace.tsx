@@ -686,6 +686,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [paletteQuery, setPaletteQuery] = useState("");
   const [outlineQuery, setOutlineQuery] = useState("");
   const [outlineIssuesOnly, setOutlineIssuesOnly] = useState(false);
+  const [assetTypeFilter, setAssetTypeFilter] = useState("all");
+  const [taskStatusFilter, setTaskStatusFilter] = useState("all");
   const [importText, setImportText] = useState("");
   const [customWorkflowPresets, setCustomWorkflowPresets] = useState<CustomWorkflowPreset[]>([]);
   const [recentNodeTypes, setRecentNodeTypes] = useState<string[]>([]);
@@ -735,6 +737,14 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     counts[task.status] = (counts[task.status] || 0) + 1;
     return counts;
   }, {}), [tasks]);
+  const assetTypeCounts = useMemo(() => assets.reduce<Record<string, number>>((counts, asset) => {
+    counts[asset.asset_type] = (counts[asset.asset_type] || 0) + 1;
+    return counts;
+  }, {}), [assets]);
+  const assetTypeFilterOptions = useMemo(() => ["all", ...Object.keys(assetTypeCounts).sort()], [assetTypeCounts]);
+  const taskStatusFilterOptions = useMemo(() => ["all", ...Object.keys(taskStatusCounts).sort()], [taskStatusCounts]);
+  const filteredAssets = useMemo(() => assetTypeFilter === "all" ? assets : assets.filter((asset) => asset.asset_type === assetTypeFilter), [assetTypeFilter, assets]);
+  const filteredTasks = useMemo(() => taskStatusFilter === "all" ? tasks : tasks.filter((task) => task.status === taskStatusFilter), [taskStatusFilter, tasks]);
   const activeEdges = useMemo(() => activeGraphEdges(edges), [edges]);
   const graphValidation = useMemo(() => validateCanvasGraph(nodes, edges), [nodes, edges]);
   const selectedRunBlockingIssues = useMemo(() => selectedNode ? graphValidation.issues.filter((issue) => issue.level === "error" && issue.nodeId === selectedNode.id) : [], [graphValidation, selectedNode]);
@@ -3337,9 +3347,22 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       </section>
 
       {showAssets && <aside className="absolute bottom-6 left-24 z-20 max-h-[320px] w-[360px] overflow-auto rounded-lg border border-white/10 bg-slate-950/90 p-4 shadow-2xl backdrop-blur">
-        <h2 className="font-semibold">项目素材库</h2>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs text-slate-400">素材筛选</p>
+            <h2 className="font-semibold">项目素材库</h2>
+          </div>
+          <span className="rounded border border-white/10 px-2 py-1 text-xs text-slate-400">{filteredAssets.length}/{assets.length}</span>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-1 text-[11px]">
+          {assetTypeFilterOptions.map((type) => <button
+            key={type}
+            className={`rounded border px-2 py-1 ${assetTypeFilter === type ? "border-blue-400/50 bg-blue-500/15 text-blue-50" : "border-white/10 text-slate-300 hover:bg-white/10"}`}
+            onClick={() => setAssetTypeFilter(type)}
+          >{type === "all" ? `全部 ${assets.length}` : `${type} ${assetTypeCounts[type] || 0}`}</button>)}
+        </div>
         <div className="mt-3 grid gap-2 text-sm">
-          {assets.map((asset) => {
+          {filteredAssets.map((asset) => {
             const type = asset.asset_type === "video" ? "video" : asset.asset_type === "audio" ? "audio" : "image";
             const dataKey = type === "video" ? "video_url" : type === "audio" ? "audio_url" : "image_url";
             const previewData = { nodeType: type, [dataKey]: asset.url };
@@ -3357,6 +3380,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             </button>;
           })}
           {!assets.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">暂无素材，可先运行生成节点。</p>}
+          {!!assets.length && !filteredAssets.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">当前类型暂无素材，请切换筛选条件。</p>}
         </div>
       </aside>}
 
@@ -3391,12 +3415,17 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <p className="text-xs text-slate-400">生成过程追踪</p>
             <h2 className="font-semibold">任务队列</h2>
           </div>
-          <div className="flex flex-wrap justify-end gap-1 text-[11px] text-slate-300">
-            {Object.entries(taskStatusCounts).map(([taskStatus, count]) => <span key={taskStatus} className="rounded border border-white/10 px-2 py-1">{statusText(taskStatus)} {count}</span>)}
-          </div>
+          <span className="rounded border border-white/10 px-2 py-1 text-xs text-slate-400">{filteredTasks.length}/{tasks.length}</span>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-1 text-[11px]">
+          {taskStatusFilterOptions.map((taskStatus) => <button
+            key={taskStatus}
+            className={`rounded border px-2 py-1 ${taskStatusFilter === taskStatus ? "border-blue-400/50 bg-blue-500/15 text-blue-50" : "border-white/10 text-slate-300 hover:bg-white/10"}`}
+            onClick={() => setTaskStatusFilter(taskStatus)}
+          >{taskStatus === "all" ? `全部 ${tasks.length}` : `${statusText(taskStatus)} ${taskStatusCounts[taskStatus] || 0}`}</button>)}
         </div>
         <div className="mt-3 grid gap-2 text-sm">
-          {tasks.map((task) => <article key={task.id} className="rounded-md border border-white/10 px-3 py-2 text-slate-300">
+          {filteredTasks.map((task) => <article key={task.id} className="rounded-md border border-white/10 px-3 py-2 text-slate-300">
             <button className="w-full text-left hover:text-white" onClick={() => focusTaskNode(task.id)}>
               <span className="block text-white">{task.task_type} · {statusText(task.status)}</span>
               <span className="mt-1 block truncate text-xs text-slate-400">{task.workflow_key || "workflow"} · {task.prompt_id || task.id}</span>
@@ -3410,6 +3439,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             </div>
           </article>)}
           {!tasks.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">暂无生成任务</p>}
+          {!!tasks.length && !filteredTasks.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">当前状态暂无任务，请切换筛选条件。</p>}
         </div>
       </aside>}
     </main>

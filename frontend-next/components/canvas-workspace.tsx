@@ -71,6 +71,14 @@ const edgeMarkerColors: { value: string; label: string; stroke: string }[] = [
 
 const edgeMarkerColorByValue = new Map(edgeMarkerColors.map((item) => [item.value, item]));
 
+const edgeLineStyles: { value: string; label: string; strokeDasharray?: string; strokeWidth?: number }[] = [
+  { value: "", label: "默认实线" },
+  { value: "dashed", label: "虚线参考", strokeDasharray: "8 5" },
+  { value: "bold", label: "重点主链路", strokeWidth: 3 }
+];
+
+const edgeLineStyleByValue = new Map(edgeLineStyles.map((item) => [item.value, item]));
+
 type NodePort = {
   id: string;
   label: string;
@@ -176,8 +184,11 @@ function edgeWithDefaultHandles(edge: Edge): Edge {
   const disabled = isEdgeDisabled(edge);
   const data = (edge.data as Record<string, unknown> | undefined) || {};
   const edgeColor = edgeMarkerColorByValue.get(String(data.edge_color || ""));
+  const lineStyle = edgeLineStyleByValue.get(String(data.edge_style || "")) || edgeLineStyleByValue.get("");
   const style = {
     ...(edgeColor?.stroke ? { stroke: edgeColor.stroke } : {}),
+    ...(lineStyle?.strokeDasharray ? { strokeDasharray: lineStyle.strokeDasharray } : {}),
+    ...(lineStyle?.strokeWidth ? { strokeWidth: lineStyle.strokeWidth } : {}),
     ...(disabled ? { strokeDasharray: "6 4", opacity: 0.45 } : {})
   };
   return {
@@ -1429,6 +1440,17 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(markerColor?.value ? `连线颜色标记已设置为${markerColor.label}。` : "连线颜色标记已清空。");
   }
 
+  function updateSelectedEdgeStyle(style: string) {
+    if (!selectedEdge) return;
+    const lineStyle = edgeLineStyleByValue.get(style) || edgeLineStyleByValue.get("");
+    rememberGraphHistory();
+    setEdges((items) => items.map((edge) => edge.id === selectedEdge.id ? edgeWithDefaultHandles({
+      ...edge,
+      data: { ...(edge.data as Record<string, unknown> | undefined), edge_style: lineStyle?.value || "" }
+    }) : edge));
+    setStatus(lineStyle?.value ? `连线样式已设置为${lineStyle.label}。` : "连线样式已恢复默认实线。");
+  }
+
   function toggleSelectedEdgeDisabled() {
     if (!selectedEdge) return;
     const nextDisabled = !isEdgeDisabled(selectedEdge);
@@ -2288,6 +2310,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const selectedEdgeTarget = selectedEdge ? nodes.find((node) => node.id === selectedEdge.target) || null : null;
   const selectedEdgeLabel = String((selectedEdge?.data as Record<string, unknown> | undefined)?.label || "");
   const selectedEdgeColor = String((selectedEdge?.data as Record<string, unknown> | undefined)?.edge_color || "");
+  const selectedEdgeStyle = String((selectedEdge?.data as Record<string, unknown> | undefined)?.edge_style || "");
   const selectedEdgeDisabled = selectedEdge ? isEdgeDisabled(selectedEdge) : false;
   const selectedEdgeSourcePorts = semanticPortsForNode(selectedEdgeSource, "output");
   const selectedEdgeTargetPorts = semanticPortsForNode(selectedEdgeTarget, "input");
@@ -2847,6 +2870,9 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <label className="grid gap-1"><span className="text-slate-400">连线标签</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" placeholder="例如：提示词、首帧、配音输入" value={selectedEdgeLabel} onChange={(event) => updateSelectedEdgeLabel(event.target.value)} /></label>
           <label className="grid gap-1"><span className="text-slate-400">连线颜色标记</span><select className="rounded-md border border-white/10 bg-slate-900 px-3 py-2 outline-none" value={selectedEdgeColor} onChange={(event) => updateSelectedEdgeColor(event.target.value)}>
             {edgeMarkerColors.map((item) => <option key={item.value || "default"} value={item.value}>{item.label}</option>)}
+          </select></label>
+          <label className="grid gap-1"><span className="text-slate-400">连线样式</span><select className="rounded-md border border-white/10 bg-slate-900 px-3 py-2 outline-none" value={selectedEdgeStyle} onChange={(event) => updateSelectedEdgeStyle(event.target.value)}>
+            {edgeLineStyles.map((item) => <option key={item.value || "default"} value={item.value}>{item.label}</option>)}
           </select></label>
           <section className="rounded-md border border-white/10 bg-white/[0.03] p-3">
             <p className="text-xs text-slate-400">端口映射</p>

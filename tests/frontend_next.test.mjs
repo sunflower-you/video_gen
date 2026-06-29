@@ -95,10 +95,14 @@ test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
   assert.match(gallery, /item\.video_url/);
   assert.match(gallery, /item\.template_name/);
   assert.match(gallery, /item\.tags/);
+  assert.match(gallery, /quickStartHrefForWork/);
+  assert.match(gallery, /\/create\?quick=creator-challenge/);
+  assert.match(gallery, /\/create\?quick=tv-show/);
+  assert.match(gallery, /\/create\?quick=seedance2/);
   assert.match(gallery, /onSubmit=\{submitSearch\}/);
   assert.match(gallery, /onQueryChange/);
   assert.match(gallery, /sortOptions/);
-  for (const text of ["搜索作品", "最新发布", "最多浏览", "最多点赞", "最多收藏", "成片", "模板：", "暂无匹配作品"]) {
+  for (const text of ["搜索作品", "最新发布", "最多浏览", "最多点赞", "最多收藏", "成片", "模板：", "同款创作", "查看详情", "暂无匹配作品"]) {
     assert.match(gallery, new RegExp(text));
   }
   assert.doesNotMatch(`${page}\n${dashboard}`, /hero/i);

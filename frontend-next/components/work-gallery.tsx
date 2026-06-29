@@ -14,6 +14,14 @@ const sortOptions = [
   { label: "最多收藏", value: "most_favorited" }
 ];
 
+function quickStartHrefForWork(item: Work): string {
+  const text = `${item.category} ${item.template_name || ""} ${item.template_id || ""} ${(item.tags || []).join(" ")}`;
+  if (text.includes("创作者挑战赛") || text.includes("挑战赛")) return "/create?quick=creator-challenge";
+  if (text.includes("TV Show")) return "/create?quick=tv-show";
+  if (text.includes("Seedance") || text.includes("Wan2.1") || text.includes("镜头视频")) return "/create?quick=seedance2";
+  return "/create";
+}
+
 export function WorkGallery({
   works,
   query,
@@ -61,25 +69,31 @@ export function WorkGallery({
         <PanelTitle icon={<LayoutGrid size={18} />} title="作品广场" extra="已发布作品、模板复刻和成片案例" />
         <div className="mt-4 grid grid-cols-3 gap-3">
           {works.map((item) => (
-            <a key={item.id} className="block rounded-md border border-line p-3 hover:border-accent" href={`/works/${item.id}`}>
-              <div className="relative mb-3 grid aspect-video place-items-center overflow-hidden rounded-md bg-slate-100 text-sm font-semibold text-muted">
-                {item.cover_url ? (
-                  <img className="h-full w-full object-cover" src={item.cover_url} alt={`${item.title} 封面`} />
-                ) : (
-                  <span>{item.category}</span>
-                )}
-                {item.video_url ? <span className="absolute right-2 top-2 rounded-sm bg-black/70 px-2 py-1 text-xs text-white">成片</span> : null}
-              </div>
-              <strong className="block">{item.title}</strong>
-              <small className="block text-muted">{item.author_id || "平台作者"}</small>
-              <small className="block text-muted">模板：{item.template_name || item.template_id || "未绑定模板"}</small>
+            <article key={item.id} className="rounded-md border border-line p-3 hover:border-accent">
+              <a className="block" href={`/works/${item.id}`}>
+                <div className="relative mb-3 grid aspect-video place-items-center overflow-hidden rounded-md bg-slate-100 text-sm font-semibold text-muted">
+                  {item.cover_url ? (
+                    <img className="h-full w-full object-cover" src={item.cover_url} alt={`${item.title} 封面`} />
+                  ) : (
+                    <span>{item.category}</span>
+                  )}
+                  {item.video_url ? <span className="absolute right-2 top-2 rounded-sm bg-black/70 px-2 py-1 text-xs text-white">成片</span> : null}
+                </div>
+                <strong className="block">{item.title}</strong>
+                <small className="block text-muted">{item.author_id || "平台作者"}</small>
+                <small className="block text-muted">模板：{item.template_name || item.template_id || "未绑定模板"}</small>
+              </a>
               <div className="mt-2 flex flex-wrap gap-1">
                 {(item.tags || []).slice(0, 3).map((tag) => (
                   <span key={tag} className="rounded-sm bg-canvas px-2 py-1 text-xs text-muted">{tag}</span>
                 ))}
               </div>
               <small className="block text-muted">{item.view_count || 0} 浏览 · {item.like_count || 0} 点赞 · {item.favorite_count || 0} 收藏</small>
-            </a>
+              <div className="mt-3 flex gap-2 text-sm">
+                <a className="rounded-md bg-accent px-3 py-2 text-white" href={quickStartHrefForWork(item)}>同款创作</a>
+                <a className="rounded-md border border-line px-3 py-2 hover:border-accent" href={`/works/${item.id}`}>查看详情</a>
+              </div>
+            </article>
           ))}
           {!works.length && (
             <div className="col-span-3 rounded-md border border-line p-3 text-sm text-muted">暂无匹配作品</div>

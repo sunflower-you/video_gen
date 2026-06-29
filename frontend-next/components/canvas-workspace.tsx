@@ -1811,9 +1811,9 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     addDroppedAssetNode(type, url.trim(), position);
   }
 
-  function addWorkflowPreset(presetKey: string, basePosition?: { x: number; y: number }) {
+  function instantiateWorkflowPreset(presetKey: string, basePosition?: { x: number; y: number }) {
     const preset = workflowPresets.find((item) => item.key === presetKey);
-    if (!preset) return;
+    if (!preset) return null;
     const firstShotId = shotOptions[0]?.id || "";
     const timestamp = Date.now();
     const baseX = basePosition?.x ?? 180 + nodes.length * 28;
@@ -1837,12 +1837,35 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       animated: true,
       data: { label: "" }
     } satisfies Edge));
+    return { preset, createdNodes, createdEdges };
+  }
+
+  function addWorkflowPreset(presetKey: string, basePosition?: { x: number; y: number }) {
+    const graph = instantiateWorkflowPreset(presetKey, basePosition);
+    if (!graph) return;
+    const { preset, createdNodes, createdEdges } = graph;
     rememberGraphHistory();
     setNodes((items) => [...items, ...createdNodes]);
     setEdges((items) => [...items, ...createdEdges]);
     setSelectedNodeId(createdNodes[0]?.id || "");
+    setSelectedEdgeId("");
     setShowPalette(false);
     setStatus(basePosition ? `已在画布当前位置添加工作流预设：${preset.title}。` : `已添加工作流预设：${preset.title}。`);
+  }
+
+  function replaceCanvasWithWorkflowPreset(presetKey: string) {
+    const graph = instantiateWorkflowPreset(presetKey, { x: 160, y: 140 });
+    if (!graph) return;
+    const { preset, createdNodes, createdEdges } = graph;
+    rememberGraphHistory();
+    setNodes(createdNodes.map((node, index) => ({ ...node, selected: index === 0 })));
+    setEdges(createdEdges.map((edge) => ({ ...edge, selected: false })));
+    setSelectedNodeId(createdNodes[0]?.id || "");
+    setSelectedEdgeId("");
+    setNodeContextMenu(null);
+    setEdgeContextMenu(null);
+    setShowPalette(false);
+    setStatus(`已替换当前画布为快捷创作预设：${preset.title}，可继续添加或修改节点。`);
   }
 
   function addCustomWorkflowPreset(presetKey: string, basePosition?: { x: number; y: number }) {
@@ -4365,6 +4388,9 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     { key: "add-seedance-preset", title: "追加 Seedance 2.0 图生视频", description: "在当前画布追加参考图、动作提示词、图生视频和合成链路", disabled: busy, run: () => addWorkflowPreset("seedance2_image_video") },
     { key: "add-tv-show-preset", title: "追加 TV Show 剧集开场", description: "在当前画布追加剧集脚本、分镜图、镜头视频、主持人口播和合成链路", disabled: busy, run: () => addWorkflowPreset("tv_show_storyboard") },
     { key: "add-creator-challenge-preset", title: "追加创作者挑战赛参赛片", description: "在当前画布追加赛题 brief、海报首帧、短片镜头、宣发口播和成片提交链路", disabled: busy, run: () => addWorkflowPreset("creator_challenge_entry") },
+    { key: "replace-seedance-preset", title: "新建 Seedance 2.0 画布", description: "替换当前画布为参考图、动作提示词、图生视频和合成链路", disabled: busy, run: () => replaceCanvasWithWorkflowPreset("seedance2_image_video") },
+    { key: "replace-tv-show-preset", title: "新建 TV Show 画布", description: "替换当前画布为剧集脚本、分镜图、镜头视频、主持人口播和合成链路", disabled: busy, run: () => replaceCanvasWithWorkflowPreset("tv_show_storyboard") },
+    { key: "replace-creator-challenge-preset", title: "新建挑战赛画布", description: "替换当前画布为赛题 brief、海报首帧、短片镜头、宣发口播和成片提交链路", disabled: busy, run: () => replaceCanvasWithWorkflowPreset("creator_challenge_entry") },
     { key: "show-outline", title: "打开节点大纲", description: "搜索、定位和批量选择节点", disabled: !nodes.length, run: () => setShowOutline(true) },
     { key: "show-shots", title: "打开项目分镜面板", description: "按分镜铺设文本、画面、视频、配音和合成链路", run: () => setShowShots(true) },
     { key: "bind-selected-shots", title: "把选中分镜绑定到选区节点", description: "按画布位置把分镜提示词和旁白批量写入选区生成节点", disabled: !selectedShotIds.length || !selectedShotBindingNodes.length, run: bindSelectedShotsToSelectedNodes },
@@ -4747,11 +4773,20 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           </div>
         </section>}
         <section className="mt-4 grid gap-2 rounded-md border border-blue-400/20 bg-blue-500/[0.06] p-3">
-          <h3 className="text-xs font-medium text-blue-100">快捷创作</h3>
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-xs font-medium text-blue-100">快捷创作</h3>
+            <span className="text-[11px] text-blue-100/70">追加或新建</span>
+          </div>
+          <p className="text-[11px] text-slate-400">追加会保留当前节点，新建会替换为完整同款链路。</p>
           <div className="grid grid-cols-3 gap-2">
             <button disabled={busy} className="rounded-md border border-blue-400/30 bg-blue-500/10 px-2 py-2 text-xs text-blue-50 hover:bg-blue-500/20 disabled:opacity-50" onClick={() => addWorkflowPreset("seedance2_image_video")}>Seedance</button>
             <button disabled={busy} className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-2 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPreset("tv_show_storyboard")}>TV Show</button>
             <button disabled={busy} className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-2 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPreset("creator_challenge_entry")}>挑战赛</button>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <button disabled={busy} className="rounded-md border border-blue-400/30 px-2 py-2 text-xs text-blue-50 hover:bg-blue-500/10 disabled:opacity-50" onClick={() => replaceCanvasWithWorkflowPreset("seedance2_image_video")}>新建 Seedance</button>
+            <button disabled={busy} className="rounded-md border border-white/10 px-2 py-2 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => replaceCanvasWithWorkflowPreset("tv_show_storyboard")}>新建 TV Show</button>
+            <button disabled={busy} className="rounded-md border border-white/10 px-2 py-2 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => replaceCanvasWithWorkflowPreset("creator_challenge_entry")}>新建挑战赛</button>
           </div>
         </section>
         <section className="mt-4 grid gap-2">

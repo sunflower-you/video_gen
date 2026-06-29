@@ -149,6 +149,15 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /保存画布/);
   assert.match(canvasWorkspace, /运行节点/);
   assert.match(canvasWorkspace, /删除节点/);
+  assert.match(canvasWorkspace, /添加节点/);
+  assert.match(canvasWorkspace, /搜索图片、视频、配音、合成/);
+  assert.match(canvasWorkspace, /平台生成/);
+  assert.match(canvasWorkspace, /素材节点/);
+  assert.match(canvasWorkspace, /绑定分镜/);
+  assert.match(canvasWorkspace, /从连线或运行时补全/);
+  assert.match(canvasWorkspace, /首帧图片 URL/);
+  assert.match(canvasWorkspace, /zh-CN-XiaoxiaoNeural/);
+  assert.match(canvasWorkspace, /合成字幕/);
   assert.match(api, /export type ProjectGraph/);
   assert.match(api, /export type ProjectGraphNode/);
   assert.match(api, /export type ProjectGraphEdge/);

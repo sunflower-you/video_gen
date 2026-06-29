@@ -17,7 +17,7 @@ import {
   type NodeChange,
   type NodeProps
 } from "@xyflow/react";
-import { Boxes, Clapperboard, FileText, Image, Library, Music, Play, Plus, RefreshCcw, Save, Sparkles, Trash2, Video, Wand2 } from "lucide-react";
+import { Boxes, Clapperboard, FileText, Image, Library, Music, Play, Plus, RefreshCcw, Save, Search, Sparkles, Trash2, Video, Wand2 } from "lucide-react";
 import { apiFetch, currentUserId, deleteJson, postJson, type Asset, type GenerationTask, type Project, type ProjectGraph, type ProjectGraphNode } from "../lib/api";
 
 const nodeLabels: Record<string, string> = {
@@ -128,16 +128,16 @@ function fromFlowEdge(edge: Edge): ProjectGraph["edges"][number] {
 }
 
 const addableNodes = [
-  { type: "text", label: "文本", icon: FileText },
-  { type: "image", label: "图片", icon: Image },
-  { type: "video", label: "视频", icon: Video },
-  { type: "audio", label: "音频", icon: Music },
-  { type: "script", label: "脚本 Beta", icon: Clapperboard },
-  { type: "image_generation", label: "分镜图", icon: Wand2 },
-  { type: "video_generation", label: "镜头视频", icon: Video },
-  { type: "tts_generation", label: "配音", icon: Music },
-  { type: "compose_generation", label: "合成", icon: Sparkles },
-  { type: "demo", label: "演示", icon: Boxes }
+  { type: "text", label: "文本", category: "基础节点", description: "承载提示词、旁白、备注。", icon: FileText },
+  { type: "image", label: "图片", category: "素材节点", description: "放入参考图或生成图。", icon: Image },
+  { type: "video", label: "视频", category: "素材节点", description: "放入镜头视频或成片。", icon: Video },
+  { type: "audio", label: "音频", category: "素材节点", description: "放入配音和音效素材。", icon: Music },
+  { type: "script", label: "脚本 Beta", category: "平台生成", description: "分析脚本并生成分镜。", icon: Clapperboard },
+  { type: "image_generation", label: "分镜图", category: "平台生成", description: "按分镜生成画面。", icon: Wand2 },
+  { type: "video_generation", label: "镜头视频", category: "平台生成", description: "由首帧图生成视频。", icon: Video },
+  { type: "tts_generation", label: "配音", category: "平台生成", description: "生成中文旁白配音。", icon: Music },
+  { type: "compose_generation", label: "合成", category: "平台生成", description: "合成视频、字幕和音轨。", icon: Sparkles },
+  { type: "demo", label: "演示", category: "基础节点", description: "验证画布运行状态。", icon: Boxes }
 ];
 
 export function CanvasWorkspace({ projectId }: { projectId: string }) {
@@ -150,9 +150,19 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [status, setStatus] = useState("正在加载全画幅创作画布...");
   const [showAssets, setShowAssets] = useState(false);
   const [showTasks, setShowTasks] = useState(false);
+  const [showPalette, setShowPalette] = useState(true);
+  const [paletteQuery, setPaletteQuery] = useState("");
   const [busy, setBusy] = useState(false);
 
   const selectedNode = useMemo(() => nodes.find((item) => item.id === selectedNodeId) || null, [nodes, selectedNodeId]);
+  const shotOptions = useMemo(() => project?.shots || [], [project]);
+  const filteredAddableNodes = useMemo(() => {
+    const keyword = paletteQuery.trim().toLowerCase();
+    return addableNodes.filter((item) => {
+      const text = `${item.label} ${item.category} ${item.description} ${nodeLabels[item.type]}`.toLowerCase();
+      return !keyword || text.includes(keyword);
+    });
+  }, [paletteQuery]);
 
   useEffect(() => {
     void refreshAll();
@@ -222,7 +232,24 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function addNode(type: string) {
     const id = `local-${type}-${Date.now()}`;
-    const baseData = type === "script" ? { title: "脚本 Beta", script: "在这里输入短视频脚本，运行后自动拆解分镜。" } : type === "image" ? { title: "图片节点", image_url: "/storage/reference/hero.png" } : type === "video" ? { title: "视频节点", video_url: "" } : type === "audio" ? { title: "音频节点", audio_url: "" } : type.endsWith("generation") ? { title: nodeLabels[type], prompt: "输入生成提示词" } : { title: nodeLabels[type], text: "输入内容" };
+    const firstShotId = shotOptions[0]?.id || "";
+    const baseData = type === "script"
+      ? { title: "脚本 Beta", script: "在这里输入短视频脚本，运行后自动拆解分镜。" }
+      : type === "image"
+        ? { title: "图片节点", image_url: "/storage/reference/hero.png" }
+        : type === "video"
+          ? { title: "视频节点", video_url: "" }
+          : type === "audio"
+            ? { title: "音频节点", audio_url: "" }
+            : type === "image_generation"
+              ? { title: nodeLabels[type], prompt: "输入生成提示词", shot_id: firstShotId, width: "768", height: "1344", seed: "-1" }
+              : type === "video_generation"
+                ? { title: nodeLabels[type], prompt: "输入镜头视频提示词", shot_id: firstShotId, first_frame_url: "", duration: "4", fps: "16" }
+                : type === "tts_generation"
+                  ? { title: nodeLabels[type], text: "输入旁白文本", shot_id: firstShotId, voice: "zh-CN-XiaoxiaoNeural", rate: "1" }
+                  : type === "compose_generation"
+                    ? { title: nodeLabels[type], subtitle: true }
+                    : { title: nodeLabels[type], text: "输入内容" };
     const node: Node = {
       id,
       type: "platform",
@@ -231,10 +258,11 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     };
     setNodes((items) => [...items, node]);
     setSelectedNodeId(id);
+    setShowPalette(false);
     setStatus(`已添加${nodeLabels[type] || "节点"}。`);
   }
 
-  function updateSelectedData(key: string, value: string) {
+  function updateSelectedData(key: string, value: string | boolean) {
     if (!selectedNode) return;
     setNodes((items) => items.map((node) => node.id === selectedNode.id ? { ...node, data: { ...node.data, [key]: value } } : node));
   }
@@ -308,13 +336,43 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       </header>
 
       <aside className="absolute left-4 top-28 z-20 grid gap-2 rounded-lg border border-white/10 bg-slate-950/85 p-2 shadow-2xl backdrop-blur">
-        {addableNodes.map((item) => {
-          const Icon = item.icon;
-          return <button key={item.type} title={`添加${item.label}`} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => addNode(item.type)}><Icon size={18} /></button>;
-        })}
+        <button title="添加节点" className="grid h-10 w-10 place-items-center rounded-md bg-blue-600 text-white hover:bg-blue-500" onClick={() => setShowPalette((value) => !value)}><Plus size={18} /></button>
         <button title="素材库" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowAssets((value) => !value)}><Library size={18} /></button>
         <button title="任务队列" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowTasks((value) => !value)}><Boxes size={18} /></button>
       </aside>
+
+      {showPalette && <aside className="absolute left-20 top-28 z-20 max-h-[620px] w-[360px] overflow-auto rounded-lg border border-white/10 bg-slate-950/90 p-4 shadow-2xl backdrop-blur">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs text-slate-400">添加节点</p>
+            <h2 className="font-semibold">节点工作流</h2>
+          </div>
+          <span className="rounded border border-white/10 px-2 py-1 text-xs text-slate-400">{filteredAddableNodes.length} 个</span>
+        </div>
+        <label className="mt-3 flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm">
+          <Search size={16} className="text-slate-400" />
+          <input className="w-full bg-transparent outline-none placeholder:text-slate-500" placeholder="搜索图片、视频、配音、合成" value={paletteQuery} onChange={(event) => setPaletteQuery(event.target.value)} />
+        </label>
+        <div className="mt-4 grid gap-4">
+          {["平台生成", "素材节点", "基础节点"].map((category) => {
+            const items = filteredAddableNodes.filter((item) => item.category === category);
+            if (!items.length) return null;
+            return <section key={category} className="grid gap-2">
+              <h3 className="text-xs font-medium text-slate-400">{category}</h3>
+              {items.map((item) => {
+                const Icon = item.icon;
+                return <button key={item.type} className="flex items-start gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-3 text-left hover:bg-white/10" onClick={() => addNode(item.type)}>
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white/10 text-slate-100"><Icon size={17} /></span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium text-white">{item.label}</span>
+                    <span className="mt-1 block text-xs leading-5 text-slate-400">{item.description}</span>
+                  </span>
+                </button>;
+              })}
+            </section>;
+          })}
+        </div>
+      </aside>}
 
       <ReactFlow
         nodes={nodes}
@@ -349,8 +407,29 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           {selectedType === "image" && <label className="grid gap-1"><span className="text-slate-400">图片 URL</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.image_url || "")} onChange={(event) => updateSelectedData("image_url", event.target.value)} /></label>}
           {selectedType === "video" && <label className="grid gap-1"><span className="text-slate-400">视频 URL</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.video_url || "")} onChange={(event) => updateSelectedData("video_url", event.target.value)} /></label>}
           {selectedType === "audio" && <label className="grid gap-1"><span className="text-slate-400">音频 URL</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.audio_url || "")} onChange={(event) => updateSelectedData("audio_url", event.target.value)} /></label>}
-          {selectedType.includes("generation") && selectedType !== "compose_generation" && <label className="grid gap-1"><span className="text-slate-400">绑定分镜 ID</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.shot_id || "")} onChange={(event) => updateSelectedData("shot_id", event.target.value)} /></label>}
+          {selectedType.includes("generation") && selectedType !== "compose_generation" && <label className="grid gap-1"><span className="text-slate-400">绑定分镜</span><select className="rounded-md border border-white/10 bg-slate-900 px-3 py-2 outline-none" value={String(selectedData.shot_id || "")} onChange={(event) => updateSelectedData("shot_id", event.target.value)}>
+            <option value="">从连线或运行时补全</option>
+            {shotOptions.map((shot) => <option key={shot.id} value={shot.id}>分镜 {shot.index} · {shot.visual_description || shot.narration || shot.id}</option>)}
+          </select></label>}
+          {selectedType === "image_generation" && <div className="grid grid-cols-3 gap-2">
+            <label className="grid gap-1"><span className="text-slate-400">宽度</span><input type="number" className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.width || "768")} onChange={(event) => updateSelectedData("width", event.target.value)} /></label>
+            <label className="grid gap-1"><span className="text-slate-400">高度</span><input type="number" className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.height || "1344")} onChange={(event) => updateSelectedData("height", event.target.value)} /></label>
+            <label className="grid gap-1"><span className="text-slate-400">种子</span><input type="number" className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.seed || "-1")} onChange={(event) => updateSelectedData("seed", event.target.value)} /></label>
+          </div>}
           {selectedType === "video_generation" && <label className="grid gap-1"><span className="text-slate-400">首帧图片 URL</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.first_frame_url || "")} onChange={(event) => updateSelectedData("first_frame_url", event.target.value)} /></label>}
+          {selectedType === "video_generation" && <div className="grid grid-cols-2 gap-2">
+            <label className="grid gap-1"><span className="text-slate-400">时长</span><input type="number" step="0.5" className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.duration || "4")} onChange={(event) => updateSelectedData("duration", event.target.value)} /></label>
+            <label className="grid gap-1"><span className="text-slate-400">帧率</span><input type="number" className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.fps || "16")} onChange={(event) => updateSelectedData("fps", event.target.value)} /></label>
+          </div>}
+          {selectedType === "tts_generation" && <div className="grid grid-cols-2 gap-2">
+            <label className="grid gap-1"><span className="text-slate-400">音色</span><select className="rounded-md border border-white/10 bg-slate-900 px-3 py-2 outline-none" value={String(selectedData.voice || "zh-CN-XiaoxiaoNeural")} onChange={(event) => updateSelectedData("voice", event.target.value)}>
+              <option value="zh-CN-XiaoxiaoNeural">晓晓</option>
+              <option value="zh-CN-YunxiNeural">云希</option>
+              <option value="zh-CN-XiaoyiNeural">晓伊</option>
+            </select></label>
+            <label className="grid gap-1"><span className="text-slate-400">语速</span><input type="number" step="0.1" className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.rate || "1")} onChange={(event) => updateSelectedData("rate", event.target.value)} /></label>
+          </div>}
+          {selectedType === "compose_generation" && <label className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/5 px-3 py-2"><span className="text-slate-300">合成字幕</span><input type="checkbox" checked={selectedData.subtitle !== false} onChange={(event) => updateSelectedData("subtitle", event.target.checked)} /></label>}
           <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-3 py-2 disabled:opacity-50" onClick={() => void runSelectedNode()}><Play size={16} />运行节点</button>
         </div> : <p className="mt-4 rounded-md border border-white/10 bg-white/5 p-3 text-sm text-slate-400">点击画布节点后可编辑参数、运行生成或删除节点。</p>}
       </section>

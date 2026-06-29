@@ -2055,19 +2055,48 @@ class PlatformService:
                 node["data"] = {**data, "result_summary": f"已生成 {len(result.get('shots', []))} 个分镜"}
                 result_payload = {"node": node, "result": result}
             elif node_type in {"image_generation", "video_generation", "tts_generation", "compose_generation"}:
-                shot_id = str(data.get("shot_id") or "")
+                incoming_data = _graph_incoming_node_data(graph, node_id)
+                shot_id = str(data.get("shot_id") or _first_non_empty(incoming_data, "shot_id") or "")
                 if node_type != "compose_generation" and not shot_id:
                     raise WorkflowValidationError("生成节点需要先绑定分镜。")
                 if node_type == "image_generation":
-                    task = self.generate_shot_image(project_id, shot_id, {"user_id": payload.get("user_id"), "prompt": data.get("prompt") or ""})
+                    image_payload = _compact_payload({
+                        "user_id": payload.get("user_id"),
+                        "workflow_key": data.get("workflow_key"),
+                        "prompt": data.get("prompt") or _first_non_empty(incoming_data, "prompt", "text", "script", "narration"),
+                        "width": data.get("width"),
+                        "height": data.get("height"),
+                        "seed": data.get("seed"),
+                    })
+                    task = self.generate_shot_image(project_id, shot_id, image_payload)
                 elif node_type == "video_generation":
-                    task = self.generate_shot_video(project_id, shot_id, {"user_id": payload.get("user_id"), "prompt": data.get("prompt") or "", "first_frame_url": data.get("first_frame_url") or ""})
+                    video_payload = _compact_payload({
+                        "user_id": payload.get("user_id"),
+                        "workflow_key": data.get("workflow_key"),
+                        "prompt": data.get("prompt") or _first_non_empty(incoming_data, "prompt", "text", "script", "narration"),
+                        "first_frame_url": data.get("first_frame_url") or _first_non_empty(incoming_data, "image_url"),
+                        "duration": data.get("duration"),
+                        "fps": data.get("fps"),
+                    })
+                    task = self.generate_shot_video(project_id, shot_id, video_payload)
                 elif node_type == "tts_generation":
-                    task = self.generate_shot_tts(project_id, shot_id, {"user_id": payload.get("user_id"), "text": data.get("text") or ""})
+                    tts_payload = _compact_payload({
+                        "user_id": payload.get("user_id"),
+                        "workflow_key": data.get("workflow_key"),
+                        "text": data.get("text") or _first_non_empty(incoming_data, "narration", "text", "script"),
+                        "voice": data.get("voice"),
+                        "rate": data.get("rate"),
+                    })
+                    task = self.generate_shot_tts(project_id, shot_id, tts_payload)
                 else:
-                    task = self.compose_project(project_id, {"user_id": payload.get("user_id"), "subtitle": True})
+                    task = self.compose_project(project_id, {"user_id": payload.get("user_id"), "subtitle": bool(data.get("subtitle", True))})
                 node["status"] = task.get("status", "pending")
-                node["data"] = {**data, "task_id": task.get("id", ""), "workflow_key": task.get("workflow_key", "")}
+                node["data"] = {
+                    **data,
+                    "shot_id": shot_id or data.get("shot_id", ""),
+                    "task_id": task.get("id", ""),
+                    "workflow_key": task.get("workflow_key", ""),
+                }
                 result_payload = {"node": node, "task": task}
             elif node_type in {"text", "image", "video", "audio", "demo"}:
                 node["status"] = "completed"
@@ -3172,6 +3201,36 @@ def _sanitize_graph_edges(value: Any, node_ids: set[str]) -> list[dict[str, Any]
             "data": item.get("data", {}) if isinstance(item.get("data", {}), dict) else {},
         })
     return edges
+
+
+def _graph_incoming_node_data(graph: ProjectGraph, node_id: str) -> list[dict[str, Any]]:
+    source_ids = [str(edge.get("source")) for edge in graph.edges if str(edge.get("target")) == node_id]
+    data_by_id = {
+        str(node.get("id")): node.get("data")
+        for node in graph.nodes
+        if isinstance(node.get("data"), dict)
+    }
+    return [data_by_id[source_id] for source_id in source_ids if isinstance(data_by_id.get(source_id), dict)]
+
+
+def _first_non_empty(items: list[dict[str, Any]], *keys: str) -> Any:
+    for item in items:
+        for key in keys:
+            value = item.get(key)
+            if isinstance(value, str):
+                if value.strip():
+                    return value.strip()
+            elif value is not None and value != "":
+                return value
+    return ""
+
+
+def _compact_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    return {
+        key: value
+        for key, value in payload.items()
+        if value is not None and (not isinstance(value, str) or value.strip() != "")
+    }
 
 
 def _sanitize_graph_viewport(value: Any) -> dict[str, Any]:

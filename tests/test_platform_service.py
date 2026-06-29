@@ -2109,6 +2109,43 @@ class PlatformServiceTest(unittest.TestCase):
         self.assertEqual([node["id"] for node in graph_after_delete["nodes"]], ["demo_1"])
         self.assertEqual(graph_after_delete["edges"], [])
 
+    def test_project_graph_generation_nodes_use_params_and_incoming_edges(self) -> None:
+        service = PlatformService(comfy=FakeComfy())
+        project = service.create_project({"title": "节点参数项目", "owner_id": "author_graph"})
+        shot = service.create_storyboard_shot(
+            project["id"],
+            {"user_id": "author_graph", "narration": "雨夜旁白", "visual_description": "雨夜车站远景"},
+        )
+        service.save_project_graph(
+            project["id"],
+            {
+                "user_id": "author_graph",
+                "nodes": [
+                    {"id": "text_1", "type": "text", "position": {"x": 10, "y": 20}, "data": {"text": "电影感雨夜车站", "shot_id": shot["id"]}},
+                    {"id": "image_1", "type": "image_generation", "position": {"x": 260, "y": 20}, "data": {"width": "640", "height": "960", "seed": "42"}},
+                    {"id": "image_asset_1", "type": "image", "position": {"x": 510, "y": 20}, "data": {"image_url": "/storage/shot.png", "shot_id": shot["id"]}},
+                    {"id": "video_1", "type": "video_generation", "position": {"x": 760, "y": 20}, "data": {"duration": "5.5", "fps": "24"}},
+                ],
+                "edges": [
+                    {"id": "edge_text_image", "source": "text_1", "target": "image_1"},
+                    {"id": "edge_image_video", "source": "image_asset_1", "target": "video_1"},
+                ],
+            },
+        )
+
+        image_result = service.run_project_graph_node(project["id"], "image_1", {"user_id": "author_graph"})
+        self.assertEqual(image_result["task"]["input_params"]["prompt"], "电影感雨夜车站")
+        self.assertEqual(image_result["task"]["input_params"]["width"], 640)
+        self.assertEqual(image_result["task"]["input_params"]["height"], 960)
+        self.assertEqual(image_result["task"]["input_params"]["seed"], 42)
+        self.assertEqual(image_result["node"]["data"]["shot_id"], shot["id"])
+
+        video_result = service.run_project_graph_node(project["id"], "video_1", {"user_id": "author_graph"})
+        self.assertEqual(video_result["task"]["input_params"]["first_frame_url"], "/storage/shot.png")
+        self.assertEqual(video_result["task"]["input_params"]["duration"], 5.5)
+        self.assertEqual(video_result["task"]["input_params"]["fps"], 24)
+        self.assertEqual(video_result["node"]["data"]["shot_id"], shot["id"])
+
     def test_project_graph_rejects_non_author_and_unknown_node_type(self) -> None:
         service = PlatformService(comfy=FakeComfy())
         project = service.create_project({"title": "节点权限项目", "owner_id": "author_graph"})

@@ -2333,11 +2333,19 @@ class PlatformServiceTest(unittest.TestCase):
         project = service.create_project({"title": "分镜图项目", "owner_id": "author_001"})
         result = service.analyze_script(project["id"], {"script": "主角推开门。", "user_id": "author_001"})
         shot = result["shots"][0]
-        task = service.generate_shot_image(project["id"], shot["id"], {"user_id": "author_001", "seed": 123, "reference_image_url": "/storage/reference/hero.png"})
+        task = service.generate_shot_image(project["id"], shot["id"], {
+            "user_id": "author_001",
+            "seed": 123,
+            "reference_image_url": "/storage/reference/hero.png",
+            "model_key": "flux-dev",
+            "style_prompt": "电影感国漫",
+        })
         self.assertEqual(task["workflow_key"], "selfhost/image_flux")
         self.assertEqual(task["input_params"]["prompt"], shot["prompt"])
         self.assertEqual(task["input_params"]["negative_prompt"], shot["negative_prompt"])
         self.assertEqual(task["input_params"]["reference_image_url"], "/storage/reference/hero.png")
+        self.assertEqual(task["input_params"]["model_key"], "flux-dev")
+        self.assertEqual(task["input_params"]["style_prompt"], "电影感国漫")
         self.assertEqual(task["input_params"]["seed"], 123)
 
         video_task = service.generate_shot_video(

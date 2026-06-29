@@ -1365,7 +1365,7 @@ class PlatformService:
         return to_jsonable(shot)
 
     def generate_shot_image(self, project_id: str, shot_id: str, payload: dict[str, Any]) -> dict[str, Any]:
-        _reject_unknown_payload_fields(payload, {"user_id", "workflow_key", "prompt", "negative_prompt", "reference_image_url", "width", "height", "seed"})
+        _reject_unknown_payload_fields(payload, {"user_id", "workflow_key", "prompt", "negative_prompt", "reference_image_url", "model_key", "style_prompt", "width", "height", "seed"})
         project, shot = self._project_shot(project_id, shot_id)
         self._assert_project_owner(project, payload.get("user_id"))
         workflow_key = str(payload.get("workflow_key") or self._project_workflow_key(project, TaskType.IMAGE, "selfhost/image_flux"))
@@ -1374,6 +1374,8 @@ class PlatformService:
             "prompt": payload.get("prompt") or shot.prompt,
             "negative_prompt": payload.get("negative_prompt") or shot.negative_prompt or DEFAULT_NEGATIVE_PROMPT,
             "reference_image_url": str(payload.get("reference_image_url", "") or ""),
+            "model_key": str(payload.get("model_key", default_params.get("model_key", "")) or ""),
+            "style_prompt": str(payload.get("style_prompt", default_params.get("style_prompt", "")) or ""),
             "width": _coerce_int_param(payload.get("width", default_params.get("width", 768)), "宽度"),
             "height": _coerce_int_param(payload.get("height", default_params.get("height", 1344)), "高度"),
             "seed": _coerce_int_param(payload.get("seed", default_params.get("seed", -1)), "随机种子"),
@@ -2069,6 +2071,8 @@ class PlatformService:
                         "prompt": data.get("prompt") or _first_non_empty(incoming_data, "prompt", "text", "script", "narration"),
                         "negative_prompt": data.get("negative_prompt") or _first_non_empty(incoming_data, "negative_prompt"),
                         "reference_image_url": data.get("reference_image_url") or _first_non_empty(incoming_data, "image_url", "first_frame_url", "output_url"),
+                        "model_key": data.get("model_key"),
+                        "style_prompt": data.get("style_prompt") or _first_non_empty(incoming_data, "style_prompt"),
                         "width": data.get("width"),
                         "height": data.get("height"),
                         "seed": data.get("seed"),
@@ -2147,7 +2151,7 @@ class PlatformService:
             base_x = 420 + index * 300
             node_specs = [
                 (f"shot-{shot.id}", "text", {"title": f"分镜 {shot.index}", "text": shot.visual_description, "narration": shot.narration, "shot_id": shot.id}, 120),
-                (f"image-gen-{shot.id}", "image_generation", {"title": "分镜图生成", "prompt": shot.prompt, "shot_id": shot.id}, 300),
+                (f"image-gen-{shot.id}", "image_generation", {"title": "分镜图生成", "prompt": shot.prompt, "negative_prompt": shot.negative_prompt, "reference_image_url": "", "model_key": "", "style_prompt": "", "shot_id": shot.id}, 300),
                 (f"video-gen-{shot.id}", "video_generation", {"title": "镜头视频生成", "prompt": shot.visual_description, "shot_id": shot.id}, 480),
                 (f"tts-gen-{shot.id}", "tts_generation", {"title": "旁白配音", "text": shot.narration, "shot_id": shot.id}, 660),
             ]

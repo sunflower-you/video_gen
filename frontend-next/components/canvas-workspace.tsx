@@ -2357,6 +2357,23 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus("已删除画布版本快照。");
   }
 
+  async function exportGraphVersion(version: CanvasGraphVersion) {
+    const graph = {
+      id: `graph-version-export-${version.key}-${Date.now()}`,
+      project_id: projectId,
+      title: version.title,
+      exported_at: new Date().toISOString(),
+      nodes: version.nodes,
+      edges: version.edges,
+      viewport: version.viewport,
+      status: "draft"
+    };
+    const text = JSON.stringify(graph, null, 2);
+    downloadJsonFile(text, `${version.title || "canvas-graph-version"}.json`);
+    const copiedToClipboard = await copyTextToSystemClipboard(text, `project_graph_version_export_${projectId}`);
+    setStatus(copiedToClipboard ? `已导出并复制画布版本 ProjectGraph JSON：${version.title}。` : "已导出画布版本 ProjectGraph JSON；浏览器剪贴板不可用，已把内容暂存到本地。");
+  }
+
   function toggleSnapToGrid() {
     setSnapToGrid((value) => {
       const next = !value;
@@ -3283,6 +3300,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     { key: "export-selection", title: "导出选区 JSON", description: "下载并复制当前选区节点和连线", disabled: busy || !selectedNodes.length, run: () => void exportSelectedWorkflowJson() },
     { key: "save-preset", title: "保存当前画布为预设", description: "保存到我的工作流预设", disabled: !nodes.length, run: saveCurrentWorkflowAsPreset },
     { key: "save-version", title: "保存画布版本快照", description: "保存当前节点、连线和视口，便于回滚", disabled: !nodes.length, run: saveCurrentGraphVersion },
+    { key: "export-version", title: "导出最新画布版本", description: "下载并复制最近保存的版本快照 JSON", disabled: !graphVersions.length, run: () => { if (graphVersions[0]) void exportGraphVersion(graphVersions[0]); } },
     { key: "show-versions", title: "打开画布版本历史", description: "恢复或删除本项目的本地画布快照", run: () => setShowGraphVersions(true) },
     { key: "show-palette", title: "打开节点面板", description: "搜索添加平台生成、素材和基础节点", run: () => setShowPalette(true) },
     { key: "show-outline", title: "打开节点大纲", description: "搜索、定位和批量选择节点", disabled: !nodes.length, run: () => setShowOutline(true) },
@@ -3422,8 +3440,9 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
               <span className="block truncate font-medium text-white">{version.title}</span>
               <span className="mt-1 block text-xs text-slate-400">{version.nodes.length} 个节点 / {version.edges.length} 条连线 · 缩放 {version.viewport.zoom.toFixed(2)}</span>
             </button>
-            <div className="mt-2 flex gap-2 text-xs">
+            <div className="mt-2 flex flex-wrap gap-2 text-xs">
               <button className="rounded border border-blue-400/30 px-2 py-1 text-blue-100 hover:bg-blue-500/10" onClick={() => restoreGraphVersion(version)}>恢复版本</button>
+              <button className="rounded border border-white/10 px-2 py-1 text-slate-200 hover:bg-white/10" onClick={() => void exportGraphVersion(version)}>导出版本</button>
               <button className="rounded border border-red-400/30 px-2 py-1 text-red-100" onClick={() => deleteGraphVersion(version.key)}>删除版本</button>
             </div>
           </article>)}

@@ -1709,6 +1709,21 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     selectCanvasNodesByIds(nodes.filter((node) => issueNodeIds.has(node.id)).map((node) => node.id), label);
   }
 
+  function selectTaskStatusNodes(taskStatus: string) {
+    const label = taskStatus === "running" ? "运行中任务节点" : taskStatus === "failed" ? "失败任务节点" : `${statusText(taskStatus)}任务节点`;
+    const matchedNodes = nodes.filter((node) => {
+      const data = node.data as Record<string, unknown>;
+      const taskId = String(data.task_id || "");
+      const task = taskId ? taskById.get(taskId) : null;
+      return (task?.status || String(data.status || "")) === taskStatus;
+    });
+    if (!matchedNodes.length) {
+      setStatus(taskStatus === "running" ? "画布暂无运行中任务节点。" : taskStatus === "failed" ? "画布暂无失败任务节点。" : `画布暂无${label}。`);
+      return;
+    }
+    selectCanvasNodesByIds(matchedNodes.map((node) => node.id), label);
+  }
+
   function selectSelectedUpstreamChain() {
     if (!selectedNode) {
       setStatus("请先选择一个节点，再选中上游链路。");
@@ -2907,6 +2922,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectTerminalNodes(); setNodeContextMenu(null); }}>选中终点节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectValidationIssueNodes("error"); setNodeContextMenu(null); }}>选中错误节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectValidationIssueNodes("warning"); setNodeContextMenu(null); }}>选中提醒节点</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectTaskStatusNodes("running"); setNodeContextMenu(null); }}>选中运行中任务节点</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectTaskStatusNodes("failed"); setNodeContextMenu(null); }}>选中失败任务节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { copySelectedChain(); setNodeContextMenu(null); }}>复制上游链路</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { void runSelectedChain(); setNodeContextMenu(null); }}>运行上游链路</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { toggleSelectedNodeDisabled(); setNodeContextMenu(null); }}>{(selectedNode.data as Record<string, unknown>).disabled === true ? "启用节点" : "禁用节点"}</button>
@@ -3031,6 +3048,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
               <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 text-xs text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={selectTerminalNodes}><GitBranch size={14} />终点节点</button>
               <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-red-400/30 px-3 py-2 text-xs text-red-100 hover:bg-red-500/10 disabled:opacity-50" onClick={() => selectValidationIssueNodes("error")}><AlertTriangle size={14} />错误节点</button>
               <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-amber-400/30 px-3 py-2 text-xs text-amber-100 hover:bg-amber-500/10 disabled:opacity-50" onClick={() => selectValidationIssueNodes("warning")}><AlertTriangle size={14} />提醒节点</button>
+              <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-blue-400/30 px-3 py-2 text-xs text-blue-100 hover:bg-blue-500/10 disabled:opacity-50" onClick={() => selectTaskStatusNodes("running")}><Boxes size={14} />运行中</button>
+              <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-red-400/30 px-3 py-2 text-xs text-red-100 hover:bg-red-500/10 disabled:opacity-50" onClick={() => selectTaskStatusNodes("failed")}><Boxes size={14} />失败任务</button>
             </div>
           </section>
           <section className="grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">

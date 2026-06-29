@@ -3213,6 +3213,56 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已将选区末端 ${sourceNodes.length} 个节点汇聚到新的合成节点。`);
   }
 
+  function expandSelectedNodesToVideoGeneration() {
+    if (!selectedNodes.length) {
+      setStatus("请先框选或点选节点，再生成视频链。");
+      return;
+    }
+    const selectedIds = new Set(selectedNodes.map((node) => node.id));
+    const terminalSelectedNodes = selectedNodes.filter((node) => !selectedSelectionEdges.some((edge) => edge.source === node.id && selectedIds.has(edge.target)));
+    const sourceNodes = terminalSelectedNodes.length ? terminalSelectedNodes : selectedNodes;
+    const timestamp = Date.now();
+    const videoNodes = sourceNodes.map((node, index) => {
+      const sourceData = node.data as Record<string, unknown>;
+      const sourceType = String(sourceData.nodeType || "");
+      const isImageLikeSource = sourceType === "image" || sourceType === "image_generation" || Boolean(sourceData.image_url || sourceData.first_frame_url);
+      const sourceTitle = String(sourceData.title || nodeLabels[String(sourceData.nodeType || "")] || "选区节点");
+      const prompt = firstNonEmpty([sourceData], "prompt", "text", "script", "narration");
+      const firstFrameUrl = isImageLikeSource ? firstNonEmpty([sourceData], "image_url", "first_frame_url", "output_url") : "";
+      return createFlowNode("video_generation", { x: node.position.x + 360, y: node.position.y + index * 18 }, {
+        title: `${sourceTitle} 视频生成`,
+        prompt: prompt || "输入镜头视频提示词",
+        first_frame_url: firstFrameUrl,
+        shot_id: String(sourceData.shot_id || ""),
+        status: "draft"
+      });
+    });
+    const nextEdges = sourceNodes.flatMap((node, index) => {
+      const sourceData = node.data as Record<string, unknown>;
+      const sourceType = String(sourceData.nodeType || "");
+      const targetHandle = sourceType === "image" || sourceType === "image_generation" || sourceData.image_url || sourceData.first_frame_url ? "first_frame" : "input";
+      const connection = { source: node.id, target: videoNodes[index].id, sourceHandle: "output", targetHandle };
+      if (connectionIssueMessage(connection, edges)) return [];
+      return [edgeWithDefaultHandles({
+        id: `edge-selection-video-${timestamp}-${index}`,
+        ...connection,
+        animated: true,
+        data: { label: targetHandle === "first_frame" ? "首帧生成视频" : "提示词生成视频" }
+      } satisfies Edge)];
+    });
+    if (!videoNodes.length || !nextEdges.length) {
+      setStatus("当前选区没有可接入视频生成的末端节点。");
+      return;
+    }
+    rememberGraphHistory();
+    setNodes((items) => [...items.map((node) => ({ ...node, selected: false })), ...videoNodes.map((node) => ({ ...node, selected: true }))]);
+    setEdges((items) => [...items, ...nextEdges]);
+    setSelectedNodeId(videoNodes[videoNodes.length - 1]?.id || "");
+    setSelectedEdgeId("");
+    rememberRecentNodeType("video_generation");
+    setStatus(`已为选区末端创建 ${videoNodes.length} 个镜头视频生成节点。`);
+  }
+
   function alignSelectedNodes(mode: "left" | "centerX" | "right" | "top" | "centerY" | "bottom" | "horizontal" | "vertical") {
     if (selectedNodes.length <= 1) {
       setStatus("请先框选多个节点，再对齐或分布选区。");
@@ -3721,6 +3771,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     { key: "invert-selection", title: "反选画布节点", description: "反转当前节点选区", shortcut: "Ctrl/⌘ Shift A", disabled: !nodes.length, run: invertCanvasSelection },
     { key: "select-all-edges", title: "全选画布连线", description: "选中当前画布所有连线，便于批量标记或禁用", disabled: !edges.length, run: selectAllCanvasEdges },
     { key: "invert-edge-selection", title: "反选画布连线", description: "反转当前连线选区，快速排除已选链路", disabled: !edges.length, run: invertCanvasEdgeSelection },
+    { key: "expand-selection-video", title: "选区生成视频链", description: "为选区末端批量创建镜头视频生成节点并自动连线", disabled: !selectedNodes.length, run: expandSelectedNodesToVideoGeneration },
     { key: "collect-selection-compose", title: "选区汇聚到合成节点", description: "在选区右侧创建合成节点并连接选区末端分支", disabled: !selectedNodes.length, run: collectSelectedNodesToCompose },
     { key: "clear-selection", title: "清空当前选区", description: "取消节点和连线选择", shortcut: "Esc", disabled: !selectedNodes.length && !selectedEdge, run: clearCanvasSelection },
     { key: "fit-graph", title: "适配全部节点", description: "把完整节点图适配到当前视图", shortcut: "Ctrl/⌘ 1", disabled: !nodes.length, run: fitGraphView },
@@ -4308,6 +4359,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesLayer("front"); setNodeContextMenu(null); }}>置顶选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesLayer("back"); setNodeContextMenu(null); }}>置底选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { connectSelectedNodesInOrder(); setNodeContextMenu(null); }}>串联选区</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { expandSelectedNodesToVideoGeneration(); setNodeContextMenu(null); }}>生成视频链</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { collectSelectedNodesToCompose(); setNodeContextMenu(null); }}>汇聚到合成节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { groupSelectedNodes(); setNodeContextMenu(null); }}>打组选区</button>
             <button disabled={busy || !selectedGroupIds.size} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSelectedGroups(); setNodeContextMenu(null); }}>选中同组节点</button>
@@ -4439,6 +4491,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesLayer("front")}><BringToFront size={16} />置顶选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesLayer("back")}><SendToBack size={16} />置底选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={connectSelectedNodesInOrder}><GitBranch size={16} />串联选区</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={expandSelectedNodesToVideoGeneration}><Video size={16} />生成视频</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={collectSelectedNodesToCompose}><Sparkles size={16} />汇聚合成</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={groupSelectedNodes}><Boxes size={16} />打组选区</button>
             <button disabled={busy || !selectedGroupIds.size} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={selectSelectedGroups}><Boxes size={16} />选中同组</button>

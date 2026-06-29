@@ -739,6 +739,10 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /autoLayoutSelectedNodes/);
   assert.match(canvasWorkspace, /setSelectedNodesDisabled/);
   assert.match(canvasWorkspace, /copySelectedChain/);
+  assert.match(canvasWorkspace, /expandSelectedNodesToVideoGeneration/);
+  assert.match(canvasWorkspace, /选区生成视频链/);
+  assert.match(canvasWorkspace, /生成视频链/);
+  assert.match(canvasWorkspace, /已为选区末端创建/);
   assert.match(canvasWorkspace, /collectSelectedNodesToCompose/);
   assert.match(canvasWorkspace, /选区汇聚到合成节点/);
   assert.match(canvasWorkspace, /汇聚到合成节点/);

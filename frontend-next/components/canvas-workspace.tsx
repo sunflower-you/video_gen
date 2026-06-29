@@ -60,6 +60,17 @@ const nodeMarkerColors: { value: string; label: string; className: string }[] = 
 
 const nodeMarkerColorByValue = new Map(nodeMarkerColors.map((item) => [item.value, item]));
 
+const edgeMarkerColors: { value: string; label: string; stroke: string }[] = [
+  { value: "", label: "默认", stroke: "" },
+  { value: "blue", label: "蓝色", stroke: "#60a5fa" },
+  { value: "emerald", label: "绿色", stroke: "#34d399" },
+  { value: "amber", label: "黄色", stroke: "#fbbf24" },
+  { value: "rose", label: "红色", stroke: "#fb7185" },
+  { value: "violet", label: "紫色", stroke: "#a78bfa" }
+];
+
+const edgeMarkerColorByValue = new Map(edgeMarkerColors.map((item) => [item.value, item]));
+
 type NodePort = {
   id: string;
   label: string;
@@ -163,12 +174,18 @@ function activeGraphEdges(edges: Edge[]) {
 
 function edgeWithDefaultHandles(edge: Edge): Edge {
   const disabled = isEdgeDisabled(edge);
+  const data = (edge.data as Record<string, unknown> | undefined) || {};
+  const edgeColor = edgeMarkerColorByValue.get(String(data.edge_color || ""));
+  const style = {
+    ...(edgeColor?.stroke ? { stroke: edgeColor.stroke } : {}),
+    ...(disabled ? { strokeDasharray: "6 4", opacity: 0.45 } : {})
+  };
   return {
     ...edge,
     sourceHandle: edge.sourceHandle || "output",
     targetHandle: edge.targetHandle || "input",
     animated: !disabled,
-    style: disabled ? { strokeDasharray: "6 4", opacity: 0.45 } : undefined
+    style: Object.keys(style).length ? style : undefined
   };
 }
 
@@ -1385,16 +1402,25 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(label.trim() ? "连线标签已更新。" : "连线标签已清空。");
   }
 
+  function updateSelectedEdgeColor(color: string) {
+    if (!selectedEdge) return;
+    const markerColor = edgeMarkerColorByValue.get(color) || edgeMarkerColorByValue.get("");
+    rememberGraphHistory();
+    setEdges((items) => items.map((edge) => edge.id === selectedEdge.id ? edgeWithDefaultHandles({
+      ...edge,
+      data: { ...(edge.data as Record<string, unknown> | undefined), edge_color: markerColor?.value || "" }
+    }) : edge));
+    setStatus(markerColor?.value ? `连线颜色标记已设置为${markerColor.label}。` : "连线颜色标记已清空。");
+  }
+
   function toggleSelectedEdgeDisabled() {
     if (!selectedEdge) return;
     const nextDisabled = !isEdgeDisabled(selectedEdge);
     rememberGraphHistory();
-    setEdges((items) => items.map((edge) => edge.id === selectedEdge.id ? {
+    setEdges((items) => items.map((edge) => edge.id === selectedEdge.id ? edgeWithDefaultHandles({
       ...edge,
-      animated: !nextDisabled,
-      style: nextDisabled ? { strokeDasharray: "6 4", opacity: 0.45 } : undefined,
       data: { ...(edge.data as Record<string, unknown> | undefined), disabled: nextDisabled }
-    } : edge));
+    }) : edge));
     setStatus(nextDisabled ? "连线已禁用，运行和上游输入会跳过这条连线。" : "连线已启用，可继续参与上游输入和运行。");
   }
 
@@ -2165,6 +2191,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const selectedEdgeSource = selectedEdge ? nodes.find((node) => node.id === selectedEdge.source) || null : null;
   const selectedEdgeTarget = selectedEdge ? nodes.find((node) => node.id === selectedEdge.target) || null : null;
   const selectedEdgeLabel = String((selectedEdge?.data as Record<string, unknown> | undefined)?.label || "");
+  const selectedEdgeColor = String((selectedEdge?.data as Record<string, unknown> | undefined)?.edge_color || "");
   const selectedEdgeDisabled = selectedEdge ? isEdgeDisabled(selectedEdge) : false;
   const selectedEdgeSourcePorts = semanticPortsForNode(selectedEdgeSource, "output");
   const selectedEdgeTargetPorts = semanticPortsForNode(selectedEdgeTarget, "input");
@@ -2677,6 +2704,9 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <input type="checkbox" checked={selectedEdgeDisabled} onChange={toggleSelectedEdgeDisabled} />
           </label>
           <label className="grid gap-1"><span className="text-slate-400">连线标签</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" placeholder="例如：提示词、首帧、配音输入" value={selectedEdgeLabel} onChange={(event) => updateSelectedEdgeLabel(event.target.value)} /></label>
+          <label className="grid gap-1"><span className="text-slate-400">连线颜色标记</span><select className="rounded-md border border-white/10 bg-slate-900 px-3 py-2 outline-none" value={selectedEdgeColor} onChange={(event) => updateSelectedEdgeColor(event.target.value)}>
+            {edgeMarkerColors.map((item) => <option key={item.value || "default"} value={item.value}>{item.label}</option>)}
+          </select></label>
           <section className="rounded-md border border-white/10 bg-white/[0.03] p-3">
             <p className="text-xs text-slate-400">端口映射</p>
             <div className="mt-2 grid grid-cols-2 gap-2">

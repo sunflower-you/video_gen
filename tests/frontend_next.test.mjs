@@ -353,6 +353,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /syncSelectedNodeParamsToSameShot/);
   assert.match(canvasWorkspace, /applySelectedNodeParamsToSelection/);
   assert.match(canvasWorkspace, /nodeBusinessParamPatch/);
+  assert.match(canvasWorkspace, /workflow_key/);
   assert.match(canvasWorkspace, /negative_prompt/);
   assert.match(canvasWorkspace, /reference_image_url/);
   assert.match(canvasWorkspace, /clearShotSelection/);
@@ -390,6 +391,8 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /同步参数/);
   assert.match(canvasWorkspace, /应用当前参数到选区/);
   assert.match(canvasWorkspace, /当前选区没有其它同类型节点可应用参数/);
+  assert.match(canvasWorkspace, /工作流 Key/);
+  assert.match(canvasWorkspace, /留空使用项目默认工作流/);
   assert.match(canvasWorkspace, /负面提示词/);
   assert.match(canvasWorkspace, /输入需要规避的画面问题/);
   assert.match(canvasWorkspace, /参考图 URL/);

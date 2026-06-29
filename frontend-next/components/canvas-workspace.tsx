@@ -121,10 +121,10 @@ const sameShotSyncKeysByType: Record<string, string[]> = {
   image: ["image_url"],
   video: ["video_url"],
   audio: ["audio_url"],
-  image_generation: ["prompt", "negative_prompt", "reference_image_url", "width", "height", "seed"],
-  video_generation: ["prompt", "negative_prompt", "first_frame_url", "duration", "fps"],
-  tts_generation: ["text", "voice", "rate"],
-  compose_generation: ["subtitle"]
+  image_generation: ["workflow_key", "prompt", "negative_prompt", "reference_image_url", "width", "height", "seed"],
+  video_generation: ["workflow_key", "prompt", "negative_prompt", "first_frame_url", "duration", "fps"],
+  tts_generation: ["workflow_key", "text", "voice", "rate"],
+  compose_generation: ["workflow_key", "subtitle"]
 };
 
 function nodeBusinessParamPatch(type: string, data: Record<string, unknown>) {
@@ -707,9 +707,9 @@ const workflowPresets = [
     description: "脚本 Beta 连到分镜图、配音和合成节点。",
     nodes: [
       { type: "script", offset: { x: 0, y: 0 }, data: { title: "脚本 Beta", script: "输入短视频脚本，运行后生成角色和分镜。" } },
-      { type: "image_generation", offset: { x: 300, y: -70 }, data: { title: "分镜图生成", prompt: "根据脚本分镜生成关键画面", negative_prompt: "", reference_image_url: "", width: "768", height: "1344", seed: "-1" } },
-      { type: "tts_generation", offset: { x: 300, y: 150 }, data: { title: "旁白配音", text: "从脚本或分镜旁白生成配音", voice: "zh-CN-XiaoxiaoNeural", rate: "1" } },
-      { type: "compose_generation", offset: { x: 620, y: 40 }, data: { title: "成片合成", subtitle: true } }
+      { type: "image_generation", offset: { x: 300, y: -70 }, data: { title: "分镜图生成", workflow_key: "", prompt: "根据脚本分镜生成关键画面", negative_prompt: "", reference_image_url: "", width: "768", height: "1344", seed: "-1" } },
+      { type: "tts_generation", offset: { x: 300, y: 150 }, data: { title: "旁白配音", workflow_key: "", text: "从脚本或分镜旁白生成配音", voice: "zh-CN-XiaoxiaoNeural", rate: "1" } },
+      { type: "compose_generation", offset: { x: 620, y: 40 }, data: { title: "成片合成", workflow_key: "", subtitle: true } }
     ],
     edges: [[0, 1], [0, 2], [1, 3], [2, 3]]
   },
@@ -719,8 +719,8 @@ const workflowPresets = [
     description: "参考图连到镜头视频节点，再进入成片合成。",
     nodes: [
       { type: "image", offset: { x: 0, y: 0 }, data: { title: "首帧图片", image_url: "" } },
-      { type: "video_generation", offset: { x: 310, y: 0 }, data: { title: "镜头视频生成", prompt: "描述镜头运动和角色动作", negative_prompt: "", first_frame_url: "", duration: "4", fps: "16" } },
-      { type: "compose_generation", offset: { x: 620, y: 0 }, data: { title: "成片合成", subtitle: true } }
+      { type: "video_generation", offset: { x: 310, y: 0 }, data: { title: "镜头视频生成", workflow_key: "", prompt: "描述镜头运动和角色动作", negative_prompt: "", first_frame_url: "", duration: "4", fps: "16" } },
+      { type: "compose_generation", offset: { x: 620, y: 0 }, data: { title: "成片合成", workflow_key: "", subtitle: true } }
     ],
     edges: [[0, 1], [1, 2]]
   },
@@ -730,8 +730,8 @@ const workflowPresets = [
     description: "文本旁白连到配音节点，再连接成片合成。",
     nodes: [
       { type: "text", offset: { x: 0, y: 0 }, data: { title: "旁白文案", text: "输入需要配音的中文旁白。" } },
-      { type: "tts_generation", offset: { x: 300, y: 0 }, data: { title: "旁白配音", voice: "zh-CN-XiaoxiaoNeural", rate: "1" } },
-      { type: "compose_generation", offset: { x: 610, y: 0 }, data: { title: "成片合成", subtitle: true } }
+      { type: "tts_generation", offset: { x: 300, y: 0 }, data: { title: "旁白配音", workflow_key: "", voice: "zh-CN-XiaoxiaoNeural", rate: "1" } },
+      { type: "compose_generation", offset: { x: 610, y: 0 }, data: { title: "成片合成", workflow_key: "", subtitle: true } }
     ],
     edges: [[0, 1], [1, 2]]
   }
@@ -1951,10 +1951,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   function buildShotWorkflow(shot: StoryboardShot, timestamp: number, baseX: number, baseY: number) {
     const specs = [
       { type: "text", offset: { x: 0, y: 0 }, data: { title: `分镜 ${shot.index}`, text: shot.visual_description, narration: shot.narration, shot_id: shot.id } },
-      { type: "image_generation", offset: { x: 300, y: -80 }, data: { title: `分镜 ${shot.index} 画面`, prompt: shot.prompt || shot.visual_description, negative_prompt: shot.negative_prompt || "", reference_image_url: "", shot_id: shot.id, width: "768", height: "1344", seed: "-1" } },
-      { type: "video_generation", offset: { x: 610, y: -80 }, data: { title: `分镜 ${shot.index} 视频`, prompt: shot.visual_description, negative_prompt: shot.negative_prompt || "", shot_id: shot.id, first_frame_url: "", duration: "4", fps: "16" } },
-      { type: "tts_generation", offset: { x: 300, y: 150 }, data: { title: `分镜 ${shot.index} 配音`, text: shot.narration, shot_id: shot.id, voice: "zh-CN-XiaoxiaoNeural", rate: "1" } },
-      { type: "compose_generation", offset: { x: 920, y: 30 }, data: { title: `分镜 ${shot.index} 合成`, subtitle: true } }
+      { type: "image_generation", offset: { x: 300, y: -80 }, data: { title: `分镜 ${shot.index} 画面`, workflow_key: "", prompt: shot.prompt || shot.visual_description, negative_prompt: shot.negative_prompt || "", reference_image_url: "", shot_id: shot.id, width: "768", height: "1344", seed: "-1" } },
+      { type: "video_generation", offset: { x: 610, y: -80 }, data: { title: `分镜 ${shot.index} 视频`, workflow_key: "", prompt: shot.visual_description, negative_prompt: shot.negative_prompt || "", shot_id: shot.id, first_frame_url: "", duration: "4", fps: "16" } },
+      { type: "tts_generation", offset: { x: 300, y: 150 }, data: { title: `分镜 ${shot.index} 配音`, workflow_key: "", text: shot.narration, shot_id: shot.id, voice: "zh-CN-XiaoxiaoNeural", rate: "1" } },
+      { type: "compose_generation", offset: { x: 920, y: 30 }, data: { title: `分镜 ${shot.index} 合成`, workflow_key: "", subtitle: true } }
     ];
     const createdNodes = specs.map((item, index) => {
       const id = `shot-${shot.id}-${timestamp}-${index}`;
@@ -5178,6 +5178,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           {selectedType === "comment" && <label className="grid gap-1"><span className="text-slate-400">批注内容</span><textarea className="min-h-32 rounded-md border border-yellow-200/20 bg-yellow-500/10 px-3 py-2 outline-none placeholder:text-yellow-100/50" placeholder="记录制作意图、审核意见或后续修改点。" onFocus={rememberSelectedNodeEdit} value={String(selectedData.text || "")} onChange={(event) => updateSelectedData("text", event.target.value)} /></label>}
           {(selectedType === "text" || selectedType === "demo") && <label className="grid gap-1"><span className="text-slate-400">文本内容</span><textarea className="min-h-28 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.text || "")} onChange={(event) => updateSelectedData("text", event.target.value)} /></label>}
           {selectedType === "script" && <label className="grid gap-1"><span className="text-slate-400">脚本</span><textarea className="min-h-40 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.script || "")} onChange={(event) => updateSelectedData("script", event.target.value)} /></label>}
+          {selectedType.includes("generation") && <label className="grid gap-1"><span className="text-slate-400">工作流 Key</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" placeholder="留空使用项目默认工作流，例如 selfhost/image_flux" onFocus={rememberSelectedNodeEdit} value={String(selectedData.workflow_key || "")} onChange={(event) => updateSelectedData("workflow_key", event.target.value)} /></label>}
           {(selectedType === "image_generation" || selectedType === "video_generation") && <label className="grid gap-1"><span className="text-slate-400">提示词</span><textarea className="min-h-28 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.prompt || "")} onChange={(event) => updateSelectedData("prompt", event.target.value)} /></label>}
           {(selectedType === "image_generation" || selectedType === "video_generation") && <label className="grid gap-1"><span className="text-slate-400">负面提示词</span><textarea className="min-h-20 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" placeholder="输入需要规避的画面问题，例如低清、畸形、文字水印。" onFocus={rememberSelectedNodeEdit} value={String(selectedData.negative_prompt || "")} onChange={(event) => updateSelectedData("negative_prompt", event.target.value)} /></label>}
           {selectedType === "image_generation" && <label className="grid gap-1"><span className="text-slate-400">参考图 URL</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" placeholder="可填写角色图、风格图或上游图片输出 URL" onFocus={rememberSelectedNodeEdit} value={String(selectedData.reference_image_url || "")} onChange={(event) => updateSelectedData("reference_image_url", event.target.value)} /></label>}

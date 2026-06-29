@@ -711,6 +711,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [showPalette, setShowPalette] = useState(true);
   const [paletteQuery, setPaletteQuery] = useState("");
   const [paletteCategoryFilter, setPaletteCategoryFilter] = useState("all");
+  const [activePaletteNodeIndex, setActivePaletteNodeIndex] = useState(0);
   const [commandQuery, setCommandQuery] = useState("");
   const [outlineQuery, setOutlineQuery] = useState("");
   const [outlineIssuesOnly, setOutlineIssuesOnly] = useState(false);
@@ -888,6 +889,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     if (!filteredAddableNodes.some((item) => item.type === type)) return [];
     return [node];
   }), [favoriteNodeTypes, filteredAddableNodes]);
+  const activePaletteNode = filteredAddableNodes[activePaletteNodeIndex] || filteredAddableNodes[0] || null;
   const viewBookmarkStorageKey = useMemo(() => `${viewBookmarkStoragePrefix}:${projectId}`, [projectId]);
   const graphVersionStorageKey = useMemo(() => `${graphVersionStoragePrefix}:${projectId}`, [projectId]);
   const eventLogStorageKey = useMemo(() => `${eventLogStoragePrefix}:${projectId}`, [projectId]);
@@ -1070,6 +1072,14 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       window.localStorage.removeItem(favoriteNodeStorageKey);
     }
   }, []);
+
+  useEffect(() => {
+    setActivePaletteNodeIndex(0);
+  }, [paletteCategoryFilter, paletteQuery]);
+
+  useEffect(() => {
+    setActivePaletteNodeIndex((index) => filteredAddableNodes.length ? Math.min(index, filteredAddableNodes.length - 1) : 0);
+  }, [filteredAddableNodes.length]);
 
   useEffect(() => {
     try {
@@ -1435,7 +1445,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   }
 
   function addFirstFilteredPaletteNode() {
-    const nodeType = filteredAddableNodes[0]?.type;
+    const nodeType = activePaletteNode?.type;
     if (!nodeType) {
       setStatus("当前节点面板没有匹配节点，无法快速添加。");
       return;
@@ -1444,7 +1454,30 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setPaletteQuery("");
   }
 
+  function moveActivePaletteNode(delta: number) {
+    if (!filteredAddableNodes.length) {
+      setStatus("当前节点面板没有匹配节点，无法切换。");
+      return;
+    }
+    setActivePaletteNodeIndex((index) => {
+      const nextIndex = (index + delta + filteredAddableNodes.length) % filteredAddableNodes.length;
+      const nextNode = filteredAddableNodes[nextIndex];
+      if (nextNode) setStatus(`已定位节点面板项：${nextNode.label}。`);
+      return nextIndex;
+    });
+  }
+
   function handlePaletteSearchKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      moveActivePaletteNode(1);
+      return;
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      moveActivePaletteNode(-1);
+      return;
+    }
     if (event.key === "Enter") {
       event.preventDefault();
       addFirstFilteredPaletteNode();
@@ -3862,7 +3895,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <div className="grid grid-cols-2 gap-2">
             {favoriteAddableNodes.map((item) => {
               const Icon = item.icon;
-              return <div key={item.type} className="flex items-center gap-1 rounded-md border border-amber-300/20 bg-black/15 p-1">
+              const isActive = activePaletteNode?.type === item.type;
+              return <div key={item.type} className={`flex items-center gap-1 rounded-md border p-1 ${isActive ? "border-blue-300/70 bg-blue-500/15" : "border-amber-300/20 bg-black/15"}`}>
                 <button draggable title={`添加${item.label}`} className="flex min-w-0 flex-1 items-center gap-2 rounded px-1 py-1.5 text-left text-sm text-slate-100 hover:bg-white/10" onClick={() => addNode(item.type)} onDragStart={(event) => handlePaletteNodeDragStart(event, item.type)}>
                   <span className="grid h-7 w-7 shrink-0 place-items-center rounded bg-white/10"><Icon size={15} /></span>
                   <span className="min-w-0 truncate">{item.label}</span>
@@ -3880,7 +3914,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <div className="grid grid-cols-2 gap-2">
             {recentAddableNodes.map((item) => {
               const Icon = item.icon;
-              return <button key={item.type} draggable title={`添加${item.label}`} className="flex items-center gap-2 rounded-md border border-white/10 bg-black/15 px-2 py-2 text-left text-sm text-slate-100 hover:bg-white/10" onClick={() => addNode(item.type)} onDragStart={(event) => handlePaletteNodeDragStart(event, item.type)}>
+              const isActive = activePaletteNode?.type === item.type;
+              return <button key={item.type} draggable title={`添加${item.label}`} className={`flex items-center gap-2 rounded-md border px-2 py-2 text-left text-sm text-slate-100 hover:bg-white/10 ${isActive ? "border-blue-300/70 bg-blue-500/15" : "border-white/10 bg-black/15"}`} onClick={() => addNode(item.type)} onDragStart={(event) => handlePaletteNodeDragStart(event, item.type)}>
                 <span className="grid h-7 w-7 shrink-0 place-items-center rounded bg-white/10"><Icon size={15} /></span>
                 <span className="min-w-0 truncate">{item.label}</span>
               </button>;
@@ -3928,7 +3963,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
               {items.map((item) => {
                 const Icon = item.icon;
                 const isFavorite = favoriteNodeTypeSet.has(item.type);
-                return <article key={item.type} className="flex items-start gap-2 rounded-md border border-white/10 bg-white/[0.03] p-2 hover:bg-white/10">
+                const isActive = activePaletteNode?.type === item.type;
+                return <article key={item.type} className={`flex items-start gap-2 rounded-md border p-2 hover:bg-white/10 ${isActive ? "border-blue-300/70 bg-blue-500/15" : "border-white/10 bg-white/[0.03]"}`}>
                   <button draggable className="flex min-w-0 flex-1 items-start gap-3 rounded px-1 py-1 text-left" onClick={() => addNode(item.type)} onDragStart={(event) => handlePaletteNodeDragStart(event, item.type)}>
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white/10 text-slate-100"><Icon size={17} /></span>
                     <span className="min-w-0">

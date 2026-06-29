@@ -2989,6 +2989,16 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus("素材已拖入画布。 ");
   }
 
+  function downloadJsonFile(text: string, filename: string) {
+    const blob = new Blob([text], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   function exportWorkflowJson() {
     const graph = {
       id: `export-${projectId}-${Date.now()}`,
@@ -3001,13 +3011,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       status: "draft"
     };
     const text = JSON.stringify(graph, null, 2);
-    const blob = new Blob([text], { type: "application/json;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${project?.title || "video-gen-workflow"}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
+    downloadJsonFile(text, `${project?.title || "video-gen-workflow"}.json`);
     void navigator.clipboard?.writeText(text).catch(() => undefined);
     setStatus(`已导出工作流：${graph.nodes.length} 个节点、${graph.edges.length} 条连线。`);
   }
@@ -3028,8 +3032,9 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       status: "draft"
     };
     const text = JSON.stringify(graph, null, 2);
+    downloadJsonFile(text, `${project?.title || "video-gen-workflow"}-选区.json`);
     const copiedToClipboard = await copyTextToSystemClipboard(text, `project_graph_selection_export_${projectId}`);
-    setStatus(copiedToClipboard ? `已复制选区 ProjectGraph JSON：${graph.nodes.length} 个节点、${graph.edges.length} 条连线。` : "浏览器剪贴板不可用，已把选区 ProjectGraph JSON 暂存到本地。");
+    setStatus(copiedToClipboard ? `已下载并复制选区 ProjectGraph JSON：${graph.nodes.length} 个节点、${graph.edges.length} 条连线。` : "已下载选区 ProjectGraph JSON；浏览器剪贴板不可用，已把内容暂存到本地。");
   }
 
   function importWorkflowJson() {

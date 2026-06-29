@@ -328,6 +328,20 @@ function upstreamNodeIds(targetId: string, edges: Edge[]) {
   return visited;
 }
 
+function downstreamNodeIds(sourceId: string, edges: Edge[]) {
+  const activeEdges = activeGraphEdges(edges);
+  const visited = new Set<string>();
+  const walk = (nodeId: string) => {
+    for (const edge of activeEdges) {
+      if (edge.source !== nodeId || visited.has(edge.target)) continue;
+      visited.add(edge.target);
+      walk(edge.target);
+    }
+  };
+  walk(sourceId);
+  return visited;
+}
+
 function orderedChainNodes(targetId: string, nodes: Node[], edges: Edge[]) {
   const activeEdges = activeGraphEdges(edges);
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
@@ -1480,6 +1494,22 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     selectCanvasNodesByIds(graphOutlineNodes.filter((node) => outlineIssueNodeIds.has(node.id)).map((node) => node.id), "全部问题节点");
   }
 
+  function selectSelectedUpstreamChain() {
+    if (!selectedNode) {
+      setStatus("请先选择一个节点，再选中上游链路。");
+      return;
+    }
+    selectCanvasNodesByIds([selectedNode.id, ...upstreamNodeIds(selectedNode.id, edges)], "当前上游链路");
+  }
+
+  function selectSelectedDownstreamChain() {
+    if (!selectedNode) {
+      setStatus("请先选择一个节点，再选中下游链路。");
+      return;
+    }
+    selectCanvasNodesByIds([selectedNode.id, ...downstreamNodeIds(selectedNode.id, edges)], "当前下游链路");
+  }
+
   function selectAllCanvasNodes() {
     if (!nodes.length) {
       setStatus("画布暂无节点，无法全选。");
@@ -2303,6 +2333,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy || (selectedNode.data as Record<string, unknown>).disabled === true} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setNodeContextMenu(null); void runSelectedNode(); }}>运行节点</button>
             <button disabled={busy || !selectedUpstreamInputs.length} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { fillSelectedFromUpstream(); setNodeContextMenu(null); }}>填充上游参数</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { duplicateSelectedNode(); setNodeContextMenu(null); }}>复制节点</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSelectedUpstreamChain(); setNodeContextMenu(null); }}>选中上游链路</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSelectedDownstreamChain(); setNodeContextMenu(null); }}>选中下游链路</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { copySelectedChain(); setNodeContextMenu(null); }}>复制上游链路</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { void runSelectedChain(); setNodeContextMenu(null); }}>运行上游链路</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { toggleSelectedNodeDisabled(); setNodeContextMenu(null); }}>{(selectedNode.data as Record<string, unknown>).disabled === true ? "启用节点" : "禁用节点"}</button>
@@ -2378,6 +2410,13 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <MediaPreview data={selectedData} title={String(selectedData.title || "节点预览")} />
             <p className="mt-2 truncate text-xs text-slate-500">{mediaUrlFromData(selectedData)}</p>
           </section>}
+          <section className="grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">
+            <p className="text-xs text-slate-400">链路选择</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 text-xs text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={selectSelectedUpstreamChain}><GitBranch size={14} />选中上游</button>
+              <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 text-xs text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={selectSelectedDownstreamChain}><GitBranch size={14} />选中下游</button>
+            </div>
+          </section>
           {!!selectedIncomingData.length && <section className="rounded-md border border-white/10 bg-white/[0.03] p-3">
             <div className="flex items-center justify-between gap-3">
               <div>

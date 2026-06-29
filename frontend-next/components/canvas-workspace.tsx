@@ -240,6 +240,15 @@ function mediaKindFromData(data: Record<string, unknown>, fallbackType = "") {
   return fallbackType === "video" || fallbackType === "audio" ? fallbackType : "image";
 }
 
+function composeTargetHandleForNode(node: Node) {
+  const data = node.data as Record<string, unknown>;
+  const type = String(data.nodeType || "");
+  if (type === "video" || type === "video_generation" || data.video_url || data.final_video_url) return "video";
+  if (type === "audio" || type === "tts_generation" || data.audio_url) return "audio";
+  if (type === "text" || type === "script" || data.subtitle_url || data.narration || data.text || data.script) return "subtitle";
+  return "input";
+}
+
 function MediaPreview({ data, title, compact = false }: { data: Record<string, unknown>; title: string; compact?: boolean }) {
   const url = mediaUrlFromData(data);
   if (!url) return null;
@@ -3192,13 +3201,14 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const composeNode = createFlowNode("compose_generation", { x: right + 360, y: (top + bottom) / 2 }, { title: "选区成片合成", subtitle: true });
     const timestamp = Date.now();
     const nextEdges = sourceNodes.flatMap((node, index) => {
-      const connection = { source: node.id, target: composeNode.id, sourceHandle: "output", targetHandle: "input" };
+      const targetHandle = composeTargetHandleForNode(node);
+      const connection = { source: node.id, target: composeNode.id, sourceHandle: "output", targetHandle };
       if (connectionIssueMessage(connection, edges)) return [];
       return [edgeWithDefaultHandles({
         id: `edge-selection-compose-${timestamp}-${index}`,
         ...connection,
         animated: true,
-        data: { label: "选区汇聚" }
+        data: { label: targetHandle === "video" ? "视频合成输入" : targetHandle === "audio" ? "配音合成输入" : targetHandle === "subtitle" ? "字幕合成输入" : "选区汇聚" }
       } satisfies Edge)];
     });
     if (!nextEdges.length) {
@@ -3210,7 +3220,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setEdges((items) => [...items, ...nextEdges]);
     setSelectedNodeId(composeNode.id);
     setSelectedEdgeId("");
-    setStatus(`已将选区末端 ${sourceNodes.length} 个节点汇聚到新的合成节点。`);
+    setStatus(`已将选区末端 ${sourceNodes.length} 个节点按媒体类型汇聚到新的合成节点。`);
   }
 
   function expandSelectedNodesToVideoGeneration() {

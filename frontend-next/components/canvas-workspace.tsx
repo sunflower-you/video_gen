@@ -727,6 +727,19 @@ const workflowPresets = [
     edges: [[0, 1], [1, 2], [0, 3], [2, 4], [3, 4]]
   },
   {
+    key: "creator_challenge_entry",
+    title: "创作者挑战赛参赛片",
+    description: "赛题 brief 接入海报首帧、短片镜头、宣发口播和参赛成片合成。",
+    nodes: [
+      { type: "text", offset: { x: 0, y: 0 }, data: { title: "挑战赛赛题 brief", text: "主题：用 15 秒讲清一个反转瞬间。要求：竖屏、强开场、角色清晰、结尾有记忆点。" } },
+      { type: "image_generation", offset: { x: 320, y: -120 }, data: { title: "参赛海报首帧", workflow_key: "", prompt: "15 秒反转短片海报，主角站在霓虹雨夜路口，手中信封发光，强开场，竖屏", negative_prompt: "", reference_image_url: "", model_key: "", style_prompt: "挑战赛封面，强视觉钩子，高对比，电影感", width: "768", height: "1344", seed: "-1", batch_size: "1" } },
+      { type: "video_generation", offset: { x: 650, y: -120 }, data: { title: "挑战赛短片镜头", workflow_key: "", prompt: "主角打开信封后表情骤变，城市灯牌从蓝色变成红色，镜头快速推进制造反转", negative_prompt: "", first_frame_url: "", camera_motion: "快速推进", motion_strength: "0.8", duration: "5", fps: "24" } },
+      { type: "tts_generation", offset: { x: 320, y: 150 }, data: { title: "参赛宣发口播", workflow_key: "", text: "十五秒，一个反转。她以为等来的是答案，其实只是另一个更大的谜题。", voice: "zh-CN-XiaoyiNeural", emotion: "dramatic", pitch: "1", rate: "1" } },
+      { type: "compose_generation", offset: { x: 980, y: 20 }, data: { title: "挑战赛成片提交", workflow_key: "", duration_per_shot: "5", subtitle_style: "底部黄字黑描边", transition: "fade", subtitle: true, voice: "zh-CN-XiaoyiNeural", bgm_url: "" } }
+    ],
+    edges: [[0, 1], [1, 2], [0, 3], [2, 4], [3, 4]]
+  },
+  {
     key: "image_to_video",
     title: "首帧图生视频",
     description: "参考图连到镜头视频节点，再进入成片合成。",

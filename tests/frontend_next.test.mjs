@@ -69,7 +69,7 @@ test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
   assert.match(layout, /lang="zh-CN"/);
   assert.match(layout, /漫剧工坊/);
   assert.match(page, /PlatformDashboard/);
-  for (const text of ["作品广场", "开始创作", "模板市场", "脚本成片", "Seedance 2.0", "TV Show", "创建空白项目", "刷新草稿", "暂无项目草稿", "全画幅创作入口", "快速体验 Seedance 2.0", "快速体验模板"]) {
+  for (const text of ["作品广场", "开始创作", "模板市场", "脚本成片", "创作者挑战赛", "挑战赛", "Seedance 2.0", "TV Show", "创建空白项目", "刷新草稿", "暂无项目草稿", "全画幅创作入口", "快速体验 Seedance 2.0", "快速体验模板"]) {
     assert.match(`${dashboard}\n${shell}\n${gallery}\n${workspace}\n${templates}`, new RegExp(text));
   }
   assert.doesNotMatch(shell, /发布审核/);
@@ -121,6 +121,8 @@ test("Next 前端迁移已拆分组件并提供核心路由", () => {
   assert.match(`${reviewPage}\n${adminReviewPanel}`, /审核队列/);
   assert.match(reviewPage, /AdminReviewPanel/);
   assert.match(fallbackData, /短片剧集/);
+  assert.match(fallbackData, /十五秒反转挑战/);
+  assert.match(fallbackData, /创作者挑战赛/);
   assert.match(fallbackData, /TV Show/);
   assert.match(fallbackData, /selfhost\/video_wan2\.1_fusionx/);
 });
@@ -939,6 +941,10 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /已保存选区为预设/);
   assert.match(canvasWorkspace, /选区片段/);
   assert.match(canvasWorkspace, /脚本拆解分镜/);
+  assert.match(canvasWorkspace, /creator_challenge_entry/);
+  assert.match(canvasWorkspace, /创作者挑战赛参赛片/);
+  assert.match(canvasWorkspace, /挑战赛赛题 brief/);
+  assert.match(canvasWorkspace, /挑战赛成片提交/);
   assert.match(canvasWorkspace, /tv_show_storyboard/);
   assert.match(canvasWorkspace, /TV Show 剧集开场/);
   assert.match(canvasWorkspace, /TV Show 剧集脚本/);
@@ -1071,6 +1077,9 @@ test("Next 创作工作台调用真实项目和生成接口", () => {
   assert.match(createWorkbench, /createTvShowProject/);
   assert.match(createWorkbench, /project_type: "TV Show"/);
   assert.match(createWorkbench, /preset=tv_show_storyboard/);
+  assert.match(createWorkbench, /createCreatorChallengeProject/);
+  assert.match(createWorkbench, /project_type: "创作者挑战赛"/);
+  assert.match(createWorkbench, /preset=creator_challenge_entry/);
   assert.match(createWorkbench, /setProject\(\{ \.\.\.created, characters: analyzed\.characters, shots: analyzed\.shots/);
   assert.match(createWorkbench, /generate-image/);
   assert.match(createWorkbench, /batch-generate/);
@@ -1078,7 +1087,7 @@ test("Next 创作工作台调用真实项目和生成接口", () => {
   assert.match(createWorkbench, /compose/);
   assert.match(createWorkbench, /href=\{`\/workspace\/\$\{project\.id\}`\}/);
   assert.match(createWorkbench, /window\.location\.href = `\/workspace\/\$\{created\.id\}`/);
-  for (const text of ["创建项目并生成分镜草稿", "复刻模板并生成分镜草稿", "模板复刻项目已继承", "Seedance 2.0 快速体验", "创建 TV Show", "9:16 竖屏短视频", "16:9 横屏短片", "1:1 方形画布", "创建空白项目", "参考图 URL", "批量生成素材", "生成时间线", "合成成片", "任务队列", "积分余额不足", "进入项目工作台"]) {
+  for (const text of ["创建项目并生成分镜草稿", "复刻模板并生成分镜草稿", "模板复刻项目已继承", "Seedance 2.0 快速体验", "创建 TV Show", "参加创作者挑战赛", "9:16 竖屏短视频", "16:9 横屏短片", "1:1 方形画布", "创建空白项目", "参考图 URL", "批量生成素材", "生成时间线", "合成成片", "任务队列", "积分余额不足", "进入项目工作台"]) {
     assert.match(createWorkbench, new RegExp(text));
   }
 });

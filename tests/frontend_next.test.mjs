@@ -168,10 +168,13 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /已恢复画布视图书签/);
   assert.match(canvasWorkspace, /已适配选区视图/);
   assert.match(canvasWorkspace, /selectAllCanvasNodes/);
+  assert.match(canvasWorkspace, /invertCanvasSelection/);
   assert.match(canvasWorkspace, /clearCanvasSelection/);
   assert.match(canvasWorkspace, /全选画布节点/);
+  assert.match(canvasWorkspace, /反选画布节点/);
   assert.match(canvasWorkspace, /清空当前选区/);
   assert.match(canvasWorkspace, /已全选画布节点/);
+  assert.match(canvasWorkspace, /已反选画布节点/);
   assert.match(canvasWorkspace, /已清空当前节点和连线选区/);
   assert.match(canvasWorkspace, /提示词/);
   assert.match(canvasWorkspace, /首帧/);

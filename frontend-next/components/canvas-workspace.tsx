@@ -856,6 +856,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "a") {
         event.preventDefault();
+        if (event.shiftKey) {
+          invertCanvasSelection();
+          return;
+        }
         selectAllCanvasNodes();
         return;
       }
@@ -1764,6 +1768,26 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已全选画布节点：${nodes.length} 个，可继续批量整理、打组、复制或运行链路。`);
   }
 
+  function invertCanvasSelection() {
+    if (!nodes.length) {
+      setStatus("画布暂无节点，无法反选。");
+      return;
+    }
+    const nextSelectedNodes = nodes.filter((node) => !selectedNodeIds.has(node.id));
+    if (!nextSelectedNodes.length) {
+      clearCanvasSelection();
+      setStatus("已反选画布节点：当前没有剩余节点，已清空选区。");
+      return;
+    }
+    const nextSelectedIds = new Set(nextSelectedNodes.map((node) => node.id));
+    setNodes((items) => items.map((node) => ({ ...node, selected: nextSelectedIds.has(node.id) })));
+    setSelectedNodeId(nextSelectedNodes[nextSelectedNodes.length - 1].id);
+    setSelectedEdgeId("");
+    setNodeContextMenu(null);
+    setEdgeContextMenu(null);
+    setStatus(`已反选画布节点：${nextSelectedNodes.length} 个，可继续批量整理、打组、复制或运行链路。`);
+  }
+
   function clearCanvasSelection() {
     setNodes((items) => items.map((node) => ({ ...node, selected: false })));
     setSelectedNodeId("");
@@ -2520,6 +2544,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         <button title="添加节点" className="grid h-10 w-10 place-items-center rounded-md bg-blue-600 text-white hover:bg-blue-500" onClick={() => setShowPalette((value) => !value)}><Plus size={18} /></button>
         <button title="节点大纲" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowOutline((value) => !value)}><ListTree size={18} /></button>
         <button title="全选画布节点" disabled={!nodes.length} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={selectAllCanvasNodes}><CheckSquare size={18} /></button>
+        <button title="反选画布节点" disabled={!nodes.length} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={invertCanvasSelection}><CheckSquare size={18} /></button>
         <button title="清空当前选区" disabled={!selectedNodes.length && !selectedEdge} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={clearCanvasSelection}><XSquare size={18} /></button>
         <button title="适配全部节点" disabled={!nodes.length} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={fitGraphView}><Maximize2 size={18} /></button>
         <button title="适配选中节点" disabled={!selectedNodes.length} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={fitSelectedNodeView}><Focus size={18} /></button>

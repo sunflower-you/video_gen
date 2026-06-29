@@ -8,6 +8,23 @@ const defaultScript = "女主在雨夜车站等待失联多年的哥哥，一辆
 const seedanceQuickPrompt = "电影感雨夜车站，主角回头，镜头缓慢推进，霓虹雨滴划过画面。";
 const tvShowQuickScript = "冷开场：女主持走入未来新闻演播厅，灯光依次亮起，屏幕出现本集主题。第一幕：嘉宾在雨夜城市连线，抛出悬念问题。";
 const creatorChallengeScript = "主题：用 15 秒讲清一个反转瞬间。主角在霓虹雨夜打开信封，以为等来的是答案，其实只是另一个更大的谜题。";
+const quickStartModes = {
+  seedance2: {
+    title: "Seedance 2.0 快速体验",
+    script: seedanceQuickPrompt,
+    status: "已预选 Seedance 2.0 快速体验，可一键创建图生视频画布。"
+  },
+  "tv-show": {
+    title: "TV Show 剧集开场",
+    script: tvShowQuickScript,
+    status: "已预选 TV Show 剧集开场，可一键创建剧集分镜画布。"
+  },
+  "creator-challenge": {
+    title: "创作者挑战赛参赛片",
+    script: creatorChallengeScript,
+    status: "已预选创作者挑战赛，可一键创建参赛片画布。"
+  }
+};
 type ProjectAnalysis = {
   characters: Character[];
   shots: StoryboardShot[];
@@ -29,6 +46,13 @@ export function CreateWorkbench() {
 
   useEffect(() => {
     void loadTemplates();
+    const quick = new URLSearchParams(window.location.search).get("quick") || "";
+    const mode = quickStartModes[quick as keyof typeof quickStartModes];
+    if (mode) {
+      setTitle(mode.title);
+      setScript(mode.script);
+      setStatus(mode.status);
+    }
   }, []);
 
   async function loadTemplates() {

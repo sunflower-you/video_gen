@@ -14,6 +14,12 @@ export type WorkQuery = {
   sortBy: string;
 };
 
+const channelShortcuts = [
+  { label: "全部", category: "全部" },
+  { label: "创作者挑战赛", category: "创作者挑战赛" },
+  { label: "TV Show", category: "TV Show" }
+];
+
 function fallbackFilter(works: Work[], query: WorkQuery): Work[] {
   const keyword = query.keyword.trim();
   const filtered = works.filter((item) => {
@@ -82,14 +88,26 @@ export function PlatformDashboard() {
           <h1 className="mt-1 text-2xl font-semibold">作品广场与全画幅创作入口</h1>
           <p className="mt-2 max-w-3xl text-sm text-muted">从作品、模板或脚本开始创作，进入全屏节点画布后可添加文本、图片、视频、音频、脚本和平台生成节点。</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
           <a className="rounded-md bg-accent px-4 py-2 text-white" href="/create">开始创作</a>
-          <a className="rounded-md border border-line px-4 py-2" href="/create">创作者挑战赛</a>
-          <a className="rounded-md border border-line px-4 py-2" href="/create">快速体验 Seedance 2.0</a>
-          <a className="rounded-md border border-line px-4 py-2" href="/create">TV Show</a>
+          <a className="rounded-md border border-line px-4 py-2" href="/create?quick=creator-challenge">创作者挑战赛</a>
+          <a className="rounded-md border border-line px-4 py-2" href="/create?quick=seedance2">快速体验 Seedance 2.0</a>
+          <a className="rounded-md border border-line px-4 py-2" href="/create?quick=tv-show">TV Show</a>
           <a className="rounded-md border border-line px-4 py-2" href="/templates">快速体验模板</a>
         </div>
       </header>
+      <nav className="mb-4 flex flex-wrap gap-2 rounded-panel border border-line bg-panel p-3 text-sm">
+        {channelShortcuts.map((item) => (
+          <button
+            key={item.label}
+            className={`rounded-md border px-3 py-2 ${workQuery.category === item.category ? "border-accent bg-accent text-white" : "border-line hover:border-accent"}`}
+            onClick={() => setWorkQuery((query) => ({ ...query, category: item.category }))}
+          >
+            {item.label}
+          </button>
+        ))}
+        <a className="rounded-md border border-line px-3 py-2 hover:border-accent" href="/create?quick=seedance2">Seedance 2.0</a>
+      </nav>
       <section className="grid grid-cols-[minmax(0,1.35fr)_420px] gap-4">
         <WorkGallery works={works} query={workQuery} status={workStatus} onQueryChange={setWorkQuery} />
         <WorkspacePanel />

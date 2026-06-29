@@ -81,6 +81,11 @@ test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
   assert.match(dashboard, /params\.set\("keyword", query\.keyword\.trim\(\)\)/);
   assert.match(dashboard, /apiFetch\(`\/api\/works\?\$\{params\.toString\(\)\}`\)/);
   assert.match(dashboard, /apiFetch\("\/api\/templates"\)/);
+  assert.match(dashboard, /channelShortcuts/);
+  assert.match(dashboard, /href="\/create\?quick=creator-challenge"/);
+  assert.match(dashboard, /href="\/create\?quick=seedance2"/);
+  assert.match(dashboard, /href="\/create\?quick=tv-show"/);
+  assert.match(dashboard, /setWorkQuery\(\(query\) => \(\{ \.\.\.query, category: item\.category \}\)\)/);
   assert.match(workspace, /"use client"/);
   assert.match(workspace, /apiFetch\(`\/api\/projects\?owner_id=/);
   assert.match(workspace, /postJson<Project>\("\/api\/projects"/);
@@ -1071,6 +1076,11 @@ test("Next 创作工作台调用真实项目和生成接口", () => {
   assert.match(createWorkbench, /reference_image_url: projectType === "图片成片" \? referenceImageUrl : ""/);
   assert.match(createWorkbench, /projectType === "空白项目"/);
   assert.match(createWorkbench, /projectType === "模板复刻"/);
+  assert.match(createWorkbench, /quickStartModes/);
+  assert.match(createWorkbench, /new URLSearchParams\(window\.location\.search\)\.get\("quick"\)/);
+  assert.match(createWorkbench, /已预选 Seedance 2\.0 快速体验/);
+  assert.match(createWorkbench, /已预选 TV Show 剧集开场/);
+  assert.match(createWorkbench, /已预选创作者挑战赛/);
   assert.match(createWorkbench, /createSeedanceQuickProject/);
   assert.match(createWorkbench, /project_type: "Seedance 2\.0 快速体验"/);
   assert.match(createWorkbench, /preset=seedance2_image_video/);

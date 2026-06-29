@@ -388,7 +388,11 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /activeGraphEdges/);
   assert.match(canvasWorkspace, /deleteSelectedEdge/);
   assert.match(canvasWorkspace, /runSelectedChain/);
+  assert.match(canvasWorkspace, /runSelectedNodes/);
   assert.match(canvasWorkspace, /运行全图/);
+  assert.match(canvasWorkspace, /运行选区/);
+  assert.match(canvasWorkspace, /正在运行选区/);
+  assert.match(canvasWorkspace, /选区运行完成/);
   assert.match(canvasWorkspace, /整理画布/);
   assert.match(canvasWorkspace, /terminalNodeIds/);
   assert.match(canvasWorkspace, /orderedGraphNodes/);

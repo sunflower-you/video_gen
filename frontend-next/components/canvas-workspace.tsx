@@ -1671,6 +1671,42 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     }
   }
 
+  async function runSelectedNodes() {
+    if (!selectedNodes.length) {
+      setStatus("请先框选或点选节点，再运行选区。");
+      return;
+    }
+    const selectedIds = new Set(selectedNodes.map((node) => node.id));
+    const selectedEdges = activeEdges.filter((edge) => selectedIds.has(edge.source) && selectedIds.has(edge.target));
+    const orderedNodes = orderedGraphNodes(selectedNodes, selectedEdges);
+    if (showRunBlockingIssue(blockingValidationIssues(orderedNodes.map((node) => node.id)), "运行选区")) return;
+    const runnableNodes = orderedNodes.filter((node) => !isNodeDisabled(node));
+    const skippedCount = orderedNodes.length - runnableNodes.length;
+    if (!runnableNodes.length) {
+      setStatus("选区节点均已禁用，未执行运行。");
+      return;
+    }
+    await saveGraph();
+    setBusy(true);
+    setStatus(`正在运行选区：${runnableNodes.length} 个节点${skippedCount ? `，跳过 ${skippedCount} 个禁用节点` : ""}...`);
+    try {
+      for (const node of runnableNodes) {
+        const response = await postJson<{ node?: ProjectGraphNode; task?: GenerationTask; message?: string }>(`/api/projects/${projectId}/graph/nodes/${node.id}/run`, {
+          user_id: currentUserId()
+        });
+        if (response.node) {
+          setNodes((items) => items.map((item) => item.id === node.id ? toFlowNode(response.node as ProjectGraphNode) : item));
+        }
+      }
+      setStatus(`选区运行完成：${runnableNodes.length} 个节点已按依赖顺序处理${skippedCount ? `，已跳过 ${skippedCount} 个禁用节点` : ""}。`);
+      await refreshAll();
+    } catch (error) {
+      setStatus(error instanceof Error ? `选区运行失败：${error.message}` : "选区运行失败。请检查节点参数后重试。");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function runCanvasGraph() {
     if (showRunBlockingIssue(graphValidation.issues.filter((issue) => issue.level === "error"), "运行全图")) return;
     const orderedNodes = orderedGraphNodes(nodes, edges);
@@ -2358,6 +2394,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         </div>
         <div className="mt-2 grid gap-1">
           {selectedNodes.length > 1 ? <>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setNodeContextMenu(null); void runSelectedNodes(); }}>运行选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { copySelectedNodes(); setNodeContextMenu(null); }}>复制选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { duplicateSelectedNodes(); setNodeContextMenu(null); }}>生成选区副本</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { autoLayoutSelectedNodes(); setNodeContextMenu(null); }}>整理选区</button>
@@ -2426,6 +2463,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             </div>
           </section>
           <div className="grid grid-cols-2 gap-2">
+            <button disabled={busy} className="col-span-2 inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-3 py-2 disabled:opacity-50" onClick={() => void runSelectedNodes()}><Play size={16} />运行选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={copySelectedNodes}><ClipboardCopy size={16} />复制选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={duplicateSelectedNodes}><Copy size={16} />生成副本</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={pasteCopiedSelection}><ClipboardPaste size={16} />粘贴选区</button>

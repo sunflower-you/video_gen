@@ -170,7 +170,16 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /showCommandPalette/);
   assert.match(canvasWorkspace, /commandPaletteItems/);
   assert.match(canvasWorkspace, /filteredCommandPaletteItems/);
+  assert.match(canvasWorkspace, /activeCommandPaletteIndex/);
+  assert.match(canvasWorkspace, /activeCommandPaletteItem/);
+  assert.match(canvasWorkspace, /handleCommandPaletteKeyDown/);
+  assert.match(canvasWorkspace, /moveActiveCommandPaletteItem/);
+  assert.match(canvasWorkspace, /runCommandPaletteItem/);
+  assert.match(canvasWorkspace, /当前命令面板没有匹配命令，无法执行/);
+  assert.match(canvasWorkspace, /当前命令不可执行/);
+  assert.match(canvasWorkspace, /已定位命令/);
   assert.match(canvasWorkspace, /搜索命令、面板、导入导出、运行或视图操作/);
+  assert.match(canvasWorkspace, /onKeyDown=\{handleCommandPaletteKeyDown\}/);
   assert.match(canvasWorkspace, /没有匹配的画布命令，请换一个关键词/);
   assert.match(canvasWorkspace, /Ctrl\/⌘ K/);
   assert.match(canvasWorkspace, /迷你地图/);

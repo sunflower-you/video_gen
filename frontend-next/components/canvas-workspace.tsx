@@ -713,6 +713,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [paletteCategoryFilter, setPaletteCategoryFilter] = useState("all");
   const [activePaletteNodeIndex, setActivePaletteNodeIndex] = useState(0);
   const [commandQuery, setCommandQuery] = useState("");
+  const [activeCommandPaletteIndex, setActiveCommandPaletteIndex] = useState(0);
   const [outlineQuery, setOutlineQuery] = useState("");
   const [outlineIssuesOnly, setOutlineIssuesOnly] = useState(false);
   const [assetTypeFilter, setAssetTypeFilter] = useState("all");
@@ -1106,11 +1107,13 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         event.preventDefault();
         setShowCommandPalette((value) => !value);
         setCommandQuery("");
+        setActiveCommandPaletteIndex(0);
         return;
       }
       if (event.key === "Escape" && showCommandPalette) {
         setShowCommandPalette(false);
         setCommandQuery("");
+        setActiveCommandPaletteIndex(0);
         return;
       }
       if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
@@ -3648,6 +3651,69 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     if (!query) return true;
     return [item.title, item.description, item.shortcut || ""].some((value) => value.toLowerCase().includes(query));
   });
+  const activeCommandPaletteItem = filteredCommandPaletteItems[activeCommandPaletteIndex] || filteredCommandPaletteItems[0] || null;
+
+  useEffect(() => {
+    setActiveCommandPaletteIndex(0);
+  }, [commandQuery]);
+
+  useEffect(() => {
+    setActiveCommandPaletteIndex((index) => filteredCommandPaletteItems.length ? Math.min(index, filteredCommandPaletteItems.length - 1) : 0);
+  }, [filteredCommandPaletteItems.length]);
+
+  function closeCommandPalette() {
+    setShowCommandPalette(false);
+    setCommandQuery("");
+    setActiveCommandPaletteIndex(0);
+  }
+
+  function runCommandPaletteItem(item = activeCommandPaletteItem) {
+    if (!item) {
+      setStatus("当前命令面板没有匹配命令，无法执行。");
+      return;
+    }
+    if (item.disabled) {
+      setStatus(`当前命令不可执行：${item.title}。`);
+      return;
+    }
+    closeCommandPalette();
+    item.run();
+  }
+
+  function moveActiveCommandPaletteItem(delta: number) {
+    if (!filteredCommandPaletteItems.length) {
+      setStatus("当前命令面板没有匹配命令，无法切换。");
+      return;
+    }
+    setActiveCommandPaletteIndex((index) => {
+      const nextIndex = (index + delta + filteredCommandPaletteItems.length) % filteredCommandPaletteItems.length;
+      const nextCommand = filteredCommandPaletteItems[nextIndex];
+      if (nextCommand) setStatus(`已定位命令：${nextCommand.title}。`);
+      return nextIndex;
+    });
+  }
+
+  function handleCommandPaletteKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      moveActiveCommandPaletteItem(1);
+      return;
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      moveActiveCommandPaletteItem(-1);
+      return;
+    }
+    if (event.key === "Enter") {
+      event.preventDefault();
+      runCommandPaletteItem();
+      return;
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeCommandPalette();
+    }
+  }
 
   return (
     <main className="h-screen overflow-hidden bg-[#0b1020] text-white">
@@ -3658,7 +3724,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         </div>
         <div className="flex items-center gap-2 text-sm">
           <span className="max-w-[420px] truncate rounded border border-white/10 bg-white/5 px-3 py-2 text-slate-300">{status}</span>
-          <button className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 text-slate-100 hover:bg-white/10" onClick={() => { setShowCommandPalette(true); setCommandQuery(""); }}><Search size={16} />命令</button>
+          <button className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 text-slate-100 hover:bg-white/10" onClick={() => { setShowCommandPalette(true); setCommandQuery(""); setActiveCommandPaletteIndex(0); }}><Search size={16} />命令</button>
           <button disabled={busy} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={() => void refreshAll()}><RefreshCcw size={16} />刷新</button>
           <button disabled={busy || !graphPast.length} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={undoGraphChange}><Undo2 size={16} />撤销</button>
           <button disabled={busy || !graphFuture.length} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={redoGraphChange}><Redo2 size={16} />重做</button>
@@ -3674,31 +3740,28 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
       {showCommandPalette && <div className="absolute inset-0 z-40 bg-black/40 backdrop-blur-sm" onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
-          setShowCommandPalette(false);
-          setCommandQuery("");
+          closeCommandPalette();
         }
       }}>
         <section className="mx-auto mt-24 w-[min(560px,calc(100vw-32px))] overflow-hidden rounded-lg border border-white/10 bg-slate-950/95 shadow-2xl">
           <div className="border-b border-white/10 p-3">
             <label className="flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm">
               <Search size={16} className="text-slate-400" />
-              <input autoFocus className="w-full bg-transparent outline-none placeholder:text-slate-500" placeholder="搜索命令、面板、导入导出、运行或视图操作" value={commandQuery} onChange={(event) => setCommandQuery(event.target.value)} />
+              <input autoFocus className="w-full bg-transparent outline-none placeholder:text-slate-500" placeholder="搜索命令、面板、导入导出、运行或视图操作" value={commandQuery} onChange={(event) => setCommandQuery(event.target.value)} onKeyDown={handleCommandPaletteKeyDown} />
               <span className="rounded border border-white/10 px-2 py-1 text-[11px] text-slate-400">Ctrl/⌘ K</span>
             </label>
           </div>
           <div className="max-h-[520px] overflow-auto p-2">
-            {filteredCommandPaletteItems.map((item) => <button key={item.key} disabled={item.disabled} className="flex w-full items-start justify-between gap-4 rounded-md px-3 py-3 text-left hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40" onClick={() => {
-              if (item.disabled) return;
-              setShowCommandPalette(false);
-              setCommandQuery("");
-              item.run();
-            }}>
+            {filteredCommandPaletteItems.map((item) => {
+              const isActive = activeCommandPaletteItem?.key === item.key;
+              return <button key={item.key} disabled={item.disabled} className={`flex w-full items-start justify-between gap-4 rounded-md px-3 py-3 text-left hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 ${isActive ? "bg-blue-500/15 ring-1 ring-blue-300/50" : ""}`} onClick={() => runCommandPaletteItem(item)}>
               <span className="min-w-0">
                 <span className="block text-sm font-medium text-white">{item.title}</span>
                 <span className="mt-1 block text-xs leading-5 text-slate-400">{item.description}</span>
               </span>
               {item.shortcut && <span className="shrink-0 rounded border border-white/10 px-2 py-1 text-[11px] text-slate-400">{item.shortcut}</span>}
-            </button>)}
+            </button>;
+            })}
             {!filteredCommandPaletteItems.length && <p className="rounded-md border border-white/10 px-3 py-4 text-sm text-slate-400">没有匹配的画布命令，请换一个关键词。</p>}
           </div>
         </section>

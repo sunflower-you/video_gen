@@ -20,7 +20,7 @@ import {
   type NodeProps,
   type ReactFlowInstance
 } from "@xyflow/react";
-import { AlertTriangle, AlignHorizontalDistributeCenter, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, AlignHorizontalJustifyStart, AlignVerticalDistributeCenter, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, Ban, Boxes, CheckSquare, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, Focus, GitBranch, Image, LayoutGrid, Library, ListTree, Lock, Map as MapIcon, Maximize2, Minimize2, Music, Play, Plus, Redo2, RefreshCcw, RotateCcw, Save, Search, Sparkles, Trash2, Undo2, Unlock, Upload, Video, Wand2, XSquare } from "lucide-react";
+import { AlertTriangle, AlignHorizontalDistributeCenter, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, AlignHorizontalJustifyStart, AlignVerticalDistributeCenter, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, Ban, Boxes, CheckSquare, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, Focus, GitBranch, Image, LayoutGrid, Library, ListTree, Lock, Map as MapIcon, Maximize2, Minimize2, Music, Play, Plus, Redo2, RefreshCcw, RotateCcw, Save, Search, Sparkles, Trash2, Undo2, Unlock, Upload, Video, Wand2, XSquare, ZoomIn, ZoomOut } from "lucide-react";
 import { apiFetch, currentUserId, deleteJson, postJson, type Asset, type GenerationTask, type Project, type ProjectGraph, type ProjectGraphNode, type StoryboardShot } from "../lib/api";
 
 const nodeLabels: Record<string, string> = {
@@ -2095,6 +2095,25 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus("已重置画布视口。");
   }
 
+  function zoomCanvas(direction: "in" | "out") {
+    const viewport = currentCanvasViewport();
+    const currentZoom = viewport.zoom || 1;
+    const nextZoom = Math.min(1.8, Math.max(0.25, Number((currentZoom * (direction === "in" ? 1.18 : 0.82)).toFixed(3))));
+    const screenCenter = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    const flowCenter = {
+      x: (screenCenter.x - viewport.x) / currentZoom,
+      y: (screenCenter.y - viewport.y) / currentZoom
+    };
+    const nextViewport = {
+      x: screenCenter.x - flowCenter.x * nextZoom,
+      y: screenCenter.y - flowCenter.y * nextZoom,
+      zoom: nextZoom
+    };
+    void flowInstance?.setViewport(nextViewport, { duration: 240 });
+    setInitialViewport(nextViewport);
+    setStatus(direction === "in" ? `已放大画布到 ${Math.round(nextZoom * 100)}%。` : `已缩小画布到 ${Math.round(nextZoom * 100)}%。`);
+  }
+
   function persistViewBookmarks(next: CanvasViewBookmark[]) {
     setViewBookmarks(next);
     window.localStorage.setItem(viewBookmarkStorageKey, JSON.stringify(next));
@@ -2875,6 +2894,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         <button title="全选画布节点" disabled={!nodes.length} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={selectAllCanvasNodes}><CheckSquare size={18} /></button>
         <button title="反选画布节点" disabled={!nodes.length} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={invertCanvasSelection}><CheckSquare size={18} /></button>
         <button title="清空当前选区" disabled={!selectedNodes.length && !selectedEdge} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={clearCanvasSelection}><XSquare size={18} /></button>
+        <button title="放大画布" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => zoomCanvas("in")}><ZoomIn size={18} /></button>
+        <button title="缩小画布" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => zoomCanvas("out")}><ZoomOut size={18} /></button>
         <button title="适配全部节点" disabled={!nodes.length} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={fitGraphView}><Maximize2 size={18} /></button>
         <button title="适配选中节点" disabled={!selectedNodes.length} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={fitSelectedNodeView}><Focus size={18} /></button>
         <button title="重置画布视口" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={resetCanvasViewport}><RotateCcw size={18} /></button>

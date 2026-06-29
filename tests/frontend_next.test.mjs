@@ -169,6 +169,11 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /画布导航器/);
   assert.match(canvasWorkspace, /迷你地图/);
   assert.match(canvasWorkspace, /释放右下角预览空间/);
+  assert.match(canvasWorkspace, /zoomCanvas/);
+  assert.match(canvasWorkspace, /放大画布/);
+  assert.match(canvasWorkspace, /缩小画布/);
+  assert.match(canvasWorkspace, /已放大画布到/);
+  assert.match(canvasWorkspace, /已缩小画布到/);
   assert.match(canvasWorkspace, /适配全部节点/);
   assert.match(canvasWorkspace, /适配选中节点/);
   assert.match(canvasWorkspace, /重置画布视口/);

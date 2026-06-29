@@ -644,6 +644,11 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const titles = new Set(selectedNodes.map((node) => String((node.data as Record<string, unknown>).group_title || "")).filter(Boolean));
     return [...titles];
   }, [selectedNodes]);
+  const selectedGroupIds = useMemo(() => {
+    const ids = new Set(selectedNodes.map((node) => String((node.data as Record<string, unknown>).group_id || "")).filter(Boolean));
+    return ids;
+  }, [selectedNodes]);
+  const selectedGroupTitleValue = selectedGroupTitles.length === 1 ? selectedGroupTitles[0] : "";
   const shotOptions = useMemo(() => project?.shots || [], [project]);
   const taskById = useMemo(() => new Map(tasks.map((task) => [task.id, task])), [tasks]);
   const selectedTask = useMemo(() => {
@@ -1761,6 +1766,19 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已打组选区：${groupTitle}，可继续复制、整理或保存为我的工作流预设。`);
   }
 
+  function updateSelectedGroupTitle(title: string, announce = false) {
+    if (!selectedGroupIds.size) {
+      if (announce) setStatus("当前选区没有已打组节点。");
+      return;
+    }
+    setNodes((items) => items.map((node) => {
+      const groupId = String((node.data as Record<string, unknown>).group_id || "");
+      if (!selectedGroupIds.has(groupId)) return node;
+      return { ...node, data: { ...(node.data as Record<string, unknown>), group_title: title } };
+    }));
+    if (announce) setStatus(`已更新分组名称：${title || "未命名分组"}。`);
+  }
+
   function ungroupSelectedNodes() {
     if (!selectedNodes.length) return;
     const groupedCount = selectedNodes.filter((node) => String((node.data as Record<string, unknown>).group_id || "")).length;
@@ -2208,6 +2226,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <p className="mt-2 text-xs leading-5 text-slate-400">选区内包含 {selectedSelectionEdges.length} 条内部连线，可批量复制、整理、打组、锁定、禁用或删除。</p>
             {!!selectedGroupTitles.length && <p className="mt-2 truncate text-xs text-blue-100">已在组：{selectedGroupTitles.join("、")}</p>}
           </section>
+          {!!selectedGroupIds.size && <label className="grid gap-1 rounded-md border border-white/10 bg-white/[0.03] p-3">
+            <span className="text-xs text-slate-400">分组名称</span>
+            <input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" placeholder={selectedGroupTitles.length > 1 ? "多个分组，将统一改名" : "输入分组名称"} value={selectedGroupTitleValue} onFocus={rememberGraphHistory} onChange={(event) => updateSelectedGroupTitle(event.target.value)} onBlur={(event) => updateSelectedGroupTitle(event.target.value, true)} />
+          </label>}
           <div className="grid grid-cols-2 gap-2">
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={copySelectedNodes}><ClipboardCopy size={16} />复制选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={duplicateSelectedNodes}><Copy size={16} />生成副本</button>

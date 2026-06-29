@@ -18,7 +18,7 @@ import {
   type NodeProps,
   type ReactFlowInstance
 } from "@xyflow/react";
-import { AlertTriangle, Boxes, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, GitBranch, Image, LayoutGrid, Library, ListTree, Lock, Music, Play, Plus, Redo2, RefreshCcw, Save, Search, Sparkles, Trash2, Undo2, Unlock, Upload, Video, Wand2 } from "lucide-react";
+import { AlertTriangle, Ban, Boxes, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, GitBranch, Image, LayoutGrid, Library, ListTree, Lock, Music, Play, Plus, Redo2, RefreshCcw, Save, Search, Sparkles, Trash2, Undo2, Unlock, Upload, Video, Wand2 } from "lucide-react";
 import { apiFetch, currentUserId, deleteJson, postJson, type Asset, type GenerationTask, type Project, type ProjectGraph, type ProjectGraphNode, type StoryboardShot } from "../lib/api";
 
 const nodeLabels: Record<string, string> = {
@@ -59,6 +59,10 @@ function statusText(status?: string) {
   return map[status || "draft"] || status || "草稿";
 }
 
+function isNodeDisabled(node: Node) {
+  return (node.data as Record<string, unknown>).disabled === true;
+}
+
 function mediaUrlFromData(data: Record<string, unknown>) {
   return String(data.image_url || data.video_url || data.audio_url || data.first_frame_url || data.output_url || data.result_url || data.final_video_url || "");
 }
@@ -94,11 +98,12 @@ function PlatformNode({ data, selected }: NodeProps) {
   const summary = String(payload.text || payload.script || payload.prompt || payload.narration || payload.result_summary || payload.workflow_key || "等待编辑参数");
   const status = String(payload.status || "draft");
   const locked = payload.locked === true;
+  const disabled = payload.disabled === true;
   return (
-    <div className={`w-[240px] rounded-lg border p-3 text-white shadow-xl ${nodeColors[type] || nodeColors.demo} ${selected ? "ring-2 ring-white" : ""}`}>
+    <div className={`w-[240px] rounded-lg border p-3 text-white shadow-xl ${nodeColors[type] || nodeColors.demo} ${selected ? "ring-2 ring-white" : ""} ${disabled ? "opacity-60 grayscale" : ""}`}>
       <div className="flex items-center justify-between gap-2">
         <strong className="truncate text-sm">{title}</strong>
-        <span className="inline-flex items-center gap-1 rounded bg-black/30 px-2 py-1 text-[11px]">{locked && <Lock size={11} />}{statusText(status)}</span>
+        <span className="inline-flex items-center gap-1 rounded bg-black/30 px-2 py-1 text-[11px]">{disabled ? <Ban size={11} /> : locked ? <Lock size={11} /> : null}{disabled ? "已禁用" : statusText(status)}</span>
       </div>
       {mediaUrlFromData(payload) && <div className="mt-2 overflow-hidden rounded-md border border-white/10 bg-black/30"><MediaPreview data={payload} title={title} compact /></div>}
       <p className="mt-2 line-clamp-3 text-xs text-slate-200">{summary}</p>
@@ -322,6 +327,10 @@ function validateCanvasGraph(nodes: Node[], edges: Edge[]) {
     const title = String(data.title || nodeLabels[type] || node.id);
     const hasIncoming = edges.some((edge) => edge.target === node.id);
     const hasOutgoing = edges.some((edge) => edge.source === node.id);
+    if (data.disabled === true) {
+      issues.push({ id: `disabled-${node.id}`, level: "warning", nodeId: node.id, title: "节点已禁用", detail: `${title} 会保留在画布中，但运行链路和全图时会跳过。` });
+      continue;
+    }
     if (!hasIncoming && !hasOutgoing && nodes.length > 1) {
       issues.push({ id: `isolated-${node.id}`, level: "warning", nodeId: node.id, title: "节点未接入链路", detail: `${title} 暂未连接到其他节点。` });
     }
@@ -920,6 +929,14 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(nextLocked ? "节点已锁定，防止误拖动和误删。" : "节点已解锁，可继续编辑位置和结构。");
   }
 
+  function toggleSelectedNodeDisabled() {
+    if (!selectedNode) return;
+    const nextDisabled = (selectedNode.data as Record<string, unknown>).disabled !== true;
+    rememberGraphHistory();
+    setNodes((items) => items.map((node) => node.id === selectedNode.id ? { ...node, data: { ...node.data, disabled: nextDisabled } } : node));
+    setStatus(nextDisabled ? "节点已禁用，运行链路和全图时会跳过。" : "节点已启用，可继续参与运行。");
+  }
+
   function fillSelectedFromUpstream() {
     if (!selectedNode) return;
     if (!selectedUpstreamInputs.length) {
@@ -976,6 +993,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   async function runSelectedNode() {
     if (!selectedNode) return;
+    if (isNodeDisabled(selectedNode)) {
+      setStatus("节点已禁用，请先启用再运行。");
+      return;
+    }
     await saveGraph();
     setBusy(true);
     setStatus("正在运行节点...");
@@ -1011,10 +1032,16 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     await saveGraph();
     const upstream = upstreamNodeIds(nodeId, edges);
     const orderedNodes = orderedChainNodes(nodeId, nodes, edges);
+    const runnableNodes = orderedNodes.filter((node) => !isNodeDisabled(node));
+    const skippedCount = orderedNodes.length - runnableNodes.length;
+    if (!runnableNodes.length) {
+      setStatus("当前链路节点均已禁用，未执行运行。");
+      return;
+    }
     setBusy(true);
-    setStatus(`正在运行链路，上游 ${upstream.size} 个，共 ${orderedNodes.length} 个节点...`);
+    setStatus(`正在运行链路，上游 ${upstream.size} 个，共 ${runnableNodes.length} 个节点${skippedCount ? `，跳过 ${skippedCount} 个禁用节点` : ""}...`);
     try {
-      for (const node of orderedNodes) {
+      for (const node of runnableNodes) {
         const response = await postJson<{ node?: ProjectGraphNode; task?: GenerationTask; message?: string }>(`/api/projects/${projectId}/graph/nodes/${node.id}/run`, {
           user_id: currentUserId()
         });
@@ -1022,7 +1049,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           setNodes((items) => items.map((item) => item.id === node.id ? toFlowNode(response.node as ProjectGraphNode) : item));
         }
       }
-      setStatus(`链路运行完成：${orderedNodes.length} 个节点已处理。`);
+      setStatus(`链路运行完成：${runnableNodes.length} 个节点已处理${skippedCount ? `，已跳过 ${skippedCount} 个禁用节点` : ""}。`);
       await refreshAll();
     } catch (error) {
       setStatus(error instanceof Error ? `链路运行失败：${error.message}` : "链路运行失败。请检查节点参数后重试。");
@@ -1034,15 +1061,21 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   async function runCanvasGraph() {
     const orderedNodes = orderedGraphNodes(nodes, edges);
     const terminals = terminalNodeIds(nodes, edges);
+    const runnableNodes = orderedNodes.filter((node) => !isNodeDisabled(node));
+    const skippedCount = orderedNodes.length - runnableNodes.length;
     if (!orderedNodes.length) {
       setStatus("画布暂无可运行节点，请先添加节点或工作流。");
       return;
     }
+    if (!runnableNodes.length) {
+      setStatus("画布节点均已禁用，未执行运行。");
+      return;
+    }
     await saveGraph();
     setBusy(true);
-    setStatus(`正在运行全画布：${terminals.length || 1} 条终点链路，共 ${orderedNodes.length} 个节点...`);
+    setStatus(`正在运行全画布：${terminals.length || 1} 条终点链路，共 ${runnableNodes.length} 个节点${skippedCount ? `，跳过 ${skippedCount} 个禁用节点` : ""}...`);
     try {
-      for (const node of orderedNodes) {
+      for (const node of runnableNodes) {
         const response = await postJson<{ node?: ProjectGraphNode; task?: GenerationTask; message?: string }>(`/api/projects/${projectId}/graph/nodes/${node.id}/run`, {
           user_id: currentUserId()
         });
@@ -1050,7 +1083,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           setNodes((items) => items.map((item) => item.id === node.id ? toFlowNode(response.node as ProjectGraphNode) : item));
         }
       }
-      setStatus(`全画布运行完成：${orderedNodes.length} 个节点已按依赖顺序处理。`);
+      setStatus(`全画布运行完成：${runnableNodes.length} 个节点已按依赖顺序处理${skippedCount ? `，已跳过 ${skippedCount} 个禁用节点` : ""}。`);
       await refreshAll();
     } catch (error) {
       setStatus(error instanceof Error ? `全画布运行失败：${error.message}` : "全画布运行失败。请检查节点参数后重试。");
@@ -1078,7 +1111,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       selected: false,
       draggable: true,
       position: { x: selectedNode.position.x + 40, y: selectedNode.position.y + 40 },
-      data: { ...(selectedNode.data as Record<string, unknown>), graphNodeId: id, title: `${String(selectedData.title || nodeLabels[selectedType] || "节点")} 副本`, status: "draft", locked: false }
+      data: { ...(selectedNode.data as Record<string, unknown>), graphNodeId: id, title: `${String(selectedData.title || nodeLabels[selectedType] || "节点")} 副本`, status: "draft", locked: false, disabled: false }
     };
     rememberGraphHistory();
     setNodes((items) => [...items, duplicated]);
@@ -1462,11 +1495,12 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <strong className="mt-1 block truncate text-white">{String((selectedNode.data as Record<string, unknown>).title || "节点")}</strong>
         </div>
         <div className="mt-2 grid gap-1">
-          <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setNodeContextMenu(null); void runSelectedNode(); }}>运行节点</button>
+          <button disabled={busy || (selectedNode.data as Record<string, unknown>).disabled === true} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setNodeContextMenu(null); void runSelectedNode(); }}>运行节点</button>
           <button disabled={busy || !selectedUpstreamInputs.length} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { fillSelectedFromUpstream(); setNodeContextMenu(null); }}>填充上游参数</button>
           <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { duplicateSelectedNode(); setNodeContextMenu(null); }}>复制节点</button>
           <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { copySelectedChain(); setNodeContextMenu(null); }}>复制上游链路</button>
           <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { void runSelectedChain(); setNodeContextMenu(null); }}>运行上游链路</button>
+          <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { toggleSelectedNodeDisabled(); setNodeContextMenu(null); }}>{(selectedNode.data as Record<string, unknown>).disabled === true ? "启用节点" : "禁用节点"}</button>
           <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { toggleSelectedNodeLock(); setNodeContextMenu(null); }}>{(selectedNode.data as Record<string, unknown>).locked === true ? "解锁节点" : "锁定节点"}</button>
           <button disabled={busy || (selectedNode.data as Record<string, unknown>).locked === true} className="rounded px-2 py-2 text-left text-red-100 hover:bg-red-500/10 disabled:opacity-50" onClick={() => { setNodeContextMenu(null); void deleteSelectedNode(); }}>删除节点</button>
         </div>
@@ -1479,6 +1513,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <h2 className="font-semibold">{selectedNode ? nodeLabels[selectedType] || "节点" : "未选择节点"}</h2>
           </div>
           {selectedNode && <div className="flex items-center gap-2">
+            <button title={selectedData.disabled === true ? "启用节点" : "禁用节点"} className="rounded-md border border-white/10 p-2 text-slate-300 hover:bg-white/10" onClick={toggleSelectedNodeDisabled}><Ban size={16} /></button>
             <button title={selectedData.locked === true ? "解锁节点" : "锁定节点"} className="rounded-md border border-white/10 p-2 text-slate-300 hover:bg-white/10" onClick={toggleSelectedNodeLock}>{selectedData.locked === true ? <Unlock size={16} /> : <Lock size={16} />}</button>
             <button title="删除节点" disabled={selectedData.locked === true} className="rounded-md border border-white/10 p-2 text-slate-300 hover:bg-white/10 disabled:opacity-50" onClick={() => void deleteSelectedNode()}><Trash2 size={16} /></button>
           </div>}
@@ -1508,6 +1543,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <label className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
             <span className="text-slate-300">锁定节点位置</span>
             <input type="checkbox" checked={selectedData.locked === true} onChange={toggleSelectedNodeLock} />
+          </label>
+          <label className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
+            <span className="text-slate-300">禁用节点运行</span>
+            <input type="checkbox" checked={selectedData.disabled === true} onChange={toggleSelectedNodeDisabled} />
           </label>
           <label className="grid gap-1"><span className="text-slate-400">标题</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.title || "")} onChange={(event) => updateSelectedData("title", event.target.value)} /></label>
           {(selectedType === "text" || selectedType === "demo") && <label className="grid gap-1"><span className="text-slate-400">文本内容</span><textarea className="min-h-28 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.text || "")} onChange={(event) => updateSelectedData("text", event.target.value)} /></label>}
@@ -1566,7 +1605,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             </div> : <p className="mt-2 text-xs text-slate-400">刷新任务队列后可查看进度、错误和 ComfyUI prompt_id。</p>}
           </section>}
           <div className="grid grid-cols-2 gap-2 pt-1">
-            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-3 py-2 disabled:opacity-50" onClick={() => void runSelectedNode()}><Play size={16} />运行节点</button>
+            <button disabled={busy || selectedData.disabled === true} className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-3 py-2 disabled:opacity-50" onClick={() => void runSelectedNode()}><Play size={16} />运行节点</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void runSelectedChain()}><GitBranch size={16} />运行链路</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={duplicateSelectedNode}><Copy size={16} />复制节点</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={copySelectedChain}><ClipboardCopy size={16} />复制链路</button>

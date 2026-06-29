@@ -2396,18 +2396,23 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     }
   }
 
-  async function batchFilteredTaskAction(action: "sync" | "retry") {
-    const targets = action === "retry" ? filteredTasks.filter((task) => task.status === "failed") : filteredTasks;
+  async function batchFilteredTaskAction(action: "submit" | "sync" | "retry" | "cancel") {
+    const targets = action === "retry"
+      ? filteredTasks.filter((task) => task.status === "failed")
+      : action === "cancel"
+        ? filteredTasks.filter((task) => task.status === "pending" || task.status === "running")
+        : filteredTasks;
     if (!targets.length) {
-      setStatus(action === "retry" ? "当前筛选结果没有失败任务可重试。" : "当前筛选结果没有可同步任务。");
+      setStatus(action === "submit" ? "当前筛选结果没有可提交任务。" : action === "sync" ? "当前筛选结果没有可同步任务。" : action === "retry" ? "当前筛选结果没有失败任务可重试。" : "当前筛选结果没有待生成或生成中的任务可取消。");
       return;
     }
     setBusy(true);
-    setStatus(action === "retry" ? `正在批量重试 ${targets.length} 个失败任务...` : `正在批量同步 ${targets.length} 个筛选任务...`);
+    const actionLabel = action === "submit" ? "提交" : action === "sync" ? "同步" : action === "retry" ? "重试" : "取消";
+    setStatus(`正在批量${actionLabel} ${targets.length} 个筛选任务...`);
     let successCount = 0;
     let failedCount = 0;
     for (const taskItem of targets) {
-      const path = action === "sync" ? `/api/comfy/tasks/${taskItem.id}/sync` : `/api/tasks/${taskItem.id}/retry`;
+      const path = action === "sync" ? `/api/comfy/tasks/${taskItem.id}/sync` : `/api/tasks/${taskItem.id}/${action}`;
       try {
         const task = await postJson<GenerationTask>(path, {
           user_id: currentUserId(),
@@ -2420,7 +2425,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         failedCount += 1;
       }
     }
-    setStatus(failedCount ? `批量${action === "retry" ? "重试" : "同步"}完成：成功 ${successCount} 个，失败 ${failedCount} 个。` : `已批量${action === "retry" ? "重试" : "同步"} ${successCount} 个任务。`);
+    setStatus(failedCount ? `批量${actionLabel}完成：成功 ${successCount} 个，失败 ${failedCount} 个。` : `已批量${actionLabel} ${successCount} 个任务。`);
     try {
       await refreshAll();
     } finally {
@@ -4039,8 +4044,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     { key: "show-assets", title: "打开素材库", description: "筛选并拖入项目图片、视频和音频素材", run: () => setShowAssets(true) },
     { key: "add-filtered-assets", title: "批量添加筛选素材到画布", description: "把素材库当前筛选结果按网格铺到画布并选中新素材", disabled: !filteredAssets.length, run: addFilteredAssetNodes },
     { key: "show-tasks", title: "打开任务队列", description: "筛选、定位、同步、重试和取消生成任务", run: () => setShowTasks(true) },
+    { key: "submit-filtered-tasks", title: "批量提交筛选任务", description: "按任务队列当前筛选条件提交任务到 ComfyUI", disabled: busy || !filteredTasks.length, run: () => void batchFilteredTaskAction("submit") },
     { key: "sync-filtered-tasks", title: "批量同步筛选任务", description: "按任务队列当前筛选条件同步 ComfyUI 状态", disabled: busy || !filteredTasks.length, run: () => void batchFilteredTaskAction("sync") },
     { key: "retry-filtered-failed-tasks", title: "批量重试筛选失败任务", description: "只重试当前筛选结果中的失败任务", disabled: busy || !filteredTasks.some((task) => task.status === "failed"), run: () => void batchFilteredTaskAction("retry") },
+    { key: "cancel-filtered-active-tasks", title: "批量取消筛选任务", description: "只取消当前筛选结果中的待生成或生成中任务", disabled: busy || !filteredTasks.some((task) => task.status === "pending" || task.status === "running"), run: () => void batchFilteredTaskAction("cancel") },
     { key: "select-filtered-task-nodes", title: "选中筛选任务关联节点", description: "把当前筛选任务对应的画布节点框选出来", disabled: !filteredTasks.length, run: selectFilteredTaskNodes },
     { key: "show-event-log", title: "打开画布事件日志", description: "追踪保存、运行、导入导出、复制粘贴和失败提示", run: () => setShowEventLog(true) },
     { key: "export-event-log", title: "导出画布事件日志", description: "下载并复制当前项目的画布操作追踪 JSON", disabled: !canvasEventLog.length, run: () => void exportCanvasEventLog() },
@@ -5191,9 +5198,11 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <Search size={15} className="text-slate-400" />
           <input className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-slate-500" placeholder="搜索任务类型、工作流、错误" value={taskQuery} onChange={(event) => setTaskQuery(event.target.value)} />
         </label>
-        <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+        <div className="mt-3 grid grid-cols-5 gap-2 text-xs">
+          <button disabled={busy || !filteredTasks.length} className="rounded-md border border-white/10 px-3 py-2 text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={() => void batchFilteredTaskAction("submit")}>批量提交</button>
           <button disabled={busy || !filteredTasks.length} className="rounded-md border border-white/10 px-3 py-2 text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={() => void batchFilteredTaskAction("sync")}>批量同步</button>
           <button disabled={busy || !filteredTasks.some((task) => task.status === "failed")} className="rounded-md border border-white/10 px-3 py-2 text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={() => void batchFilteredTaskAction("retry")}>重试失败</button>
+          <button disabled={busy || !filteredTasks.some((task) => task.status === "pending" || task.status === "running")} className="rounded-md border border-red-400/30 px-3 py-2 text-red-100 hover:bg-red-500/10 disabled:opacity-50" onClick={() => void batchFilteredTaskAction("cancel")}>取消运行</button>
           <button disabled={!filteredTasks.length} className="rounded-md border border-white/10 px-3 py-2 text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={selectFilteredTaskNodes}>选中节点</button>
         </div>
         <div className="mt-3 grid gap-2 text-sm">

@@ -316,12 +316,17 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /已批量添加 .*个筛选素材到画布/);
   assert.match(canvasWorkspace, /当前筛选素材都已在画布中/);
   assert.match(canvasWorkspace, /搜索任务类型、工作流、错误/);
+  assert.match(canvasWorkspace, /批量提交筛选任务/);
   assert.match(canvasWorkspace, /批量同步筛选任务/);
   assert.match(canvasWorkspace, /批量重试筛选失败任务/);
+  assert.match(canvasWorkspace, /批量取消筛选任务/);
   assert.match(canvasWorkspace, /选中筛选任务关联节点/);
+  assert.match(canvasWorkspace, /批量提交/);
   assert.match(canvasWorkspace, /批量同步/);
   assert.match(canvasWorkspace, /重试失败/);
+  assert.match(canvasWorkspace, /取消运行/);
   assert.match(canvasWorkspace, /已批量.*任务/);
+  assert.match(canvasWorkspace, /当前筛选结果没有待生成或生成中的任务可取消/);
   assert.match(canvasWorkspace, /没有匹配素材/);
   assert.match(canvasWorkspace, /没有匹配任务/);
   assert.match(canvasWorkspace, /selectedTask/);

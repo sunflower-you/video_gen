@@ -257,6 +257,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /selectIsolatedNodes/);
   assert.match(canvasWorkspace, /selectSourceNodes/);
   assert.match(canvasWorkspace, /selectTerminalNodes/);
+  assert.match(canvasWorkspace, /selectValidationIssueNodes/);
   assert.match(canvasWorkspace, /选中当前结果/);
   assert.match(canvasWorkspace, /选中问题节点/);
   assert.match(canvasWorkspace, /链路选择/);
@@ -269,6 +270,8 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /选中孤立节点/);
   assert.match(canvasWorkspace, /选中起点节点/);
   assert.match(canvasWorkspace, /选中终点节点/);
+  assert.match(canvasWorkspace, /选中错误节点/);
+  assert.match(canvasWorkspace, /选中提醒节点/);
   assert.match(canvasWorkspace, /同类型/);
   assert.match(canvasWorkspace, /同状态/);
   assert.match(canvasWorkspace, /同标记/);
@@ -276,6 +279,8 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /画布暂无孤立节点/);
   assert.match(canvasWorkspace, /画布暂无可选起点节点/);
   assert.match(canvasWorkspace, /画布暂无可选终点节点/);
+  assert.match(canvasWorkspace, /画布暂无错误节点/);
+  assert.match(canvasWorkspace, /画布暂无提醒节点/);
   assert.match(canvasWorkspace, /当前下游链路/);
   assert.match(canvasWorkspace, /可继续整理、打组、复制或运行链路/);
   assert.match(canvasWorkspace, /没有匹配的大纲节点/);

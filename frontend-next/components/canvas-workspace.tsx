@@ -1699,6 +1699,16 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     selectCanvasNodesByIds(graphOutlineNodes.filter((node) => outlineIssueNodeIds.has(node.id)).map((node) => node.id), "全部问题节点");
   }
 
+  function selectValidationIssueNodes(level: GraphValidationIssue["level"]) {
+    const issueNodeIds = new Set(graphValidation.issues.filter((issue) => issue.level === level && issue.nodeId).map((issue) => issue.nodeId || ""));
+    const label = level === "error" ? "错误节点" : "提醒节点";
+    if (!issueNodeIds.size) {
+      setStatus(level === "error" ? "画布暂无错误节点。" : "画布暂无提醒节点。");
+      return;
+    }
+    selectCanvasNodesByIds(nodes.filter((node) => issueNodeIds.has(node.id)).map((node) => node.id), label);
+  }
+
   function selectSelectedUpstreamChain() {
     if (!selectedNode) {
       setStatus("请先选择一个节点，再选中上游链路。");
@@ -2895,6 +2905,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectIsolatedNodes(); setNodeContextMenu(null); }}>选中孤立节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSourceNodes(); setNodeContextMenu(null); }}>选中起点节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectTerminalNodes(); setNodeContextMenu(null); }}>选中终点节点</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectValidationIssueNodes("error"); setNodeContextMenu(null); }}>选中错误节点</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectValidationIssueNodes("warning"); setNodeContextMenu(null); }}>选中提醒节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { copySelectedChain(); setNodeContextMenu(null); }}>复制上游链路</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { void runSelectedChain(); setNodeContextMenu(null); }}>运行上游链路</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { toggleSelectedNodeDisabled(); setNodeContextMenu(null); }}>{(selectedNode.data as Record<string, unknown>).disabled === true ? "启用节点" : "禁用节点"}</button>
@@ -3017,6 +3029,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
               <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 text-xs text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={selectIsolatedNodes}><AlertTriangle size={14} />孤立节点</button>
               <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 text-xs text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={selectSourceNodes}><GitBranch size={14} />起点节点</button>
               <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 text-xs text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={selectTerminalNodes}><GitBranch size={14} />终点节点</button>
+              <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-red-400/30 px-3 py-2 text-xs text-red-100 hover:bg-red-500/10 disabled:opacity-50" onClick={() => selectValidationIssueNodes("error")}><AlertTriangle size={14} />错误节点</button>
+              <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-amber-400/30 px-3 py-2 text-xs text-amber-100 hover:bg-amber-500/10 disabled:opacity-50" onClick={() => selectValidationIssueNodes("warning")}><AlertTriangle size={14} />提醒节点</button>
             </div>
           </section>
           <section className="grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">

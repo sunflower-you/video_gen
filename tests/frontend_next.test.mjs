@@ -354,8 +354,10 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /selectedShotBindingNodes/);
   assert.match(canvasWorkspace, /bindSelectedShotsToSelectedNodes/);
   assert.match(canvasWorkspace, /selectedVariantNodes/);
+  assert.match(canvasWorkspace, /selectedImageGenerationNodes/);
   assert.match(canvasWorkspace, /variantDataForNode/);
   assert.match(canvasWorkspace, /createSelectedNodeVariants/);
+  assert.match(canvasWorkspace, /randomizeSelectedImageSeeds/);
   assert.match(canvasWorkspace, /arrangeSelectedNodesAsGrid/);
   assert.match(canvasWorkspace, /shotPatchForNode/);
   assert.match(canvasWorkspace, /filteredShots/);
@@ -379,6 +381,10 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /选区网格排列/);
   assert.match(canvasWorkspace, /网格排列选区/);
   assert.match(canvasWorkspace, /已把选区按 .*列网格排列/);
+  assert.match(canvasWorkspace, /选区分镜图随机 seed/);
+  assert.match(canvasWorkspace, /随机 seed 重跑/);
+  assert.match(canvasWorkspace, /已为 .*个分镜图生成节点随机 seed/);
+  assert.match(canvasWorkspace, /请先选择分镜图生成节点，再批量随机 seed/);
   assert.match(canvasWorkspace, /已清空分镜选择/);
   assert.match(canvasWorkspace, /全部链路/);
   assert.match(canvasWorkspace, /未铺设/);

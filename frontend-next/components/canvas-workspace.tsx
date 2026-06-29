@@ -825,6 +825,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const selectedParameterPresetNodes = useMemo(() => selectedNodes.filter((node) => nodeParameterPresets.some((preset) => preset.nodeTypes.includes(String((node.data as Record<string, unknown>).nodeType || "")))), [selectedNodes]);
   const selectedShotBindingNodes = useMemo(() => selectedNodes.filter((node) => shotBindableNodeTypes.has(String((node.data as Record<string, unknown>).nodeType || ""))), [selectedNodes]);
   const selectedVariantNodes = useMemo(() => selectedNodes.filter((node) => variantNodeTypes.has(String((node.data as Record<string, unknown>).nodeType || ""))), [selectedNodes]);
+  const selectedImageGenerationNodes = useMemo(() => selectedNodes.filter((node) => String((node.data as Record<string, unknown>).nodeType || "") === "image_generation"), [selectedNodes]);
   const selectedGroupTitles = useMemo(() => {
     const titles = new Set(selectedNodes.map((node) => String((node.data as Record<string, unknown>).group_title || "")).filter(Boolean));
     return [...titles];
@@ -3731,6 +3732,34 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(markerColor?.value ? `已设置选区颜色标记：${markerColor.label}，共 ${selectedNodes.length} 个节点。` : `已清空选区颜色标记：${selectedNodes.length} 个节点。`);
   }
 
+  function randomizeSelectedImageSeeds() {
+    if (!selectedImageGenerationNodes.length) {
+      setStatus("请先选择分镜图生成节点，再批量随机 seed。");
+      return;
+    }
+    const timestamp = Date.now();
+    const imageNodeIds = new Set(selectedImageGenerationNodes.map((node) => node.id));
+    rememberGraphHistory();
+    setNodes((items) => items.map((node, index) => {
+      if (!imageNodeIds.has(node.id)) return node;
+      return {
+        ...node,
+        data: {
+          ...(node.data as Record<string, unknown>),
+          seed: String((timestamp + index * 7919) % 100000000),
+          status: "draft",
+          task_id: "",
+          prompt_id: "",
+          output_url: "",
+          image_url: "",
+          error_message: "",
+          retry_advice: ""
+        }
+      };
+    }));
+    setStatus(`已为 ${selectedImageGenerationNodes.length} 个分镜图生成节点随机 seed，并清空旧任务与输出状态。`);
+  }
+
   function renameSelectedNodesWithPrefix() {
     if (!selectedNodes.length) return;
     const prefix = selectedRenamePrefix.trim();
@@ -4160,6 +4189,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     { key: "collect-selection-compose", title: "选区汇聚到合成节点", description: "在选区右侧创建合成节点并连接选区末端分支", disabled: !selectedNodes.length, run: collectSelectedNodesToCompose },
     { key: "connect-existing-compose", title: "选区接入已有合成节点", description: "把选区末端素材按媒体类型连接到选中的合成节点", disabled: !selectedNodes.length, run: connectSelectedNodesToExistingCompose },
     { key: "create-node-variants", title: "生成选区节点变体", description: "复制选区内生成节点并保留上游参考输入，用于快速试多个版本", disabled: !selectedVariantNodes.length, run: createSelectedNodeVariants },
+    { key: "randomize-image-seeds", title: "选区分镜图随机 seed", description: "批量刷新选区内分镜图生成节点 seed，并清空旧任务输出用于重跑", disabled: !selectedImageGenerationNodes.length, run: randomizeSelectedImageSeeds },
     { key: "selection-preset-portrait", title: "选区参数预设：竖屏 9:16", description: "批量设置选区内分镜图生成节点尺寸", disabled: !selectedParameterPresetNodes.length, run: () => applySelectedNodesParameterPreset(parameterPresetByKey("image-portrait")) },
     { key: "selection-preset-video-standard", title: "选区参数预设：标准 5 秒", description: "批量设置选区内镜头视频生成节点时长和帧率", disabled: !selectedParameterPresetNodes.length, run: () => applySelectedNodesParameterPreset(parameterPresetByKey("video-standard")) },
     { key: "selection-preset-tts-female", title: "选区参数预设：女声常速", description: "批量设置选区内旁白配音节点音色和语速", disabled: !selectedParameterPresetNodes.length, run: () => applySelectedNodesParameterPreset(parameterPresetByKey("tts-female")) },
@@ -4858,6 +4888,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <div className="grid grid-cols-2 gap-2">
               {nodeParameterPresets.map((preset) => <button key={preset.key} disabled={busy || !selectedNodes.some((node) => preset.nodeTypes.includes(String((node.data as Record<string, unknown>).nodeType || "")))} className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={() => applySelectedNodesParameterPreset(preset)}>{preset.label}</button>)}
             </div>
+            <button disabled={busy || !selectedImageGenerationNodes.length} className="inline-flex items-center justify-center gap-2 rounded-md border border-blue-400/30 px-3 py-2 text-xs text-blue-50 disabled:opacity-50" onClick={randomizeSelectedImageSeeds}><RefreshCcw size={14} />随机 seed 重跑分镜图</button>
           </section>
           <section className="grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">
             <span className="text-xs text-slate-400">选区绑定分镜</span>
@@ -5021,6 +5052,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <div className="mt-2 grid grid-cols-2 gap-2">
               {nodeParameterPresets.filter((preset) => preset.nodeTypes.includes("image_generation")).map((preset) => <button key={preset.key} className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10" onClick={() => applySelectedNodeParameterPreset(preset)}>{preset.label}</button>)}
             </div>
+            <button disabled={busy} className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-md border border-blue-400/30 px-3 py-2 text-xs text-blue-50 disabled:opacity-50" onClick={randomizeSelectedImageSeeds}><RefreshCcw size={14} />随机 seed 重跑</button>
           </section>}
           {selectedType === "video_generation" && <section className="rounded-md border border-white/10 bg-white/[0.03] p-3">
             <p className="text-xs text-slate-400">镜头视频参数预设</p>

@@ -20,7 +20,7 @@ import {
   type NodeProps,
   type ReactFlowInstance
 } from "@xyflow/react";
-import { AlertTriangle, Ban, Boxes, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, GitBranch, Image, LayoutGrid, Library, ListTree, Lock, Music, Play, Plus, Redo2, RefreshCcw, Save, Search, Sparkles, Trash2, Undo2, Unlock, Upload, Video, Wand2 } from "lucide-react";
+import { AlertTriangle, Ban, Boxes, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, Focus, GitBranch, Image, LayoutGrid, Library, ListTree, Lock, Maximize2, Music, Play, Plus, Redo2, RefreshCcw, RotateCcw, Save, Search, Sparkles, Trash2, Undo2, Unlock, Upload, Video, Wand2 } from "lucide-react";
 import { apiFetch, currentUserId, deleteJson, postJson, type Asset, type GenerationTask, type Project, type ProjectGraph, type ProjectGraphNode, type StoryboardShot } from "../lib/api";
 
 const nodeLabels: Record<string, string> = {
@@ -782,6 +782,21 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         autoLayoutGraph();
         return;
       }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "0") {
+        event.preventDefault();
+        resetCanvasViewport();
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "1") {
+        event.preventDefault();
+        fitGraphView();
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "2") {
+        event.preventDefault();
+        fitSelectedNodeView();
+        return;
+      }
       if ((event.key === "Delete" || event.key === "Backspace") && selectedNodes.length > 1) {
         event.preventDefault();
         void deleteSelectedNodes();
@@ -1404,6 +1419,30 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus("已定位到自检问题节点。");
   }
 
+  function fitGraphView() {
+    if (!nodes.length) {
+      setStatus("画布暂无节点，无法适配视图。");
+      return;
+    }
+    void flowInstance?.fitView({ padding: 0.18, duration: 420, maxZoom: 1.15 });
+    setStatus("已适配全部节点到当前视图。");
+  }
+
+  function fitSelectedNodeView() {
+    if (!selectedNodes.length) {
+      setStatus("请先选择一个或多个节点，再适配选区视图。");
+      return;
+    }
+    void flowInstance?.fitView({ nodes: selectedNodes.map((node) => ({ id: node.id })), padding: 0.22, duration: 420, maxZoom: 1.2 });
+    setStatus(`已适配选区视图：${selectedNodes.length} 个节点。`);
+  }
+
+  function resetCanvasViewport() {
+    void flowInstance?.setViewport(defaultCanvasViewport, { duration: 420 });
+    setInitialViewport(defaultCanvasViewport);
+    setStatus("已重置画布视口。");
+  }
+
   function blockingValidationIssues(nodeIds: string[], includeGlobalIssues = false) {
     const nodeIdSet = new Set(nodeIds);
     return graphValidation.issues.filter((issue) => issue.level === "error" && ((issue.nodeId && nodeIdSet.has(issue.nodeId)) || (includeGlobalIssues && !issue.nodeId)));
@@ -1885,6 +1924,9 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       <aside className="absolute left-4 top-28 z-20 grid gap-2 rounded-lg border border-white/10 bg-slate-950/85 p-2 shadow-2xl backdrop-blur">
         <button title="添加节点" className="grid h-10 w-10 place-items-center rounded-md bg-blue-600 text-white hover:bg-blue-500" onClick={() => setShowPalette((value) => !value)}><Plus size={18} /></button>
         <button title="节点大纲" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowOutline((value) => !value)}><ListTree size={18} /></button>
+        <button title="适配全部节点" disabled={!nodes.length} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={fitGraphView}><Maximize2 size={18} /></button>
+        <button title="适配选中节点" disabled={!selectedNodes.length} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={fitSelectedNodeView}><Focus size={18} /></button>
+        <button title="重置画布视口" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={resetCanvasViewport}><RotateCcw size={18} /></button>
         <button title="分镜列表" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowShots((value) => !value)}><Clapperboard size={18} /></button>
         <button title="素材库" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowAssets((value) => !value)}><Library size={18} /></button>
         <button title="任务队列" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowTasks((value) => !value)}><Boxes size={18} /></button>

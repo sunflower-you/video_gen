@@ -144,6 +144,14 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /restoreCanvasViewport/);
   assert.match(canvasWorkspace, /flowInstance\.setViewport/);
   assert.match(canvasWorkspace, /flowInstance\?\.getViewport/);
+  assert.match(canvasWorkspace, /fitGraphView/);
+  assert.match(canvasWorkspace, /fitSelectedNodeView/);
+  assert.match(canvasWorkspace, /resetCanvasViewport/);
+  assert.match(canvasWorkspace, /flowInstance\?\.fitView/);
+  assert.match(canvasWorkspace, /适配全部节点/);
+  assert.match(canvasWorkspace, /适配选中节点/);
+  assert.match(canvasWorkspace, /重置画布视口/);
+  assert.match(canvasWorkspace, /已适配选区视图/);
   assert.match(canvasWorkspace, /提示词/);
   assert.match(canvasWorkspace, /首帧/);
   assert.match(canvasWorkspace, /参考图/);

@@ -1,5 +1,6 @@
 import { Sparkles } from "lucide-react";
 import type { Template } from "../lib/api";
+import { quickStartHrefForTemplate } from "../lib/template-quick-start";
 import { PanelTitle } from "./panel-title";
 
 function formatParams(params?: Record<string, unknown>): string {
@@ -18,11 +19,16 @@ export function TemplateMarket({ templates, onUseTemplate }: { templates: Templa
           <article key={item.id} className="rounded-md border border-line p-3">
             <div className="flex items-start justify-between gap-3">
               <strong>{item.name}</strong>
-              {onUseTemplate ? (
-                <button className="shrink-0 rounded-md border border-line px-3 py-1 text-sm" onClick={() => onUseTemplate(item)}>
-                  复刻项目
-                </button>
-              ) : null}
+              <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                <a className="rounded-md bg-accent px-3 py-1 text-sm text-white" href={quickStartHrefForTemplate(item)}>
+                  快速同款创作
+                </a>
+                {onUseTemplate ? (
+                  <button className="rounded-md border border-line px-3 py-1 text-sm" onClick={() => onUseTemplate(item)}>
+                    复刻项目
+                  </button>
+                ) : null}
+              </div>
             </div>
             <p className="mt-1 text-sm text-muted">{item.description}</p>
             <div className="mt-2 flex flex-wrap gap-1">

@@ -46,12 +46,19 @@ export function CreateWorkbench() {
 
   useEffect(() => {
     void loadTemplates();
-    const quick = new URLSearchParams(window.location.search).get("quick") || "";
+    const params = new URLSearchParams(window.location.search);
+    const quick = params.get("quick") || "";
+    const templateId = params.get("template") || "";
     const mode = quickStartModes[quick as keyof typeof quickStartModes];
     if (mode) {
       setTitle(mode.title);
       setScript(mode.script);
       setStatus(mode.status);
+    }
+    if (templateId) {
+      setProjectType("模板复刻");
+      setSelectedTemplateId(templateId);
+      setStatus("已从模板市场预选模板，可复刻后进入全画幅创作画布。");
     }
   }, []);
 
@@ -60,7 +67,12 @@ export function CreateWorkbench() {
       const response = await apiFetch("/api/templates");
       if (!response.ok) throw new Error("模板读取失败，已使用本地示例。");
       const data = (await response.json()) as Template[];
+      const templateId = new URLSearchParams(window.location.search).get("template") || "";
       setTemplates(data);
+      if (templateId && data.some((item) => item.id === templateId)) {
+        setSelectedTemplateId(templateId);
+        return;
+      }
       if (data.length && !data.some((item) => item.id === selectedTemplateId)) {
         setSelectedTemplateId(data[0].id);
       }

@@ -350,6 +350,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /selectFilteredShots/);
   assert.match(canvasWorkspace, /selectUnlinkedFilteredShots/);
   assert.match(canvasWorkspace, /selectSameShotNodes/);
+  assert.match(canvasWorkspace, /syncSelectedNodeParamsToSameShot/);
   assert.match(canvasWorkspace, /clearShotSelection/);
   assert.match(canvasWorkspace, /focusShotWorkflow/);
   assert.match(canvasWorkspace, /selectedShotBindingNodes/);
@@ -380,6 +381,9 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /选中同分镜节点/);
   assert.match(canvasWorkspace, /当前节点没有绑定分镜，无法选中同分镜节点/);
   assert.match(canvasWorkspace, /同分镜/);
+  assert.match(canvasWorkspace, /同步同分镜参数/);
+  assert.match(canvasWorkspace, /当前节点没有绑定分镜，无法同步同分镜参数/);
+  assert.match(canvasWorkspace, /同步参数/);
   assert.match(canvasWorkspace, /生成选区节点变体/);
   assert.match(canvasWorkspace, /生成变体/);
   assert.match(canvasWorkspace, /已生成 .*个生成节点变体/);

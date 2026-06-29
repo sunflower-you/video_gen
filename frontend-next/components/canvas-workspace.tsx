@@ -115,6 +115,22 @@ function parameterPresetByKey(key: string) {
 
 const shotBindableNodeTypes = new Set(["text", "script", "image_generation", "video_generation", "tts_generation"]);
 const variantNodeTypes = new Set(["image_generation", "video_generation", "tts_generation", "compose_generation"]);
+const sameShotSyncKeysByType: Record<string, string[]> = {
+  text: ["text"],
+  script: ["script"],
+  image: ["image_url"],
+  video: ["video_url"],
+  audio: ["audio_url"],
+  image_generation: ["prompt", "width", "height", "seed"],
+  video_generation: ["prompt", "first_frame_url", "duration", "fps"],
+  tts_generation: ["text", "voice", "rate"],
+  compose_generation: ["subtitle"]
+};
+
+function sameShotSyncPatch(type: string, data: Record<string, unknown>) {
+  const keys = sameShotSyncKeysByType[type] || [];
+  return Object.fromEntries(keys.filter((key) => key in data).map((key) => [key, data[key]]));
+}
 
 function shotPatchForNode(type: string, shot: StoryboardShot) {
   const visual = shot.visual_description || shot.prompt || "";
@@ -2585,6 +2601,37 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     selectCanvasNodesByIds(sameShotNodes.map((node) => node.id), "同分镜节点");
   }
 
+  function syncSelectedNodeParamsToSameShot() {
+    if (!selectedNode) {
+      setStatus("请先选择一个绑定分镜的节点，再同步同分镜参数。");
+      return;
+    }
+    const selectedDataForSync = selectedNode.data as Record<string, unknown>;
+    const shotId = String(selectedDataForSync.shot_id || "");
+    if (!shotId) {
+      setStatus("当前节点没有绑定分镜，无法同步同分镜参数。");
+      return;
+    }
+    const type = String(selectedDataForSync.nodeType || "text");
+    const patch = sameShotSyncPatch(type, selectedDataForSync);
+    if (!Object.keys(patch).length) {
+      setStatus("当前节点没有可同步的业务参数。");
+      return;
+    }
+    const targetIds = new Set(nodes
+      .filter((node) => node.id !== selectedNode.id)
+      .filter((node) => String((node.data as Record<string, unknown>).shot_id || "") === shotId)
+      .filter((node) => String((node.data as Record<string, unknown>).nodeType || "text") === type)
+      .map((node) => node.id));
+    if (!targetIds.size) {
+      setStatus("同分镜下没有其它同类型节点可同步参数。");
+      return;
+    }
+    rememberGraphHistory();
+    setNodes((items) => items.map((node) => targetIds.has(node.id) ? { ...node, data: { ...node.data, ...patch } } : node));
+    setStatus(`已把当前${nodeLabels[type] || "节点"}参数同步到同分镜 ${targetIds.size} 个同类型节点。`);
+  }
+
   function selectDisabledNodes() {
     const disabledNodes = nodes.filter(isNodeDisabled);
     if (!disabledNodes.length) {
@@ -4226,6 +4273,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     { key: "select-all", title: "全选画布节点", description: "选中当前画布所有节点", shortcut: "Ctrl/⌘ A", disabled: !nodes.length, run: selectAllCanvasNodes },
     { key: "invert-selection", title: "反选画布节点", description: "反转当前节点选区", shortcut: "Ctrl/⌘ Shift A", disabled: !nodes.length, run: invertCanvasSelection },
     { key: "select-same-shot", title: "选中同分镜节点", description: "按当前节点绑定的 shot_id 框选同一分镜链路节点", disabled: !selectedNode || !String((selectedNode.data as Record<string, unknown>).shot_id || ""), run: selectSameShotNodes },
+    { key: "sync-same-shot-params", title: "同步同分镜参数", description: "把当前节点业务参数同步到同一分镜的其它同类型节点", disabled: !selectedNode || !String((selectedNode.data as Record<string, unknown>).shot_id || ""), run: syncSelectedNodeParamsToSameShot },
     { key: "select-all-edges", title: "全选画布连线", description: "选中当前画布所有连线，便于批量标记或禁用", disabled: !edges.length, run: selectAllCanvasEdges },
     { key: "invert-edge-selection", title: "反选画布连线", description: "反转当前连线选区，快速排除已选链路", disabled: !edges.length, run: invertCanvasEdgeSelection },
     { key: "expand-selection-video", title: "选区生成视频链", description: "为选区末端批量创建镜头视频生成节点并自动连线", disabled: !selectedNodes.length, run: expandSelectedNodesToVideoGeneration },
@@ -4873,6 +4921,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSameTypeNodes(); setNodeContextMenu(null); }}>选中同类型节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSameStatusNodes(); setNodeContextMenu(null); }}>选中同状态节点</button>
             <button disabled={busy || !String((selectedNode.data as Record<string, unknown>).shot_id || "")} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSameShotNodes(); setNodeContextMenu(null); }}>选中同分镜节点</button>
+            <button disabled={busy || !String((selectedNode.data as Record<string, unknown>).shot_id || "")} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { syncSelectedNodeParamsToSameShot(); setNodeContextMenu(null); }}>同步同分镜参数</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSameColorNodes(); setNodeContextMenu(null); }}>选中同标记节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectDisabledNodes(); setNodeContextMenu(null); }}>选中禁用节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectIsolatedNodes(); setNodeContextMenu(null); }}>选中孤立节点</button>
@@ -5185,6 +5234,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void copySelectedChain()}><ClipboardCopy size={16} />复制链路</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void pasteCopiedSelection()}><ClipboardPaste size={16} />粘贴链路</button>
             <button disabled={busy || !String(selectedData.shot_id || "")} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={selectSameShotNodes}><Clapperboard size={16} />同分镜</button>
+            <button disabled={busy || !String(selectedData.shot_id || "")} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={syncSelectedNodeParamsToSameShot}><Wand2 size={16} />同步参数</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesLayer("front")}><BringToFront size={16} />置顶节点</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesLayer("back")}><SendToBack size={16} />置底节点</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={disconnectSelectedNodes}><XSquare size={16} />断开连线</button>

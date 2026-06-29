@@ -110,13 +110,20 @@ test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
   assert.match(gallery, /item\.template_name/);
   assert.match(gallery, /item\.tags/);
   assert.match(gallery, /quickStartHrefForWork/);
+  assert.match(gallery, /function quickHrefForCategory/);
+  assert.match(gallery, /category === "创作者挑战赛"/);
+  assert.match(gallery, /category === "Seedance 2\.0"/);
+  assert.match(gallery, /category === "TV Show"/);
+  assert.match(gallery, /href=\{quickHrefForCategory\(query\.category\)\}/);
+  assert.match(gallery, /当前频道 \{works\.length\} 个作品/);
+  assert.match(gallery, /创作\$\{query\.category\}/);
   assert.match(workQuickStart, /\/create\?quick=creator-challenge/);
   assert.match(workQuickStart, /\/create\?quick=tv-show/);
   assert.match(workQuickStart, /\/create\?quick=seedance2/);
   assert.match(gallery, /onSubmit=\{submitSearch\}/);
   assert.match(gallery, /onQueryChange/);
   assert.match(gallery, /sortOptions/);
-  for (const text of ["搜索作品", "最新发布", "最多浏览", "最多点赞", "最多收藏", "成片", "模板：", "同款创作", "查看详情", "暂无匹配作品"]) {
+  for (const text of ["搜索作品", "最新发布", "最多浏览", "最多点赞", "最多收藏", "成片", "模板：", "同款创作", "查看详情", "暂无匹配作品", "全部作品", "当前频道", "可直接进入同款创作画布"]) {
     assert.match(gallery, new RegExp(text));
   }
   assert.doesNotMatch(`${page}\n${dashboard}`, /hero/i);

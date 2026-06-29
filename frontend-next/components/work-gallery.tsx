@@ -15,6 +15,13 @@ const sortOptions = [
   { label: "最多收藏", value: "most_favorited" }
 ];
 
+function quickHrefForCategory(category: string): string {
+  if (category === "创作者挑战赛") return "/create?quick=creator-challenge";
+  if (category === "Seedance 2.0") return "/create?quick=seedance2";
+  if (category === "TV Show") return "/create?quick=tv-show";
+  return "/create";
+}
+
 export function WorkGallery({
   works,
   query,
@@ -56,6 +63,15 @@ export function WorkGallery({
             {item}
           </button>
         ))}
+      </section>
+      <section className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-line bg-panel px-3 py-2 text-sm">
+        <div>
+          <strong>{query.category === "全部" ? "全部作品" : query.category}</strong>
+          <span className="ml-2 text-muted">当前频道 {works.length} 个作品，可直接进入同款创作画布。</span>
+        </div>
+        <a className="rounded-md bg-accent px-3 py-2 text-white" href={quickHrefForCategory(query.category)}>
+          {query.category === "全部" ? "开始创作" : `创作${query.category}`}
+        </a>
       </section>
       <div className="rounded-md border border-line bg-canvas px-3 py-2 text-sm text-muted">{status}</div>
       <section id="作品广场" className="rounded-panel border border-line bg-panel p-4">

@@ -594,8 +594,11 @@ type GraphHistorySnapshot = {
   selectedEdgeId: string;
 };
 
+type CanvasViewport = { x: number; y: number; zoom: number };
+
 const customPresetStorageKey = "video_gen_canvas_custom_presets";
 const paletteNodeDragType = "application/x-video-gen-node-type";
+const defaultCanvasViewport: CanvasViewport = { x: 0, y: 0, zoom: 1 };
 
 export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [project, setProject] = useState<Project | null>(null);
@@ -604,6 +607,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [selectedNodeId, setSelectedNodeId] = useState("");
   const [selectedEdgeId, setSelectedEdgeId] = useState("");
   const [flowInstance, setFlowInstance] = useState<ReactFlowInstance | null>(null);
+  const [initialViewport, setInitialViewport] = useState<CanvasViewport>(defaultCanvasViewport);
   const [copiedSelection, setCopiedSelection] = useState<{ nodes: Node[]; edges: Edge[] } | null>(null);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [tasks, setTasks] = useState<GenerationTask[]>([]);
@@ -715,6 +719,11 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   }, [projectId]);
 
   useEffect(() => {
+    if (!flowInstance) return;
+    void flowInstance.setViewport(initialViewport, { duration: 0 });
+  }, [flowInstance, initialViewport]);
+
+  useEffect(() => {
     try {
       const saved = JSON.parse(window.localStorage.getItem(customPresetStorageKey) || "[]");
       if (Array.isArray(saved)) setCustomWorkflowPresets(saved);
@@ -822,6 +831,27 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus("连线已创建，可在右侧面板编辑标签或禁用。");
   }
 
+  function normalizedViewport(viewport: ProjectGraph["viewport"] | undefined): CanvasViewport {
+    if (
+      viewport &&
+      Number.isFinite(viewport.x) &&
+      Number.isFinite(viewport.y) &&
+      Number.isFinite(viewport.zoom) &&
+      viewport.zoom > 0
+    ) {
+      return { x: viewport.x, y: viewport.y, zoom: viewport.zoom };
+    }
+    return defaultCanvasViewport;
+  }
+
+  function currentCanvasViewport(): CanvasViewport {
+    return flowInstance?.getViewport() || initialViewport;
+  }
+
+  function restoreCanvasViewport(viewport: ProjectGraph["viewport"] | undefined) {
+    setInitialViewport(normalizedViewport(viewport));
+  }
+
   function selectEdge(edgeId: string) {
     setSelectedEdgeId(edgeId);
     setSelectedNodeId("");
@@ -858,6 +888,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       setProject(projectData as Project);
       setNodes((graphData?.nodes || []).map(toFlowNode));
       setEdges((graphData?.edges || []).map(toFlowEdge));
+      restoreCanvasViewport(graphData?.viewport);
       setSelectedEdgeId("");
       setGraphPast([]);
       setGraphFuture([]);
@@ -870,6 +901,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         const graph = JSON.parse(cached) as ProjectGraph;
         setNodes((graph.nodes || []).map(toFlowNode));
         setEdges((graph.edges || []).map(toFlowEdge));
+        restoreCanvasViewport(graph.viewport);
         setSelectedEdgeId("");
         setGraphPast([]);
         setGraphFuture([]);
@@ -885,7 +917,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       user_id: currentUserId(),
       nodes: nodes.map(fromFlowNode),
       edges: edges.map(fromFlowEdge),
-      viewport: { x: 0, y: 0, zoom: 1 },
+      viewport: currentCanvasViewport(),
       status: "draft"
     };
     window.localStorage.setItem(`project_graph_${projectId}`, JSON.stringify({ project_id: projectId, ...payload }));
@@ -1753,7 +1785,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       exported_at: new Date().toISOString(),
       nodes: nodes.map(fromFlowNode),
       edges: edges.map(fromFlowEdge),
-      viewport: { x: 0, y: 0, zoom: 1 },
+      viewport: currentCanvasViewport(),
       status: "draft"
     };
     const text = JSON.stringify(graph, null, 2);
@@ -1813,6 +1845,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     rememberGraphHistory();
     setNodes((items) => [...items, ...importedNodes]);
     setEdges((items) => [...items, ...importedEdges]);
+    restoreCanvasViewport(graph.viewport);
     setSelectedNodeId(importedNodes[0]?.id || "");
     setShowImport(false);
     setImportText("");

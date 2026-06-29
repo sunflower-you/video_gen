@@ -2597,6 +2597,20 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已删除选区内部连线：${selectedSelectionEdges.length} 条，节点仍保留。`);
   }
 
+  function disconnectSelectedNodes() {
+    if (!selectedNodes.length) return;
+    const incidentEdges = edges.filter((edge) => selectedNodeIds.has(edge.source) || selectedNodeIds.has(edge.target));
+    if (!incidentEdges.length) {
+      setStatus(selectedNodes.length > 1 ? "当前选区没有可断开的连线。" : "当前节点没有可断开的连线。");
+      return;
+    }
+    const edgeIds = new Set(incidentEdges.map((edge) => edge.id));
+    rememberGraphHistory();
+    setEdges((items) => items.filter((edge) => !edgeIds.has(edge.id)));
+    setSelectedEdgeId("");
+    setStatus(selectedNodes.length > 1 ? `已断开选区相关连线：${incidentEdges.length} 条，节点仍保留。` : `已断开当前节点相关连线：${incidentEdges.length} 条，节点仍保留。`);
+  }
+
   function setSelectedSelectionEdgesColor(color: string) {
     if (!selectedSelectionEdges.length) {
       setStatus("当前选区没有内部连线可设置颜色。");
@@ -3136,6 +3150,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesDisabled(false); setNodeContextMenu(null); }}>启用选区</button>
             <button disabled={busy || !selectedSelectionEdges.length} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedSelectionEdgesDisabled(true); setNodeContextMenu(null); }}>禁用内部连线</button>
             <button disabled={busy || !selectedSelectionEdges.length} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedSelectionEdgesDisabled(false); setNodeContextMenu(null); }}>启用内部连线</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { disconnectSelectedNodes(); setNodeContextMenu(null); }}>断开选区连线</button>
             <button disabled={busy || !selectedSelectionEdges.length} className="rounded px-2 py-2 text-left text-red-100 hover:bg-red-500/10 disabled:opacity-50" onClick={() => { deleteSelectedSelectionEdges(); setNodeContextMenu(null); }}>删除内部连线</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesCollapsed(true); setNodeContextMenu(null); }}>折叠选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesCollapsed(false); setNodeContextMenu(null); }}>展开选区</button>
@@ -3167,6 +3182,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectTaskStatusNodes("failed"); setNodeContextMenu(null); }}>选中失败任务节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { copySelectedChain(); setNodeContextMenu(null); }}>复制上游链路</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { void runSelectedChain(); setNodeContextMenu(null); }}>运行上游链路</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { disconnectSelectedNodes(); setNodeContextMenu(null); }}>断开节点连线</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { toggleSelectedNodeDisabled(); setNodeContextMenu(null); }}>{(selectedNode.data as Record<string, unknown>).disabled === true ? "启用节点" : "禁用节点"}</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { toggleSelectedNodeCollapsed(); setNodeContextMenu(null); }}>{(selectedNode.data as Record<string, unknown>).collapsed === true ? "展开节点" : "折叠节点"}</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { toggleSelectedNodeLock(); setNodeContextMenu(null); }}>{(selectedNode.data as Record<string, unknown>).locked === true ? "解锁节点" : "锁定节点"}</button>
@@ -3252,6 +3268,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesCollapsed(false)}><Maximize2 size={16} />展开选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesLocked(true)}><Lock size={16} />锁定选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesLocked(false)}><Unlock size={16} />解锁选区</button>
+            <button disabled={busy} className="col-span-2 inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={disconnectSelectedNodes}><XSquare size={16} />断开选区连线</button>
             <button disabled={busy} className="col-span-2 inline-flex items-center justify-center gap-2 rounded-md border border-red-400/30 px-3 py-2 text-red-100 disabled:opacity-50" onClick={() => void deleteSelectedNodes()}><Trash2 size={16} />删除选区</button>
           </div>
         </div> : selectedNode ? <div className="mt-4 grid gap-3 text-sm">
@@ -3437,6 +3454,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={duplicateSelectedNode}><Copy size={16} />复制节点</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={copySelectedChain}><ClipboardCopy size={16} />复制链路</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={pasteCopiedSelection}><ClipboardPaste size={16} />粘贴链路</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={disconnectSelectedNodes}><XSquare size={16} />断开连线</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 text-slate-300 disabled:opacity-50" onClick={() => void deleteSelectedNode()}><Trash2 size={16} />删除节点</button>
           </div>
         </div> : selectedEdge ? <div className="mt-4 grid gap-3 text-sm">

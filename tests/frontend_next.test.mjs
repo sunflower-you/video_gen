@@ -461,9 +461,15 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /deleteSelectedSelectionEdges/);
   assert.match(canvasWorkspace, /setSelectedSelectionEdgesColor/);
   assert.match(canvasWorkspace, /setSelectedSelectionEdgesStyle/);
+  assert.match(canvasWorkspace, /disconnectSelectedNodes/);
   assert.match(canvasWorkspace, /选区内部连线/);
   assert.match(canvasWorkspace, /禁用内部连线/);
   assert.match(canvasWorkspace, /启用内部连线/);
+  assert.match(canvasWorkspace, /断开选区连线/);
+  assert.match(canvasWorkspace, /断开节点连线/);
+  assert.match(canvasWorkspace, /已断开选区相关连线/);
+  assert.match(canvasWorkspace, /已断开当前节点相关连线/);
+  assert.match(canvasWorkspace, /当前节点没有可断开的连线/);
   assert.match(canvasWorkspace, /删除内部连线/);
   assert.match(canvasWorkspace, /已删除选区内部连线/);
   assert.match(canvasWorkspace, /已设置选区内部连线颜色/);

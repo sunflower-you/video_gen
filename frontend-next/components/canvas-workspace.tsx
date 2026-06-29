@@ -20,7 +20,7 @@ import {
   type NodeProps,
   type ReactFlowInstance
 } from "@xyflow/react";
-import { AlertTriangle, AlignHorizontalDistributeCenter, AlignHorizontalJustifyStart, AlignVerticalDistributeCenter, AlignVerticalJustifyStart, Ban, Boxes, CheckSquare, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, Focus, GitBranch, Image, LayoutGrid, Library, ListTree, Lock, Maximize2, Music, Play, Plus, Redo2, RefreshCcw, RotateCcw, Save, Search, Sparkles, Trash2, Undo2, Unlock, Upload, Video, Wand2, XSquare } from "lucide-react";
+import { AlertTriangle, AlignHorizontalDistributeCenter, AlignHorizontalJustifyStart, AlignVerticalDistributeCenter, AlignVerticalJustifyStart, Ban, Boxes, CheckSquare, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, Focus, GitBranch, Image, LayoutGrid, Library, ListTree, Lock, Maximize2, Minimize2, Music, Play, Plus, Redo2, RefreshCcw, RotateCcw, Save, Search, Sparkles, Trash2, Undo2, Unlock, Upload, Video, Wand2, XSquare } from "lucide-react";
 import { apiFetch, currentUserId, deleteJson, postJson, type Asset, type GenerationTask, type Project, type ProjectGraph, type ProjectGraphNode, type StoryboardShot } from "../lib/api";
 
 const nodeLabels: Record<string, string> = {
@@ -229,6 +229,7 @@ function PlatformNode({ data, selected }: NodeProps) {
   const note = String(payload.note || "");
   const markerColor = nodeMarkerColorByValue.get(String(payload.node_color || ""));
   const colorClassName = markerColor?.className || nodeColors[type] || nodeColors.demo;
+  const collapsed = payload.collapsed === true;
   return (
     <div className={`relative w-[240px] rounded-lg border p-3 text-white shadow-xl ${colorClassName} ${selected ? "ring-2 ring-white" : ""} ${disabled ? "opacity-60 grayscale" : ""}`}>
       {inputPorts.map((port, index) => (
@@ -257,11 +258,12 @@ function PlatformNode({ data, selected }: NodeProps) {
         <strong className="truncate text-sm">{title}</strong>
         <span className="inline-flex items-center gap-1 rounded bg-black/30 px-2 py-1 text-[11px]">{disabled ? <Ban size={11} /> : locked ? <Lock size={11} /> : null}{disabled ? "已禁用" : statusText(status)}</span>
       </div>
+      {collapsed && <p className="mt-2 inline-flex rounded border border-white/10 bg-black/25 px-2 py-1 text-[11px] text-slate-100">已折叠</p>}
       {markerColor?.value && <p className="mt-2 inline-flex rounded border border-white/10 bg-black/25 px-2 py-1 text-[11px] text-slate-100">标记：{markerColor.label}</p>}
       {groupTitle && <p className="mt-2 truncate rounded border border-white/10 bg-black/20 px-2 py-1 text-[11px] text-slate-200">组：{groupTitle}</p>}
-      {mediaUrlFromData(payload) && <div className="mt-2 overflow-hidden rounded-md border border-white/10 bg-black/30"><MediaPreview data={payload} title={title} compact /></div>}
-      <p className="mt-2 line-clamp-3 text-xs text-slate-200">{summary}</p>
-      {note && <p className="mt-2 line-clamp-2 rounded border border-white/10 bg-white/10 px-2 py-1 text-[11px] text-slate-100">备注：{note}</p>}
+      {!collapsed && mediaUrlFromData(payload) && <div className="mt-2 overflow-hidden rounded-md border border-white/10 bg-black/30"><MediaPreview data={payload} title={title} compact /></div>}
+      {!collapsed && <p className="mt-2 line-clamp-3 text-xs text-slate-200">{summary}</p>}
+      {!collapsed && note && <p className="mt-2 line-clamp-2 rounded border border-white/10 bg-white/10 px-2 py-1 text-[11px] text-slate-100">备注：{note}</p>}
       <div className="mt-3 grid grid-cols-2 gap-2 border-t border-white/10 pt-2 text-[10px] text-slate-200">
         <div className="flex min-w-0 flex-wrap gap-1">
           {inputPorts.map((port) => <span key={port.id} className="rounded bg-black/25 px-1.5 py-0.5">{port.label}</span>)}
@@ -1323,6 +1325,14 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(nextDisabled ? "节点已禁用，运行链路和全图时会跳过。" : "节点已启用，可继续参与运行。");
   }
 
+  function toggleSelectedNodeCollapsed() {
+    if (!selectedNode) return;
+    const nextCollapsed = (selectedNode.data as Record<string, unknown>).collapsed !== true;
+    rememberGraphHistory();
+    setNodes((items) => items.map((node) => node.id === selectedNode.id ? { ...node, data: { ...node.data, collapsed: nextCollapsed } } : node));
+    setStatus(nextCollapsed ? "节点已折叠，仅保留标题、状态和端口。" : "节点已展开，可查看预览、摘要和备注。");
+  }
+
   function fillSelectedFromUpstream() {
     if (!selectedNode) return;
     if (!selectedUpstreamInputs.length) {
@@ -1891,6 +1901,13 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(disabled ? `已禁用选区：${selectedNodes.length} 个节点，运行时会跳过。` : `已启用选区：${selectedNodes.length} 个节点。`);
   }
 
+  function setSelectedNodesCollapsed(collapsed: boolean) {
+    if (!selectedNodes.length) return;
+    rememberGraphHistory();
+    setNodes((items) => items.map((node) => selectedNodeIds.has(node.id) ? { ...node, data: { ...(node.data as Record<string, unknown>), collapsed } } : node));
+    setStatus(collapsed ? `已折叠选区：${selectedNodes.length} 个节点。` : `已展开选区：${selectedNodes.length} 个节点。`);
+  }
+
   function setSelectedNodesColor(color: string) {
     if (!selectedNodes.length) return;
     const markerColor = nodeMarkerColorByValue.get(color) || nodeMarkerColorByValue.get("");
@@ -2348,6 +2365,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { ungroupSelectedNodes(); setNodeContextMenu(null); }}>取消分组</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesDisabled(true); setNodeContextMenu(null); }}>禁用选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesDisabled(false); setNodeContextMenu(null); }}>启用选区</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesCollapsed(true); setNodeContextMenu(null); }}>折叠选区</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesCollapsed(false); setNodeContextMenu(null); }}>展开选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesLocked(true); setNodeContextMenu(null); }}>锁定选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesLocked(false); setNodeContextMenu(null); }}>解锁选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left text-red-100 hover:bg-red-500/10 disabled:opacity-50" onClick={() => { setNodeContextMenu(null); void deleteSelectedNodes(); }}>删除选区</button>
@@ -2360,6 +2379,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { copySelectedChain(); setNodeContextMenu(null); }}>复制上游链路</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { void runSelectedChain(); setNodeContextMenu(null); }}>运行上游链路</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { toggleSelectedNodeDisabled(); setNodeContextMenu(null); }}>{(selectedNode.data as Record<string, unknown>).disabled === true ? "启用节点" : "禁用节点"}</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { toggleSelectedNodeCollapsed(); setNodeContextMenu(null); }}>{(selectedNode.data as Record<string, unknown>).collapsed === true ? "展开节点" : "折叠节点"}</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { toggleSelectedNodeLock(); setNodeContextMenu(null); }}>{(selectedNode.data as Record<string, unknown>).locked === true ? "解锁节点" : "锁定节点"}</button>
             <button disabled={busy || (selectedNode.data as Record<string, unknown>).locked === true} className="rounded px-2 py-2 text-left text-red-100 hover:bg-red-500/10 disabled:opacity-50" onClick={() => { setNodeContextMenu(null); void deleteSelectedNode(); }}>删除节点</button>
           </>}
@@ -2374,6 +2394,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           </div>
           {selectedNode && selectedNodes.length <= 1 && <div className="flex items-center gap-2">
             <button title={selectedData.disabled === true ? "启用节点" : "禁用节点"} className="rounded-md border border-white/10 p-2 text-slate-300 hover:bg-white/10" onClick={toggleSelectedNodeDisabled}><Ban size={16} /></button>
+            <button title={selectedData.collapsed === true ? "展开节点" : "折叠节点"} className="rounded-md border border-white/10 p-2 text-slate-300 hover:bg-white/10" onClick={toggleSelectedNodeCollapsed}>{selectedData.collapsed === true ? <Maximize2 size={16} /> : <Minimize2 size={16} />}</button>
             <button title={selectedData.locked === true ? "解锁节点" : "锁定节点"} className="rounded-md border border-white/10 p-2 text-slate-300 hover:bg-white/10" onClick={toggleSelectedNodeLock}>{selectedData.locked === true ? <Unlock size={16} /> : <Lock size={16} />}</button>
             <button title="删除节点" disabled={selectedData.locked === true} className="rounded-md border border-white/10 p-2 text-slate-300 hover:bg-white/10 disabled:opacity-50" onClick={() => void deleteSelectedNode()}><Trash2 size={16} /></button>
           </div>}
@@ -2413,6 +2434,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={ungroupSelectedNodes}><Boxes size={16} />取消分组</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesDisabled(true)}><Ban size={16} />禁用选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesDisabled(false)}><Play size={16} />启用选区</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesCollapsed(true)}><Minimize2 size={16} />折叠选区</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesCollapsed(false)}><Maximize2 size={16} />展开选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesLocked(true)}><Lock size={16} />锁定选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesLocked(false)}><Unlock size={16} />解锁选区</button>
             <button disabled={busy} className="col-span-2 inline-flex items-center justify-center gap-2 rounded-md border border-red-400/30 px-3 py-2 text-red-100 disabled:opacity-50" onClick={() => void deleteSelectedNodes()}><Trash2 size={16} />删除选区</button>
@@ -2465,6 +2488,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <label className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
             <span className="text-slate-300">禁用节点运行</span>
             <input type="checkbox" checked={selectedData.disabled === true} onChange={toggleSelectedNodeDisabled} />
+          </label>
+          <label className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
+            <span className="text-slate-300">折叠节点内容</span>
+            <input type="checkbox" checked={selectedData.collapsed === true} onChange={toggleSelectedNodeCollapsed} />
           </label>
           <label className="grid gap-1"><span className="text-slate-400">节点类型</span><select className="rounded-md border border-white/10 bg-slate-900 px-3 py-2 outline-none" value={selectedType} onChange={(event) => updateSelectedNodeType(event.target.value)}>
             {addableNodes.map((item) => <option key={item.type} value={item.type}>{item.category} · {nodeLabels[item.type] || item.label}</option>)}

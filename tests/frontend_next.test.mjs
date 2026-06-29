@@ -311,6 +311,16 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /选区颜色标记/);
   assert.match(canvasWorkspace, /标记：/);
   assert.match(canvasWorkspace, /已设置选区颜色标记/);
+  assert.match(canvasWorkspace, /toggleSelectedNodeCollapsed/);
+  assert.match(canvasWorkspace, /setSelectedNodesCollapsed/);
+  assert.match(canvasWorkspace, /折叠节点内容/);
+  assert.match(canvasWorkspace, /折叠节点/);
+  assert.match(canvasWorkspace, /展开节点/);
+  assert.match(canvasWorkspace, /折叠选区/);
+  assert.match(canvasWorkspace, /展开选区/);
+  assert.match(canvasWorkspace, /已折叠/);
+  assert.match(canvasWorkspace, /节点已折叠/);
+  assert.match(canvasWorkspace, /节点已展开/);
   assert.match(canvasWorkspace, /alignSelectedNodes/);
   assert.match(canvasWorkspace, /对齐与分布/);
   assert.match(canvasWorkspace, /左对齐选区/);

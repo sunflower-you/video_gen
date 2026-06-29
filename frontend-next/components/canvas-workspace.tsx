@@ -49,6 +49,17 @@ const nodeColors: Record<string, string> = {
   demo: "border-slate-400 bg-slate-900/80"
 };
 
+const nodeMarkerColors: { value: string; label: string; className: string }[] = [
+  { value: "", label: "跟随类型", className: "" },
+  { value: "blue", label: "蓝色", className: "border-blue-400 bg-blue-950/80" },
+  { value: "emerald", label: "绿色", className: "border-emerald-400 bg-emerald-950/80" },
+  { value: "amber", label: "黄色", className: "border-amber-400 bg-amber-950/80" },
+  { value: "rose", label: "红色", className: "border-rose-400 bg-rose-950/80" },
+  { value: "violet", label: "紫色", className: "border-violet-400 bg-violet-950/80" }
+];
+
+const nodeMarkerColorByValue = new Map(nodeMarkerColors.map((item) => [item.value, item]));
+
 type NodePort = {
   id: string;
   label: string;
@@ -216,8 +227,10 @@ function PlatformNode({ data, selected }: NodeProps) {
   const disabled = payload.disabled === true;
   const groupTitle = String(payload.group_title || "");
   const note = String(payload.note || "");
+  const markerColor = nodeMarkerColorByValue.get(String(payload.node_color || ""));
+  const colorClassName = markerColor?.className || nodeColors[type] || nodeColors.demo;
   return (
-    <div className={`relative w-[240px] rounded-lg border p-3 text-white shadow-xl ${nodeColors[type] || nodeColors.demo} ${selected ? "ring-2 ring-white" : ""} ${disabled ? "opacity-60 grayscale" : ""}`}>
+    <div className={`relative w-[240px] rounded-lg border p-3 text-white shadow-xl ${colorClassName} ${selected ? "ring-2 ring-white" : ""} ${disabled ? "opacity-60 grayscale" : ""}`}>
       {inputPorts.map((port, index) => (
         <Handle
           key={port.id}
@@ -244,6 +257,7 @@ function PlatformNode({ data, selected }: NodeProps) {
         <strong className="truncate text-sm">{title}</strong>
         <span className="inline-flex items-center gap-1 rounded bg-black/30 px-2 py-1 text-[11px]">{disabled ? <Ban size={11} /> : locked ? <Lock size={11} /> : null}{disabled ? "已禁用" : statusText(status)}</span>
       </div>
+      {markerColor?.value && <p className="mt-2 inline-flex rounded border border-white/10 bg-black/25 px-2 py-1 text-[11px] text-slate-100">标记：{markerColor.label}</p>}
       {groupTitle && <p className="mt-2 truncate rounded border border-white/10 bg-black/20 px-2 py-1 text-[11px] text-slate-200">组：{groupTitle}</p>}
       {mediaUrlFromData(payload) && <div className="mt-2 overflow-hidden rounded-md border border-white/10 bg-black/30"><MediaPreview data={payload} title={title} compact /></div>}
       <p className="mt-2 line-clamp-3 text-xs text-slate-200">{summary}</p>
@@ -1877,6 +1891,14 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(disabled ? `已禁用选区：${selectedNodes.length} 个节点，运行时会跳过。` : `已启用选区：${selectedNodes.length} 个节点。`);
   }
 
+  function setSelectedNodesColor(color: string) {
+    if (!selectedNodes.length) return;
+    const markerColor = nodeMarkerColorByValue.get(color) || nodeMarkerColorByValue.get("");
+    rememberGraphHistory();
+    setNodes((items) => items.map((node) => selectedNodeIds.has(node.id) ? { ...node, data: { ...(node.data as Record<string, unknown>), node_color: markerColor?.value || "" } } : node));
+    setStatus(markerColor?.value ? `已设置选区颜色标记：${markerColor.label}，共 ${selectedNodes.length} 个节点。` : `已清空选区颜色标记：${selectedNodes.length} 个节点。`);
+  }
+
   function groupSelectedNodes() {
     if (selectedNodes.length <= 1) {
       setStatus("请先框选多个节点，再打组为工作流片段。");
@@ -2368,6 +2390,12 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" placeholder={selectedGroupTitles.length > 1 ? "多个分组，将统一改名" : "输入分组名称"} value={selectedGroupTitleValue} onFocus={rememberGraphHistory} onChange={(event) => updateSelectedGroupTitle(event.target.value)} onBlur={(event) => updateSelectedGroupTitle(event.target.value, true)} />
           </label>}
           <section className="grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">
+            <span className="text-xs text-slate-400">选区颜色标记</span>
+            <div className="grid grid-cols-3 gap-2">
+              {nodeMarkerColors.map((item) => <button key={item.value || "default"} className={`rounded-md border px-2 py-1.5 text-xs ${item.value ? `${item.className} text-white` : "border-white/10 bg-white/5 text-slate-200"} hover:ring-1 hover:ring-white/60`} onClick={() => setSelectedNodesColor(item.value)}>{item.label}</button>)}
+            </div>
+          </section>
+          <section className="grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">
             <span className="text-xs text-slate-400">对齐与分布</span>
             <div className="grid grid-cols-4 gap-2">
               <button title="左对齐选区" disabled={busy} className="grid h-9 place-items-center rounded-md border border-white/10 text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={() => alignSelectedNodes("left")}><AlignHorizontalJustifyStart size={16} /></button>
@@ -2442,6 +2470,9 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             {addableNodes.map((item) => <option key={item.type} value={item.type}>{item.category} · {nodeLabels[item.type] || item.label}</option>)}
           </select></label>
           <label className="grid gap-1"><span className="text-slate-400">标题</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.title || "")} onChange={(event) => updateSelectedData("title", event.target.value)} /></label>
+          <label className="grid gap-1"><span className="text-slate-400">节点颜色标记</span><select className="rounded-md border border-white/10 bg-slate-900 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.node_color || "")} onChange={(event) => updateSelectedData("node_color", event.target.value)}>
+            {nodeMarkerColors.map((item) => <option key={item.value || "default"} value={item.value}>{item.label}</option>)}
+          </select></label>
           <label className="grid gap-1"><span className="text-slate-400">节点备注</span><textarea className="min-h-20 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" placeholder="记录节点用途、模型选择或后续修改点。" onFocus={rememberSelectedNodeEdit} value={String(selectedData.note || "")} onChange={(event) => updateSelectedData("note", event.target.value)} /></label>
           {(selectedType === "text" || selectedType === "demo") && <label className="grid gap-1"><span className="text-slate-400">文本内容</span><textarea className="min-h-28 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.text || "")} onChange={(event) => updateSelectedData("text", event.target.value)} /></label>}
           {selectedType === "script" && <label className="grid gap-1"><span className="text-slate-400">脚本</span><textarea className="min-h-40 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.script || "")} onChange={(event) => updateSelectedData("script", event.target.value)} /></label>}

@@ -304,6 +304,13 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /节点备注/);
   assert.match(canvasWorkspace, /记录节点用途、模型选择或后续修改点/);
   assert.match(canvasWorkspace, /备注：/);
+  assert.match(canvasWorkspace, /nodeMarkerColors/);
+  assert.match(canvasWorkspace, /nodeMarkerColorByValue/);
+  assert.match(canvasWorkspace, /setSelectedNodesColor/);
+  assert.match(canvasWorkspace, /节点颜色标记/);
+  assert.match(canvasWorkspace, /选区颜色标记/);
+  assert.match(canvasWorkspace, /标记：/);
+  assert.match(canvasWorkspace, /已设置选区颜色标记/);
   assert.match(canvasWorkspace, /alignSelectedNodes/);
   assert.match(canvasWorkspace, /对齐与分布/);
   assert.match(canvasWorkspace, /左对齐选区/);

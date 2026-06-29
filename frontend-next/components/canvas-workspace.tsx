@@ -1543,6 +1543,29 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus("自定义预设已删除。");
   }
 
+  async function exportCustomWorkflowPreset(presetKey: string) {
+    const preset = customWorkflowPresets.find((item) => item.key === presetKey);
+    if (!preset) {
+      setStatus("未找到要导出的自定义预设。");
+      return;
+    }
+    const graph = {
+      id: `preset-export-${preset.key}-${Date.now()}`,
+      project_id: projectId,
+      title: preset.title,
+      description: preset.description,
+      exported_at: new Date().toISOString(),
+      nodes: preset.nodes,
+      edges: preset.edges,
+      viewport: currentCanvasViewport(),
+      status: "draft"
+    };
+    const text = JSON.stringify(graph, null, 2);
+    downloadJsonFile(text, `${preset.title || "custom-workflow-preset"}.json`);
+    const copiedToClipboard = await copyTextToSystemClipboard(text, `project_graph_preset_export_${projectId}`);
+    setStatus(copiedToClipboard ? `已导出并复制预设 ProjectGraph JSON：${preset.title}。` : "已导出预设 ProjectGraph JSON；浏览器剪贴板不可用，已把内容暂存到本地。");
+  }
+
   function buildShotWorkflow(shot: StoryboardShot, timestamp: number, baseX: number, baseY: number) {
     const specs = [
       { type: "text", offset: { x: 0, y: 0 }, data: { title: `分镜 ${shot.index}`, text: shot.visual_description, narration: shot.narration, shot_id: shot.id } },
@@ -3306,7 +3329,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
               <span className="block text-sm font-medium text-white">{preset.title}</span>
               <span className="mt-1 block text-xs leading-5 text-slate-400">{preset.description}</span>
             </button>
-            <button className="mt-2 rounded border border-red-400/30 px-2 py-1 text-xs text-red-100" onClick={() => deleteCustomWorkflowPreset(preset.key)}>删除预设</button>
+            <div className="mt-2 flex gap-2">
+              <button className="rounded border border-white/10 px-2 py-1 text-xs text-slate-200 hover:bg-white/10" onClick={() => void exportCustomWorkflowPreset(preset.key)}>导出预设</button>
+              <button className="rounded border border-red-400/30 px-2 py-1 text-xs text-red-100" onClick={() => deleteCustomWorkflowPreset(preset.key)}>删除预设</button>
+            </div>
           </article>)}
           {!customWorkflowPresets.length && <p className="rounded border border-white/10 px-2 py-2 text-xs text-slate-400">暂无自定义预设，可先搭建画布后保存。</p>}
         </section>

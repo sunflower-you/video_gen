@@ -693,6 +693,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [shotStatusFilter, setShotStatusFilter] = useState("all");
   const [shotQuery, setShotQuery] = useState("");
   const [shotSort, setShotSort] = useState("index-asc");
+  const [shotWorkflowFilter, setShotWorkflowFilter] = useState("all");
   const [selectedShotIds, setSelectedShotIds] = useState<string[]>([]);
   const [importText, setImportText] = useState("");
   const [customWorkflowPresets, setCustomWorkflowPresets] = useState<CustomWorkflowPreset[]>([]);
@@ -755,14 +756,21 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const assetTypeFilterOptions = useMemo(() => ["all", ...Object.keys(assetTypeCounts).sort()], [assetTypeCounts]);
   const taskStatusFilterOptions = useMemo(() => ["all", ...Object.keys(taskStatusCounts).sort()], [taskStatusCounts]);
   const shotStatusFilterOptions = useMemo(() => ["all", ...Object.keys(shotStatusCounts).sort()], [shotStatusCounts]);
+  const shotWorkflowShotIds = useMemo(() => new Set(nodes.map((node) => String((node.data as Record<string, unknown>).shot_id || "")).filter(Boolean)), [nodes]);
+  const shotWorkflowCounts = useMemo(() => {
+    const linked = shotOptions.filter((shot) => shotWorkflowShotIds.has(shot.id)).length;
+    return { linked, unlinked: shotOptions.length - linked };
+  }, [shotOptions, shotWorkflowShotIds]);
   const filteredShots = useMemo(() => {
     const keyword = shotQuery.trim().toLowerCase();
     const statusRank: Record<string, number> = { failed: 0, running: 1, pending: 2, draft: 3, completed: 4, cancelled: 5 };
     const result = shotOptions.filter((shot) => {
       const shotStatus = shot.generation_status || "draft";
       const matchesStatus = shotStatusFilter === "all" || shotStatus === shotStatusFilter;
+      const isLinked = shotWorkflowShotIds.has(shot.id);
+      const matchesWorkflow = shotWorkflowFilter === "all" || (shotWorkflowFilter === "linked" ? isLinked : !isLinked);
       const text = `${shot.index} ${shot.id} ${shot.narration || ""} ${shot.visual_description || ""} ${shot.prompt || ""} ${shot.negative_prompt || ""} ${(shot.characters || []).join(" ")}`.toLowerCase();
-      return matchesStatus && (!keyword || text.includes(keyword));
+      return matchesStatus && matchesWorkflow && (!keyword || text.includes(keyword));
     });
     return [...result].sort((left, right) => {
       if (shotSort === "index-desc") return right.index - left.index;
@@ -773,7 +781,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       }
       return left.index - right.index;
     });
-  }, [shotOptions, shotQuery, shotSort, shotStatusFilter]);
+  }, [shotOptions, shotQuery, shotSort, shotStatusFilter, shotWorkflowFilter, shotWorkflowShotIds]);
   const selectedFilteredShots = useMemo(() => {
     if (!selectedShotIds.length) return filteredShots;
     const selected = new Set(selectedShotIds);
@@ -3470,6 +3478,17 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             onClick={() => setShotStatusFilter(shotStatus)}
           >{shotStatus === "all" ? `全部 ${shotOptions.length}` : `${statusText(shotStatus)} ${shotStatusCounts[shotStatus] || 0}`}</button>)}
         </div>
+        <div className="mt-2 flex flex-wrap gap-1 text-[11px]">
+          {[
+            { value: "all", label: `全部链路 ${shotOptions.length}` },
+            { value: "unlinked", label: `未铺设 ${shotWorkflowCounts.unlinked}` },
+            { value: "linked", label: `已铺设 ${shotWorkflowCounts.linked}` }
+          ].map((item) => <button
+            key={item.value}
+            className={`rounded border px-2 py-1 ${shotWorkflowFilter === item.value ? "border-emerald-400/50 bg-emerald-500/15 text-emerald-50" : "border-white/10 text-slate-300 hover:bg-white/10"}`}
+            onClick={() => setShotWorkflowFilter(item.value)}
+          >{item.label}</button>)}
+        </div>
         <label className="mt-3 flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm">
           <Search size={15} className="text-slate-400" />
           <input className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-slate-500" placeholder="搜索分镜描述、旁白、角色" value={shotQuery} onChange={(event) => setShotQuery(event.target.value)} />
@@ -3499,7 +3518,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
                 <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-300">{shot.visual_description || "暂无画面描述"}</p>
                 <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-400">{shot.narration || "暂无旁白"}</p>
               </div>
-              <span className="shrink-0 rounded bg-black/30 px-2 py-1 text-[11px] text-slate-300">{statusText(shot.generation_status || "draft")}</span>
+              <div className="grid shrink-0 gap-1 text-right">
+                <span className="rounded bg-black/30 px-2 py-1 text-[11px] text-slate-300">{statusText(shot.generation_status || "draft")}</span>
+                <span className={`rounded px-2 py-1 text-[11px] ${shotWorkflowShotIds.has(shot.id) ? "bg-emerald-500/10 text-emerald-100" : "bg-amber-500/10 text-amber-100"}`}>{shotWorkflowShotIds.has(shot.id) ? "已铺设" : "未铺设"}</span>
+              </div>
             </div>
             <button className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-xs text-white hover:bg-blue-500" onClick={() => addShotWorkflow(shot)}><GitBranch size={14} />添加分镜链路</button>
           </article>)}

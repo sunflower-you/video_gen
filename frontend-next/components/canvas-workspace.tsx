@@ -1692,6 +1692,25 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(side === "source" ? "连线输出端口已更新。" : "连线输入端口已更新。");
   }
 
+  function reverseSelectedEdge() {
+    if (!selectedEdge) return;
+    const reversed = {
+      ...selectedEdge,
+      source: selectedEdge.target,
+      target: selectedEdge.source,
+      sourceHandle: "output",
+      targetHandle: "input"
+    };
+    const issue = connectionIssueMessage(reversed, edges, selectedEdge.id);
+    if (issue) {
+      setStatus(`反转连线失败：${issue}`);
+      return;
+    }
+    rememberGraphHistory();
+    setEdges((items) => items.map((edge) => edge.id === selectedEdge.id ? edgeWithDefaultHandles(reversed) : edge));
+    setStatus("已反转连线方向，并重置为默认输出/输入端口。");
+  }
+
   function deleteSelectedEdge() {
     if (!selectedEdge) return;
     const selectedEdgeIds = new Set(selectedEdges.map((edge) => edge.id));
@@ -3079,6 +3098,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         </div>
         <div className="mt-2 grid gap-1">
           <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => { toggleSelectedEdgeDisabled(); setEdgeContextMenu(null); }}>{selectedEdgeDisabled ? "启用连线" : "禁用连线"}</button>
+          <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => { reverseSelectedEdge(); setEdgeContextMenu(null); }}>反转连线方向</button>
           <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => insertNodeOnSelectedEdge("text")}>插入文本节点</button>
           <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => insertNodeOnSelectedEdge("image_generation")}>插入分镜图节点</button>
           <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => insertNodeOnSelectedEdge("tts_generation")}>插入配音节点</button>
@@ -3471,6 +3491,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <div className="grid grid-cols-2 gap-2">
             <button className="rounded-md border border-white/10 px-3 py-2 text-slate-200 hover:bg-white/10" onClick={() => focusEdgeNode("source")}>定位起点</button>
             <button className="rounded-md border border-white/10 px-3 py-2 text-slate-200 hover:bg-white/10" onClick={() => focusEdgeNode("target")}>定位终点</button>
+            <button className="col-span-2 rounded-md border border-white/10 px-3 py-2 text-slate-200 hover:bg-white/10" onClick={reverseSelectedEdge}>反转连线方向</button>
             <button className="col-span-2 rounded-md border border-red-400/30 px-3 py-2 text-red-100 hover:bg-red-500/10" onClick={deleteSelectedEdge}>删除连线</button>
           </div>
         </div> : <p className="mt-4 rounded-md border border-white/10 bg-white/5 p-3 text-sm text-slate-400">点击画布节点或连线后可编辑参数、运行生成或删除节点。</p>}

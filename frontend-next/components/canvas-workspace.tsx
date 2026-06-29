@@ -122,7 +122,7 @@ const sameShotSyncKeysByType: Record<string, string[]> = {
   video: ["video_url"],
   audio: ["audio_url"],
   image_generation: ["workflow_key", "prompt", "negative_prompt", "reference_image_url", "model_key", "style_prompt", "width", "height", "seed", "batch_size"],
-  video_generation: ["workflow_key", "prompt", "negative_prompt", "first_frame_url", "duration", "fps"],
+  video_generation: ["workflow_key", "prompt", "negative_prompt", "first_frame_url", "camera_motion", "motion_strength", "duration", "fps"],
   tts_generation: ["workflow_key", "text", "voice", "rate"],
   compose_generation: ["workflow_key", "subtitle"]
 };
@@ -719,7 +719,7 @@ const workflowPresets = [
     description: "参考图连到镜头视频节点，再进入成片合成。",
     nodes: [
       { type: "image", offset: { x: 0, y: 0 }, data: { title: "首帧图片", image_url: "" } },
-      { type: "video_generation", offset: { x: 310, y: 0 }, data: { title: "镜头视频生成", workflow_key: "", prompt: "描述镜头运动和角色动作", negative_prompt: "", first_frame_url: "", duration: "4", fps: "16" } },
+      { type: "video_generation", offset: { x: 310, y: 0 }, data: { title: "镜头视频生成", workflow_key: "", prompt: "描述镜头运动和角色动作", negative_prompt: "", first_frame_url: "", camera_motion: "缓慢推进", motion_strength: "0.5", duration: "4", fps: "16" } },
       { type: "compose_generation", offset: { x: 620, y: 0 }, data: { title: "成片合成", workflow_key: "", subtitle: true } }
     ],
     edges: [[0, 1], [1, 2]]
@@ -1493,7 +1493,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
               : type === "image_generation"
                 ? { title: nodeLabels[type], prompt: "输入生成提示词", negative_prompt: "", reference_image_url: "", model_key: "", style_prompt: "", shot_id: firstShotId, width: "768", height: "1344", seed: "-1", batch_size: "1" }
                 : type === "video_generation"
-                  ? { title: nodeLabels[type], prompt: "输入镜头视频提示词", negative_prompt: "", shot_id: firstShotId, first_frame_url: "", duration: "4", fps: "16" }
+                  ? { title: nodeLabels[type], prompt: "输入镜头视频提示词", negative_prompt: "", shot_id: firstShotId, first_frame_url: "", camera_motion: "缓慢推进", motion_strength: "0.5", duration: "4", fps: "16" }
                   : type === "tts_generation"
                     ? { title: nodeLabels[type], text: "输入旁白文本", shot_id: firstShotId, voice: "zh-CN-XiaoxiaoNeural", rate: "1" }
                     : type === "compose_generation"
@@ -1952,7 +1952,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const specs = [
       { type: "text", offset: { x: 0, y: 0 }, data: { title: `分镜 ${shot.index}`, text: shot.visual_description, narration: shot.narration, shot_id: shot.id } },
       { type: "image_generation", offset: { x: 300, y: -80 }, data: { title: `分镜 ${shot.index} 画面`, workflow_key: "", prompt: shot.prompt || shot.visual_description, negative_prompt: shot.negative_prompt || "", reference_image_url: "", model_key: "", style_prompt: "", shot_id: shot.id, width: "768", height: "1344", seed: "-1", batch_size: "1" } },
-      { type: "video_generation", offset: { x: 610, y: -80 }, data: { title: `分镜 ${shot.index} 视频`, workflow_key: "", prompt: shot.visual_description, negative_prompt: shot.negative_prompt || "", shot_id: shot.id, first_frame_url: "", duration: "4", fps: "16" } },
+      { type: "video_generation", offset: { x: 610, y: -80 }, data: { title: `分镜 ${shot.index} 视频`, workflow_key: "", prompt: shot.visual_description, negative_prompt: shot.negative_prompt || "", shot_id: shot.id, first_frame_url: "", camera_motion: "缓慢推进", motion_strength: "0.5", duration: "4", fps: "16" } },
       { type: "tts_generation", offset: { x: 300, y: 150 }, data: { title: `分镜 ${shot.index} 配音`, workflow_key: "", text: shot.narration, shot_id: shot.id, voice: "zh-CN-XiaoxiaoNeural", rate: "1" } },
       { type: "compose_generation", offset: { x: 920, y: 30 }, data: { title: `分镜 ${shot.index} 合成`, workflow_key: "", subtitle: true } }
     ];
@@ -3636,6 +3636,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         title: `${sourceTitle} 视频生成`,
         prompt: prompt || "输入镜头视频提示词",
         first_frame_url: firstFrameUrl,
+        camera_motion: "缓慢推进",
+        motion_strength: "0.5",
         shot_id: String(sourceData.shot_id || ""),
         status: "draft"
       });
@@ -5226,6 +5228,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <label className="grid gap-1"><span className="text-slate-400">生成数量</span><input type="number" min="1" max="8" className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.batch_size || "1")} onChange={(event) => updateSelectedData("batch_size", event.target.value)} /></label>
           </div>}
           {selectedType === "video_generation" && <label className="grid gap-1"><span className="text-slate-400">首帧图片 URL</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.first_frame_url || "")} onChange={(event) => updateSelectedData("first_frame_url", event.target.value)} /></label>}
+          {selectedType === "video_generation" && <div className="grid grid-cols-2 gap-2">
+            <label className="grid gap-1"><span className="text-slate-400">运镜方式</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" placeholder="例如缓慢推进、横移、环绕、固定镜头" onFocus={rememberSelectedNodeEdit} value={String(selectedData.camera_motion || "")} onChange={(event) => updateSelectedData("camera_motion", event.target.value)} /></label>
+            <label className="grid gap-1"><span className="text-slate-400">运动强度</span><input type="number" min="0" max="1" step="0.1" className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.motion_strength || "0.5")} onChange={(event) => updateSelectedData("motion_strength", event.target.value)} /></label>
+          </div>}
           {selectedType === "video_generation" && <div className="grid grid-cols-2 gap-2">
             <label className="grid gap-1"><span className="text-slate-400">时长</span><input type="number" step="0.5" className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.duration || "4")} onChange={(event) => updateSelectedData("duration", event.target.value)} /></label>
             <label className="grid gap-1"><span className="text-slate-400">帧率</span><input type="number" className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.fps || "16")} onChange={(event) => updateSelectedData("fps", event.target.value)} /></label>

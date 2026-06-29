@@ -2353,9 +2353,17 @@ class PlatformServiceTest(unittest.TestCase):
         video_task = service.generate_shot_video(
             project["id"],
             shot["id"],
-            {"user_id": "author_001", "first_frame_url": "/storage/first.png", "negative_prompt": "抖动、穿帮、低清"},
+            {
+                "user_id": "author_001",
+                "first_frame_url": "/storage/first.png",
+                "negative_prompt": "抖动、穿帮、低清",
+                "camera_motion": "环绕推进",
+                "motion_strength": 0.7,
+            },
         )
         self.assertEqual(video_task["input_params"]["negative_prompt"], "抖动、穿帮、低清")
+        self.assertEqual(video_task["input_params"]["camera_motion"], "环绕推进")
+        self.assertEqual(video_task["input_params"]["motion_strength"], 0.7)
 
     def test_generation_entrypoints_reject_unknown_business_fields(self) -> None:
         service = self.make_service()
@@ -2373,6 +2381,12 @@ class PlatformServiceTest(unittest.TestCase):
                 project["id"],
                 shot["id"],
                 {"user_id": "author_001", "first_frame_url": "/storage/first.png", "steps": 20},
+            )
+        with self.assertRaisesRegex(WorkflowValidationError, "运动强度"):
+            service.generate_shot_video(
+                project["id"],
+                shot["id"],
+                {"user_id": "author_001", "first_frame_url": "/storage/first.png", "motion_strength": 1.5},
             )
         with self.assertRaisesRegex(WorkflowValidationError, "业务接口"):
             service.generate_shot_tts(project["id"], shot["id"], {"user_id": "author_001", "speaker_node": "6"})

@@ -1,11 +1,13 @@
 {
   "workflow_key": "selfhost/video_wan2.1_fusionx",
   "adapter_type": "comfyui",
-  "description": "Wan2.1 镜头视频生成工作流适配说明。平台提交时只传业务 inputs，部署时由该文件对应的 ComfyUI 节点图承接 prompt、negative_prompt、first_frame_url、duration 和 fps。",
+  "description": "Wan2.1 镜头视频生成工作流适配说明。平台提交时只传业务 inputs，部署时由该文件对应的 ComfyUI 节点图承接 prompt、negative_prompt、first_frame_url、camera_motion、motion_strength、duration 和 fps。",
   "inputs": {
     "prompt": "{{prompt}}",
     "negative_prompt": "{{negative_prompt}}",
     "first_frame_url": "{{first_frame_url}}",
+    "camera_motion": "{{camera_motion}}",
+    "motion_strength": "{{motion_strength}}",
     "duration": "{{duration}}",
     "fps": "{{fps}}"
   },
@@ -22,6 +24,8 @@
         "prompt": "{{prompt}}",
         "negative_prompt": "{{negative_prompt}}",
         "first_frame_url": "{{first_frame_url}}",
+        "camera_motion": "{{camera_motion}}",
+        "motion_strength": "{{motion_strength}}",
         "duration": "{{duration}}",
         "fps": "{{fps}}"
       }

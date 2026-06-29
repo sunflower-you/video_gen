@@ -10,11 +10,15 @@
     "prompt": {"type": "string", "required": true, "label": "动作描述"},
     "negative_prompt": {"type": "string", "required": false, "label": "负面提示词"},
     "first_frame_url": {"type": "string", "required": true, "label": "首帧图片"},
+    "camera_motion": {"type": "string", "required": false, "label": "运镜方式"},
+    "motion_strength": {"type": "number", "required": false, "label": "运动强度"},
     "duration": {"type": "number", "required": true, "label": "时长"},
     "fps": {"type": "integer", "required": true, "label": "帧率"}
   },
   "default_params": {
     "negative_prompt": "",
+    "camera_motion": "缓慢推进",
+    "motion_strength": 0.5,
     "duration": 4,
     "fps": 16
   },

@@ -1396,7 +1396,7 @@ class PlatformService:
         return task
 
     def generate_shot_video(self, project_id: str, shot_id: str, payload: dict[str, Any]) -> dict[str, Any]:
-        _reject_unknown_payload_fields(payload, {"user_id", "workflow_key", "prompt", "negative_prompt", "first_frame_url", "duration", "fps"})
+        _reject_unknown_payload_fields(payload, {"user_id", "workflow_key", "prompt", "negative_prompt", "first_frame_url", "camera_motion", "motion_strength", "duration", "fps"})
         project, shot = self._project_shot(project_id, shot_id)
         self._assert_project_owner(project, payload.get("user_id"))
         first_frame_url = str(payload.get("first_frame_url", "")).strip()
@@ -1410,6 +1410,8 @@ class PlatformService:
             "prompt": payload.get("prompt") or shot.visual_description,
             "negative_prompt": payload.get("negative_prompt") or shot.negative_prompt or DEFAULT_NEGATIVE_PROMPT,
             "first_frame_url": first_frame_url,
+            "camera_motion": str(payload.get("camera_motion", default_params.get("camera_motion", "")) or ""),
+            "motion_strength": _coerce_float_range_param(payload.get("motion_strength", default_params.get("motion_strength", 0.5)), "运动强度", 0, 1),
             "duration": _coerce_float_param(payload.get("duration", default_params.get("duration", 4)), "时长"),
             "fps": _coerce_int_param(payload.get("fps", default_params.get("fps", 16)), "帧率"),
         }
@@ -2087,6 +2089,8 @@ class PlatformService:
                         "prompt": data.get("prompt") or _first_non_empty(incoming_data, "prompt", "text", "script", "narration"),
                         "negative_prompt": data.get("negative_prompt") or _first_non_empty(incoming_data, "negative_prompt"),
                         "first_frame_url": data.get("first_frame_url") or _first_non_empty(incoming_data, "image_url"),
+                        "camera_motion": data.get("camera_motion") or _first_non_empty(incoming_data, "camera_motion"),
+                        "motion_strength": data.get("motion_strength"),
                         "duration": data.get("duration"),
                         "fps": data.get("fps"),
                     })
@@ -2154,7 +2158,7 @@ class PlatformService:
             node_specs = [
                 (f"shot-{shot.id}", "text", {"title": f"分镜 {shot.index}", "text": shot.visual_description, "narration": shot.narration, "shot_id": shot.id}, 120),
                 (f"image-gen-{shot.id}", "image_generation", {"title": "分镜图生成", "prompt": shot.prompt, "negative_prompt": shot.negative_prompt, "reference_image_url": "", "model_key": "", "style_prompt": "", "shot_id": shot.id, "batch_size": "1"}, 300),
-                (f"video-gen-{shot.id}", "video_generation", {"title": "镜头视频生成", "prompt": shot.visual_description, "shot_id": shot.id}, 480),
+                (f"video-gen-{shot.id}", "video_generation", {"title": "镜头视频生成", "prompt": shot.visual_description, "shot_id": shot.id, "camera_motion": "缓慢推进", "motion_strength": "0.5"}, 480),
                 (f"tts-gen-{shot.id}", "tts_generation", {"title": "旁白配音", "text": shot.narration, "shot_id": shot.id}, 660),
             ]
             for node_id, node_type, data, y in node_specs:
@@ -3370,6 +3374,13 @@ def _coerce_float_param(value: Any, label: str) -> float:
         return float(value)
     except (TypeError, ValueError) as exc:
         raise WorkflowValidationError(f"参数“{label}”必须是数字。") from exc
+
+
+def _coerce_float_range_param(value: Any, label: str, minimum: float, maximum: float) -> float:
+    result = _coerce_float_param(value, label)
+    if result < minimum or result > maximum:
+        raise WorkflowValidationError(f"参数“{label}”必须在 {minimum:g} 到 {maximum:g} 之间。")
+    return result
 
 
 def _coerce_bool_param(value: Any, label: str) -> bool:

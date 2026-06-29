@@ -144,6 +144,11 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /restoreCanvasViewport/);
   assert.match(canvasWorkspace, /flowInstance\.setViewport/);
   assert.match(canvasWorkspace, /flowInstance\?\.getViewport/);
+  assert.match(canvasWorkspace, /CanvasViewBookmark/);
+  assert.match(canvasWorkspace, /viewBookmarkStoragePrefix/);
+  assert.match(canvasWorkspace, /saveCurrentViewBookmark/);
+  assert.match(canvasWorkspace, /restoreViewBookmark/);
+  assert.match(canvasWorkspace, /deleteViewBookmark/);
   assert.match(canvasWorkspace, /fitGraphView/);
   assert.match(canvasWorkspace, /fitSelectedNodeView/);
   assert.match(canvasWorkspace, /resetCanvasViewport/);
@@ -157,6 +162,10 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /适配全部节点/);
   assert.match(canvasWorkspace, /适配选中节点/);
   assert.match(canvasWorkspace, /重置画布视口/);
+  assert.match(canvasWorkspace, /画布视图书签/);
+  assert.match(canvasWorkspace, /保存当前视图/);
+  assert.match(canvasWorkspace, /已保存画布视图书签/);
+  assert.match(canvasWorkspace, /已恢复画布视图书签/);
   assert.match(canvasWorkspace, /已适配选区视图/);
   assert.match(canvasWorkspace, /selectAllCanvasNodes/);
   assert.match(canvasWorkspace, /clearCanvasSelection/);

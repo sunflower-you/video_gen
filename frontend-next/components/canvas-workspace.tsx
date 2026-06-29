@@ -644,8 +644,10 @@ type GraphHistorySnapshot = {
 };
 
 type CanvasViewport = { x: number; y: number; zoom: number };
+type CanvasViewBookmark = { key: string; title: string; viewport: CanvasViewport; created_at: string };
 
 const customPresetStorageKey = "video_gen_canvas_custom_presets";
+const viewBookmarkStoragePrefix = "video_gen_canvas_view_bookmarks";
 const paletteNodeDragType = "application/x-video-gen-node-type";
 const defaultCanvasViewport: CanvasViewport = { x: 0, y: 0, zoom: 1 };
 
@@ -667,6 +669,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [showImport, setShowImport] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
   const [showOutline, setShowOutline] = useState(false);
+  const [showViewBookmarks, setShowViewBookmarks] = useState(false);
   const [showPalette, setShowPalette] = useState(true);
   const [paletteQuery, setPaletteQuery] = useState("");
   const [outlineQuery, setOutlineQuery] = useState("");
@@ -674,6 +677,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [importText, setImportText] = useState("");
   const [customWorkflowPresets, setCustomWorkflowPresets] = useState<CustomWorkflowPreset[]>([]);
   const [presetTitle, setPresetTitle] = useState("自定义工作流");
+  const [viewBookmarks, setViewBookmarks] = useState<CanvasViewBookmark[]>([]);
+  const [viewBookmarkTitle, setViewBookmarkTitle] = useState("当前视图");
   const [selectedRenamePrefix, setSelectedRenamePrefix] = useState("镜头节点");
   const [nodeContextMenu, setNodeContextMenu] = useState<{ nodeId: string; x: number; y: number } | null>(null);
   const [edgeContextMenu, setEdgeContextMenu] = useState<{ edgeId: string; x: number; y: number } | null>(null);
@@ -736,6 +741,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       return !keyword || text.includes(keyword);
     });
   }, [paletteQuery]);
+  const viewBookmarkStorageKey = useMemo(() => `${viewBookmarkStoragePrefix}:${projectId}`, [projectId]);
 
   function cloneGraphSnapshot(snapshotNodes = nodes, snapshotEdges = edges, snapshotSelectedNodeId = selectedNodeId, snapshotSelectedEdgeId = selectedEdgeId): GraphHistorySnapshot {
     return {
@@ -801,6 +807,15 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       window.localStorage.removeItem(customPresetStorageKey);
     }
   }, []);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(viewBookmarkStorageKey) || "[]");
+      if (Array.isArray(saved)) setViewBookmarks(saved.filter((item) => item?.viewport && Number.isFinite(item.viewport.x) && Number.isFinite(item.viewport.y) && Number.isFinite(item.viewport.zoom)));
+    } catch {
+      window.localStorage.removeItem(viewBookmarkStorageKey);
+    }
+  }, [viewBookmarkStorageKey]);
 
   useEffect(() => {
     const handleCanvasKeyDown = (event: KeyboardEvent) => {
@@ -1637,6 +1652,36 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus("已重置画布视口。");
   }
 
+  function persistViewBookmarks(next: CanvasViewBookmark[]) {
+    setViewBookmarks(next);
+    window.localStorage.setItem(viewBookmarkStorageKey, JSON.stringify(next));
+  }
+
+  function saveCurrentViewBookmark() {
+    const title = viewBookmarkTitle.trim() || `视图 ${viewBookmarks.length + 1}`;
+    const bookmark: CanvasViewBookmark = {
+      key: `view-${Date.now()}`,
+      title,
+      viewport: currentCanvasViewport(),
+      created_at: new Date().toISOString()
+    };
+    persistViewBookmarks([bookmark, ...viewBookmarks].slice(0, 8));
+    setShowViewBookmarks(true);
+    setStatus(`已保存画布视图书签：${title}。`);
+  }
+
+  function restoreViewBookmark(bookmark: CanvasViewBookmark) {
+    void flowInstance?.setViewport(bookmark.viewport, { duration: 420 });
+    setInitialViewport(bookmark.viewport);
+    setStatus(`已恢复画布视图书签：${bookmark.title}。`);
+  }
+
+  function deleteViewBookmark(bookmarkKey: string) {
+    const next = viewBookmarks.filter((item) => item.key !== bookmarkKey);
+    persistViewBookmarks(next);
+    setStatus("已删除画布视图书签。");
+  }
+
   function toggleSnapToGrid() {
     setSnapToGrid((value) => {
       const next = !value;
@@ -2277,10 +2322,36 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         <button title="适配全部节点" disabled={!nodes.length} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={fitGraphView}><Maximize2 size={18} /></button>
         <button title="适配选中节点" disabled={!selectedNodes.length} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={fitSelectedNodeView}><Focus size={18} /></button>
         <button title="重置画布视口" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={resetCanvasViewport}><RotateCcw size={18} /></button>
+        <button title="视图书签" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowViewBookmarks((value) => !value)}><Save size={18} /></button>
         <button title="分镜列表" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowShots((value) => !value)}><Clapperboard size={18} /></button>
         <button title="素材库" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowAssets((value) => !value)}><Library size={18} /></button>
         <button title="任务队列" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowTasks((value) => !value)}><Boxes size={18} /></button>
       </aside>
+
+      {showViewBookmarks && <aside className="absolute left-20 top-28 z-30 w-[340px] rounded-lg border border-white/10 bg-slate-950/95 p-4 shadow-2xl backdrop-blur">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs text-slate-400">视图导航</p>
+            <h2 className="font-semibold">画布视图书签</h2>
+          </div>
+          <span className="rounded border border-white/10 px-2 py-1 text-xs text-slate-400">{viewBookmarks.length}/8</span>
+        </div>
+        <label className="mt-3 grid gap-1 text-xs text-slate-400">
+          书签名称
+          <input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none" value={viewBookmarkTitle} onChange={(event) => setViewBookmarkTitle(event.target.value)} />
+        </label>
+        <button className="mt-2 w-full rounded-md border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-left text-sm text-white hover:bg-blue-500/20" onClick={saveCurrentViewBookmark}>保存当前视图</button>
+        <div className="mt-3 grid gap-2 text-sm">
+          {viewBookmarks.map((bookmark) => <article key={bookmark.key} className="rounded-md border border-white/10 bg-white/[0.03] p-2">
+            <button className="w-full text-left" onClick={() => restoreViewBookmark(bookmark)}>
+              <span className="block truncate font-medium text-white">{bookmark.title}</span>
+              <span className="mt-1 block text-xs text-slate-400">缩放 {bookmark.viewport.zoom.toFixed(2)} · x {Math.round(bookmark.viewport.x)} / y {Math.round(bookmark.viewport.y)}</span>
+            </button>
+            <button className="mt-2 inline-flex items-center gap-1 rounded border border-red-400/30 px-2 py-1 text-xs text-red-100" onClick={() => deleteViewBookmark(bookmark.key)}><Trash2 size={12} />删除书签</button>
+          </article>)}
+          {!viewBookmarks.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">暂无视图书签，可先保存当前视图。</p>}
+        </div>
+      </aside>}
 
       {showOutline && <aside className="absolute left-20 top-28 z-30 max-h-[620px] w-[390px] overflow-auto rounded-lg border border-white/10 bg-slate-950/95 p-4 shadow-2xl backdrop-blur">
         <div className="flex items-start justify-between gap-3">

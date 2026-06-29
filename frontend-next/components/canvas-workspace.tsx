@@ -3757,20 +3757,46 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     }
   }
 
-  function addAssetNode(asset: Asset) {
+  function assetNodeSpec(asset: Asset, index = 0) {
     const type = asset.asset_type === "video" ? "video" : asset.asset_type === "audio" ? "audio" : "image";
     const dataKey = type === "video" ? "video_url" : type === "audio" ? "audio_url" : "image_url";
     const id = `asset-${asset.id}`;
-    if (nodes.some((node) => node.id === id)) return;
-    rememberGraphHistory();
-    setNodes((items) => [...items, {
+    return {
       id,
       type: "platform",
       draggable: true,
-      position: { x: 260 + items.length * 32, y: 220 + items.length * 24 },
+      position: { x: 260 + (index % 4) * 280, y: 220 + Math.floor(index / 4) * 190 },
       data: { title: `素材 ${asset.asset_type}`, nodeType: type, graphNodeId: id, status: "completed", [dataKey]: asset.url, text: asset.workflow_key || asset.source_task_type || "项目素材" }
-    }]);
-    setStatus("素材已拖入画布。 ");
+    } satisfies Node;
+  }
+
+  function addAssetNode(asset: Asset) {
+    const node = assetNodeSpec(asset, nodes.length);
+    if (nodes.some((item) => item.id === node.id)) return;
+    rememberGraphHistory();
+    setNodes((items) => [...items.map((item) => ({ ...item, selected: false })), { ...node, selected: true }]);
+    setSelectedNodeId(node.id);
+    setSelectedEdgeId("");
+    setStatus("素材已拖入画布。");
+  }
+
+  function addFilteredAssetNodes() {
+    if (!filteredAssets.length) {
+      setStatus("当前素材筛选结果为空，无法批量添加到画布。");
+      return;
+    }
+    const existingIds = new Set(nodes.map((node) => node.id));
+    const createdNodes = filteredAssets.map((asset, index) => assetNodeSpec(asset, index)).filter((node) => !existingIds.has(node.id));
+    if (!createdNodes.length) {
+      setStatus("当前筛选素材都已在画布中，无需重复添加。");
+      return;
+    }
+    rememberGraphHistory();
+    setNodes((items) => [...items.map((node) => ({ ...node, selected: false })), ...createdNodes.map((node) => ({ ...node, selected: true }))]);
+    setSelectedNodeId(createdNodes[0]?.id || "");
+    setSelectedEdgeId("");
+    setShowAssets(false);
+    setStatus(`已批量添加 ${createdNodes.length} 个筛选素材到画布。`);
   }
 
   function downloadJsonFile(text: string, filename: string) {
@@ -3964,6 +3990,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     { key: "show-shots", title: "打开项目分镜面板", description: "按分镜铺设文本、画面、视频、配音和合成链路", run: () => setShowShots(true) },
     { key: "bind-selected-shots", title: "把选中分镜绑定到选区节点", description: "按画布位置把分镜提示词和旁白批量写入选区生成节点", disabled: !selectedShotIds.length || !selectedShotBindingNodes.length, run: bindSelectedShotsToSelectedNodes },
     { key: "show-assets", title: "打开素材库", description: "筛选并拖入项目图片、视频和音频素材", run: () => setShowAssets(true) },
+    { key: "add-filtered-assets", title: "批量添加筛选素材到画布", description: "把素材库当前筛选结果按网格铺到画布并选中新素材", disabled: !filteredAssets.length, run: addFilteredAssetNodes },
     { key: "show-tasks", title: "打开任务队列", description: "筛选、定位、同步、重试和取消生成任务", run: () => setShowTasks(true) },
     { key: "show-event-log", title: "打开画布事件日志", description: "追踪保存、运行、导入导出、复制粘贴和失败提示", run: () => setShowEventLog(true) },
     { key: "export-event-log", title: "导出画布事件日志", description: "下载并复制当前项目的画布操作追踪 JSON", disabled: !canvasEventLog.length, run: () => void exportCanvasEventLog() },
@@ -4999,6 +5026,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <Search size={15} className="text-slate-400" />
           <input className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-slate-500" placeholder="搜索素材 URL、工作流、分镜" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
         </label>
+        <button disabled={!filteredAssets.length} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border border-blue-400/40 bg-blue-500/10 px-3 py-2 text-sm text-white hover:bg-blue-500/20 disabled:opacity-50" onClick={addFilteredAssetNodes}><Library size={15} />批量添加筛选素材 {filteredAssets.length || ""}</button>
         <div className="mt-3 grid gap-2 text-sm">
           {filteredAssets.map((asset) => {
             const type = asset.asset_type === "video" ? "video" : asset.asset_type === "audio" ? "audio" : "image";

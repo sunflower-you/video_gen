@@ -306,8 +306,13 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /assetQuery/);
   assert.match(canvasWorkspace, /taskQuery/);
   assert.match(canvasWorkspace, /filteredAssets/);
+  assert.match(canvasWorkspace, /assetNodeSpec/);
+  assert.match(canvasWorkspace, /addFilteredAssetNodes/);
   assert.match(canvasWorkspace, /filteredTasks/);
   assert.match(canvasWorkspace, /搜索素材 URL、工作流、分镜/);
+  assert.match(canvasWorkspace, /批量添加筛选素材到画布/);
+  assert.match(canvasWorkspace, /已批量添加 .*个筛选素材到画布/);
+  assert.match(canvasWorkspace, /当前筛选素材都已在画布中/);
   assert.match(canvasWorkspace, /搜索任务类型、工作流、错误/);
   assert.match(canvasWorkspace, /没有匹配素材/);
   assert.match(canvasWorkspace, /没有匹配任务/);

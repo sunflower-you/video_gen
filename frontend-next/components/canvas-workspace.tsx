@@ -255,6 +255,43 @@ function firstNonEmpty(items: Record<string, unknown>[], ...keys: string[]) {
   return "";
 }
 
+type UpstreamInputEntry = {
+  key: string;
+  label: string;
+  value: string;
+};
+
+function upstreamInputEntries(nodeType: string, incoming: Record<string, unknown>[]) {
+  const specs = nodeType === "image_generation"
+    ? [
+        { key: "shot_id", label: "分镜", keys: ["shot_id"] },
+        { key: "prompt", label: "提示词", keys: ["prompt", "text", "script", "narration"] }
+      ]
+    : nodeType === "video_generation"
+      ? [
+          { key: "shot_id", label: "分镜", keys: ["shot_id"] },
+          { key: "prompt", label: "动作提示词", keys: ["prompt", "text", "script", "narration"] },
+          { key: "first_frame_url", label: "首帧图片", keys: ["image_url", "first_frame_url"] }
+        ]
+      : nodeType === "tts_generation"
+        ? [{ key: "text", label: "旁白文本", keys: ["narration", "text", "script"] }]
+        : nodeType === "compose_generation"
+          ? [
+              { key: "video_url", label: "视频输入", keys: ["video_url", "output_url", "final_video_url"] },
+              { key: "audio_url", label: "音频输入", keys: ["audio_url"] }
+            ]
+          : [
+              { key: "text", label: "文本", keys: ["text", "prompt", "script", "narration"] },
+              { key: "image_url", label: "图片", keys: ["image_url", "first_frame_url"] },
+              { key: "video_url", label: "视频", keys: ["video_url", "final_video_url"] },
+              { key: "audio_url", label: "音频", keys: ["audio_url"] }
+            ];
+  return specs.flatMap((spec) => {
+    const value = firstNonEmpty(incoming, ...spec.keys);
+    return value ? [{ key: spec.key, label: spec.label, value }] : [];
+  }) satisfies UpstreamInputEntry[];
+}
+
 type GraphValidationIssue = {
   id: string;
   level: "error" | "warning";
@@ -399,6 +436,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const taskId = String((selectedNode?.data as Record<string, unknown> | undefined)?.task_id || "");
     return taskId ? taskById.get(taskId) || null : null;
   }, [selectedNode, taskById]);
+  const selectedIncomingData = useMemo(() => selectedNode ? incomingNodeData(selectedNode.id, nodes, edges) : [], [selectedNode, nodes, edges]);
+  const selectedUpstreamInputs = useMemo(() => selectedNode ? upstreamInputEntries(String((selectedNode.data as Record<string, unknown>).nodeType || "text"), selectedIncomingData) : [], [selectedNode, selectedIncomingData]);
   const taskStatusCounts = useMemo(() => tasks.reduce<Record<string, number>>((counts, task) => {
     counts[task.status] = (counts[task.status] || 0) + 1;
     return counts;
@@ -772,6 +811,17 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   function updateSelectedData(key: string, value: string | boolean) {
     if (!selectedNode) return;
     setNodes((items) => items.map((node) => node.id === selectedNode.id ? { ...node, data: { ...node.data, [key]: value } } : node));
+  }
+
+  function fillSelectedFromUpstream() {
+    if (!selectedNode) return;
+    if (!selectedUpstreamInputs.length) {
+      setStatus("当前节点没有可填充的上游输入。");
+      return;
+    }
+    const patch = Object.fromEntries(selectedUpstreamInputs.map((item) => [item.key, item.value]));
+    setNodes((items) => items.map((node) => node.id === selectedNode.id ? { ...node, data: { ...node.data, ...patch } } : node));
+    setStatus(`已从上游填充 ${selectedUpstreamInputs.length} 个参数。`);
   }
 
   async function taskAction(taskId: string, action: "submit" | "sync" | "cancel" | "retry") {
@@ -1241,6 +1291,19 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             </div>
             <MediaPreview data={selectedData} title={String(selectedData.title || "节点预览")} />
             <p className="mt-2 truncate text-xs text-slate-500">{mediaUrlFromData(selectedData)}</p>
+          </section>}
+          {!!selectedIncomingData.length && <section className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs text-slate-400">连线输入</p>
+                <strong className="text-sm text-white">上游输入</strong>
+              </div>
+              <button disabled={!selectedUpstreamInputs.length} className="rounded border border-blue-400/30 px-2 py-1 text-xs text-blue-100 disabled:opacity-50" onClick={fillSelectedFromUpstream}>填充参数</button>
+            </div>
+            <div className="mt-2 grid gap-1 text-xs">
+              {selectedUpstreamInputs.map((item) => <p key={`${item.key}-${item.value}`} className="truncate rounded border border-white/10 bg-black/20 px-2 py-1 text-slate-300">{item.label}：{item.value}</p>)}
+              {!selectedUpstreamInputs.length && <p className="rounded border border-white/10 px-2 py-1 text-slate-400">已连接上游节点，但没有可直接填充的字段。</p>}
+            </div>
           </section>}
           <label className="grid gap-1"><span className="text-slate-400">标题</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.title || "")} onChange={(event) => updateSelectedData("title", event.target.value)} /></label>
           {(selectedType === "text" || selectedType === "demo") && <label className="grid gap-1"><span className="text-slate-400">文本内容</span><textarea className="min-h-28 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.text || "")} onChange={(event) => updateSelectedData("text", event.target.value)} /></label>}

@@ -713,6 +713,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [snapToGrid, setSnapToGrid] = useState(true);
   const [selectionOnDrag, setSelectionOnDrag] = useState(false);
   const [linkedNodeIdHandled, setLinkedNodeIdHandled] = useState("");
+  const [linkedEdgeIdHandled, setLinkedEdgeIdHandled] = useState("");
   const [busy, setBusy] = useState(false);
 
   const selectedNode = useMemo(() => nodes.find((item) => item.id === selectedNodeId) || null, [nodes, selectedNodeId]);
@@ -894,6 +895,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   useEffect(() => {
     setLinkedNodeIdHandled("");
+    setLinkedEdgeIdHandled("");
   }, [projectId]);
 
   useEffect(() => {
@@ -920,6 +922,29 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     void flowInstance.setCenter(linkedNode.position.x + 120, linkedNode.position.y + 80, { duration: 420, zoom: 1 });
     setStatus("已通过节点链接定位到画布节点。");
   }, [flowInstance, linkedNodeIdHandled, nodes]);
+
+  useEffect(() => {
+    if (!flowInstance || !edges.length) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("node")) return;
+    const linkedEdgeId = params.get("edge") || "";
+    if (!linkedEdgeId || linkedEdgeId === linkedEdgeIdHandled) return;
+    const linkedEdge = edges.find((edge) => edge.id === linkedEdgeId);
+    setLinkedEdgeIdHandled(linkedEdgeId);
+    if (!linkedEdge) {
+      setStatus("连线链接已打开，但当前画布没有找到对应连线。");
+      return;
+    }
+    setSelectedNodeId("");
+    setSelectedEdgeId(linkedEdge.id);
+    setNodeContextMenu(null);
+    setEdgeContextMenu(null);
+    setNodes((items) => items.map((node) => ({ ...node, selected: false })));
+    setEdges((items) => items.map((edge) => ({ ...edge, selected: edge.id === linkedEdge.id })));
+    const edgeNodes = nodes.filter((node) => node.id === linkedEdge.source || node.id === linkedEdge.target);
+    if (edgeNodes.length) void flowInstance.fitView({ nodes: edgeNodes.map((node) => ({ id: node.id })), padding: 0.3, duration: 420, maxZoom: 1.1 });
+    setStatus("已通过连线链接定位到画布连线。");
+  }, [edges, flowInstance, linkedEdgeIdHandled, nodes]);
 
   useEffect(() => {
     try {
@@ -2525,6 +2550,38 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(copiedToClipboard ? "已复制节点定位链接到系统剪贴板。" : "浏览器剪贴板不可用，已把节点定位链接暂存到本地。");
   }
 
+  async function copySelectedEdgeId() {
+    if (!selectedEdge) {
+      setStatus("请先选择一条连线，再复制连线 ID。");
+      return;
+    }
+    const copiedToClipboard = await copyTextToSystemClipboard(selectedEdge.id, `project_graph_edge_id_${projectId}`);
+    setStatus(copiedToClipboard ? "已复制连线 ID 到系统剪贴板。" : "浏览器剪贴板不可用，已把连线 ID 暂存到本地。");
+  }
+
+  async function copySelectedEdgeParams() {
+    if (!selectedEdge) {
+      setStatus("请先选择一条连线，再复制连线参数 JSON。");
+      return;
+    }
+    const payload = JSON.stringify(fromFlowEdge(selectedEdge), null, 2);
+    const copiedToClipboard = await copyTextToSystemClipboard(payload, `project_graph_edge_params_${projectId}`);
+    setStatus(copiedToClipboard ? "已复制连线参数 JSON 到系统剪贴板。" : "浏览器剪贴板不可用，已把连线参数 JSON 暂存到本地。");
+  }
+
+  async function copySelectedEdgeLink() {
+    if (!selectedEdge) {
+      setStatus("请先选择一条连线，再复制连线定位链接。");
+      return;
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.delete("node");
+    url.searchParams.set("edge", selectedEdge.id);
+    url.hash = "";
+    const copiedToClipboard = await copyTextToSystemClipboard(url.toString(), `project_graph_edge_link_${projectId}`);
+    setStatus(copiedToClipboard ? "已复制连线定位链接到系统剪贴板。" : "浏览器剪贴板不可用，已把连线定位链接暂存到本地。");
+  }
+
   function pasteCopiedSelection() {
     let cached = copiedSelection;
     if (!cached) {
@@ -3303,6 +3360,9 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         <div className="mt-2 grid gap-1">
           <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => { toggleSelectedEdgeDisabled(); setEdgeContextMenu(null); }}>{selectedEdgeDisabled ? "启用连线" : "禁用连线"}</button>
           <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => { reverseSelectedEdge(); setEdgeContextMenu(null); }}>反转连线方向</button>
+          <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => { void copySelectedEdgeId(); setEdgeContextMenu(null); }}>复制连线 ID</button>
+          <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => { void copySelectedEdgeParams(); setEdgeContextMenu(null); }}>复制连线参数 JSON</button>
+          <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => { void copySelectedEdgeLink(); setEdgeContextMenu(null); }}>复制连线定位链接</button>
           <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => insertNodeOnSelectedEdge("text")}>插入文本节点</button>
           <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => insertNodeOnSelectedEdge("image_generation")}>插入分镜图节点</button>
           <button className="rounded px-2 py-2 text-left hover:bg-white/10" onClick={() => insertNodeOnSelectedEdge("tts_generation")}>插入配音节点</button>
@@ -3721,6 +3781,9 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <div className="grid grid-cols-2 gap-2">
             <button className="rounded-md border border-white/10 px-3 py-2 text-slate-200 hover:bg-white/10" onClick={() => focusEdgeNode("source")}>定位起点</button>
             <button className="rounded-md border border-white/10 px-3 py-2 text-slate-200 hover:bg-white/10" onClick={() => focusEdgeNode("target")}>定位终点</button>
+            <button className="rounded-md border border-white/10 px-3 py-2 text-slate-200 hover:bg-white/10" onClick={() => void copySelectedEdgeId()}>复制 ID</button>
+            <button className="rounded-md border border-white/10 px-3 py-2 text-slate-200 hover:bg-white/10" onClick={() => void copySelectedEdgeParams()}>复制参数</button>
+            <button className="col-span-2 rounded-md border border-white/10 px-3 py-2 text-slate-200 hover:bg-white/10" onClick={() => void copySelectedEdgeLink()}>复制连线定位链接</button>
             <button className="col-span-2 rounded-md border border-white/10 px-3 py-2 text-slate-200 hover:bg-white/10" onClick={reverseSelectedEdge}>反转连线方向</button>
             <button className="col-span-2 rounded-md border border-red-400/30 px-3 py-2 text-red-100 hover:bg-red-500/10" onClick={deleteSelectedEdge}>删除连线</button>
           </div>

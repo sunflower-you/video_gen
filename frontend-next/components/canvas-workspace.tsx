@@ -1118,15 +1118,19 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     if (!project) return;
     const params = new URLSearchParams(window.location.search);
     const presetKey = params.get("preset") || "";
-    if (!presetKey || presetKey === linkedPresetHandled) return;
-    setLinkedPresetHandled(presetKey);
+    const presetMode = params.get("presetMode") || "";
+    const presetLinkKey = `${presetMode}:${presetKey}`;
+    if (!presetKey || presetLinkKey === linkedPresetHandled) return;
+    setLinkedPresetHandled(presetLinkKey);
     const preset = workflowPresets.find((item) => item.key === presetKey);
     if (!preset) {
       setStatus("画布预设不存在，请从左侧工作流预设重新选择。");
       return;
     }
-    addWorkflowPreset(preset.key, { x: 140, y: 140 });
+    if (presetMode === "replace") replaceCanvasWithWorkflowPreset(preset.key);
+    else addWorkflowPreset(preset.key, { x: 140, y: 140 });
     params.delete("preset");
+    params.delete("presetMode");
     const nextQuery = params.toString();
     window.history.replaceState(null, "", `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`);
   }, [linkedPresetHandled, project]);

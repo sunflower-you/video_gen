@@ -25,6 +25,11 @@ const quickStartModes = {
     status: "已预选创作者挑战赛，可一键创建参赛片画布。"
   }
 };
+
+function quickPresetWorkspaceHref(projectId: string, presetKey: string) {
+  return `/workspace/${projectId}?preset=${presetKey}&presetMode=replace`;
+}
+
 type ProjectAnalysis = {
   characters: Character[];
   shots: StoryboardShot[];
@@ -146,7 +151,7 @@ export function CreateWorkbench() {
       setProject(created);
       setScript(seedanceQuickPrompt);
       setStatus("Seedance 2.0 快速体验项目已创建，正在进入全画幅节点画布...");
-      window.location.href = `/workspace/${created.id}?preset=seedance2_image_video`;
+      window.location.href = quickPresetWorkspaceHref(created.id, "seedance2_image_video");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Seedance 2.0 快速体验创建失败，请稍后重试。");
     } finally {
@@ -167,7 +172,7 @@ export function CreateWorkbench() {
       setProject(created);
       setScript(tvShowQuickScript);
       setStatus("TV Show 剧集项目已创建，正在进入全画幅节点画布...");
-      window.location.href = `/workspace/${created.id}?preset=tv_show_storyboard`;
+      window.location.href = quickPresetWorkspaceHref(created.id, "tv_show_storyboard");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "TV Show 剧集项目创建失败，请稍后重试。");
     } finally {
@@ -188,7 +193,7 @@ export function CreateWorkbench() {
       setProject(created);
       setScript(creatorChallengeScript);
       setStatus("创作者挑战赛项目已创建，正在进入全画幅节点画布...");
-      window.location.href = `/workspace/${created.id}?preset=creator_challenge_entry`;
+      window.location.href = quickPresetWorkspaceHref(created.id, "creator_challenge_entry");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "创作者挑战赛项目创建失败，请稍后重试。");
     } finally {

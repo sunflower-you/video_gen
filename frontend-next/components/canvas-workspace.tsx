@@ -1711,6 +1711,16 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     selectCanvasNodesByIds([selectedNode.id, ...downstreamNodeIds(selectedNode.id, edges)], "当前下游链路");
   }
 
+  function selectSameTypeNodes() {
+    if (!selectedNode) {
+      setStatus("请先选择一个节点，再选中同类型节点。");
+      return;
+    }
+    const type = String((selectedNode.data as Record<string, unknown>).nodeType || "text");
+    const typeNodes = nodes.filter((node) => String((node.data as Record<string, unknown>).nodeType || "text") === type);
+    selectCanvasNodesByIds(typeNodes.map((node) => node.id), `${nodeLabels[type] || "同类型"}节点`);
+  }
+
   function selectSelectedGroups() {
     if (!selectedGroupIds.size) {
       setStatus("当前选区没有已打组节点。");
@@ -2790,6 +2800,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => addConnectedNodeFromSelected("compose_generation")}>添加下游合成</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSelectedUpstreamChain(); setNodeContextMenu(null); }}>选中上游链路</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSelectedDownstreamChain(); setNodeContextMenu(null); }}>选中下游链路</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSameTypeNodes(); setNodeContextMenu(null); }}>选中同类型节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { copySelectedChain(); setNodeContextMenu(null); }}>复制上游链路</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { void runSelectedChain(); setNodeContextMenu(null); }}>运行上游链路</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { toggleSelectedNodeDisabled(); setNodeContextMenu(null); }}>{(selectedNode.data as Record<string, unknown>).disabled === true ? "启用节点" : "禁用节点"}</button>
@@ -2902,9 +2913,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           </section>}
           <section className="grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">
             <p className="text-xs text-slate-400">链路选择</p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 text-xs text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={selectSelectedUpstreamChain}><GitBranch size={14} />选中上游</button>
               <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 text-xs text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={selectSelectedDownstreamChain}><GitBranch size={14} />选中下游</button>
+              <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 text-xs text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={selectSameTypeNodes}><CheckSquare size={14} />同类型</button>
             </div>
           </section>
           <section className="grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">

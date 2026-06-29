@@ -1,7 +1,17 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import { Sparkles } from "lucide-react";
 import type { Template } from "../lib/api";
 import { quickStartHrefForTemplate } from "../lib/template-quick-start";
 import { PanelTitle } from "./panel-title";
+
+const templateChannels = [
+  { label: "全部", href: "/create" },
+  { label: "创作者挑战赛", href: "/create?quick=creator-challenge" },
+  { label: "Seedance 2.0", href: "/create?quick=seedance2" },
+  { label: "TV Show", href: "/create?quick=tv-show" }
+];
 
 function formatParams(params?: Record<string, unknown>): string {
   if (!params) return "暂无参数";
@@ -11,11 +21,36 @@ function formatParams(params?: Record<string, unknown>): string {
 }
 
 export function TemplateMarket({ templates, onUseTemplate }: { templates: Template[]; onUseTemplate?: (template: Template) => void }) {
+  const [activeChannel, setActiveChannel] = useState("全部");
+  const visibleTemplates = useMemo(() => {
+    if (activeChannel === "全部") return templates;
+    return templates.filter((item) => {
+      const text = `${item.category} ${item.name} ${item.workflow_key} ${(item.applicable_scenarios || []).join(" ")}`;
+      return text.includes(activeChannel) || (activeChannel === "创作者挑战赛" && text.includes("挑战赛"));
+    });
+  }, [activeChannel, templates]);
+  const activeShortcut = templateChannels.find((item) => item.label === activeChannel) || templateChannels[0];
+
   return (
     <section id="模板市场" className="rounded-panel border border-line bg-panel p-4">
       <PanelTitle icon={<Sparkles size={18} />} title="模板市场" extra="可复用工作流" />
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+        {templateChannels.map((item) => (
+          <button
+            key={item.label}
+            className={`rounded-md border px-3 py-2 ${activeChannel === item.label ? "border-accent bg-accent text-white" : "border-line text-muted hover:border-accent hover:text-foreground"}`}
+            onClick={() => setActiveChannel(item.label)}
+          >
+            {item.label}
+          </button>
+        ))}
+        <a className="rounded-md border border-line px-3 py-2 text-muted hover:border-accent hover:text-foreground" href={activeShortcut.href}>
+          {activeChannel === "全部" ? "开始创作" : `创作${activeChannel}`}
+        </a>
+        <span className="text-xs text-muted">当前频道 {visibleTemplates.length} 个模板</span>
+      </div>
       <div className="mt-3 grid gap-2">
-        {templates.map((item) => (
+        {visibleTemplates.map((item) => (
           <article key={item.id} className="rounded-md border border-line p-3">
             <div className="flex items-start justify-between gap-3">
               <strong>{item.name}</strong>
@@ -48,6 +83,7 @@ export function TemplateMarket({ templates, onUseTemplate }: { templates: Templa
             </div>
           </article>
         ))}
+        {!visibleTemplates.length ? <p className="rounded-md border border-line bg-canvas p-3 text-sm text-muted">当前频道暂无模板，可切换全部模板或刷新模板市场。</p> : null}
       </div>
     </section>
   );

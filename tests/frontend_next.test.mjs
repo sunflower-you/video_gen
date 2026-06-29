@@ -1120,6 +1120,11 @@ test("Next 模板市场读取真实模板并支持复刻项目", () => {
   assert.match(templates, /item\.usage_count/);
   assert.match(templates, /item\.cover_url/);
   assert.match(templates, /item\.sample_video_url/);
+  assert.match(templates, /const templateChannels/);
+  assert.match(templates, /const \[activeChannel, setActiveChannel\]/);
+  assert.match(templates, /visibleTemplates/);
+  assert.match(templates, /当前频道 \{visibleTemplates\.length\} 个模板/);
+  assert.match(templates, /当前频道暂无模板/);
   assert.match(templates, /quickStartHrefForTemplate\(item\)/);
   assert.match(templateQuickStart, /function quickStartHrefForTemplate/);
   assert.match(fallbackData, /quick\/creator_challenge_entry/);
@@ -1137,7 +1142,7 @@ test("Next 模板市场读取真实模板并支持复刻项目", () => {
   assert.match(templateQuickStart, /\/create\?template=\$\{encodeURIComponent\(item\.id\)\}/);
   assert.match(api, /default_params\?: Record<string, unknown>/);
   assert.match(api, /example_inputs\?: Record<string, unknown>/);
-  for (const text of ["复刻项目", "快速同款创作", "复刻项目标题", "目标画幅", "9:16 竖屏短视频", "16:9 横屏短片", "1:1 方形画布", "刷新模板", "模板复刻成功", "模板复刻失败，请稍后重试", "默认参数", "示例输入", "使用次数", "查看封面", "查看成片示例"]) {
+  for (const text of ["复刻项目", "快速同款创作", "复刻项目标题", "目标画幅", "9:16 竖屏短视频", "16:9 横屏短片", "1:1 方形画布", "刷新模板", "模板复刻成功", "模板复刻失败，请稍后重试", "默认参数", "示例输入", "使用次数", "查看封面", "查看成片示例", "全部", "创作者挑战赛", "Seedance 2.0", "TV Show", "创作", "开始创作"]) {
     assert.match(`${templateMarketplace}\n${templates}\n${fallbackData}`, new RegExp(text));
   }
 });

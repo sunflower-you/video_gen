@@ -113,6 +113,23 @@ function parameterPresetByKey(key: string) {
   return preset;
 }
 
+const shotBindableNodeTypes = new Set(["text", "script", "image_generation", "video_generation", "tts_generation"]);
+
+function shotPatchForNode(type: string, shot: StoryboardShot) {
+  const visual = shot.visual_description || shot.prompt || "";
+  const narration = shot.narration || "";
+  const patch: Record<string, string> = { shot_id: shot.id };
+  if (type === "text" || type === "script") {
+    patch.text = visual;
+    patch.narration = narration;
+  }
+  if (type === "script") patch.script = visual;
+  if (type === "image_generation") patch.prompt = shot.prompt || visual;
+  if (type === "video_generation") patch.prompt = visual;
+  if (type === "tts_generation") patch.text = narration;
+  return patch;
+}
+
 type NodePort = {
   id: string;
   label: string;
@@ -805,6 +822,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   }, [edges, selectedEdge]);
   const selectedSelectionEdges = useMemo(() => edges.filter((edge) => selectedNodeIds.has(edge.source) && selectedNodeIds.has(edge.target)), [edges, selectedNodeIds]);
   const selectedParameterPresetNodes = useMemo(() => selectedNodes.filter((node) => nodeParameterPresets.some((preset) => preset.nodeTypes.includes(String((node.data as Record<string, unknown>).nodeType || "")))), [selectedNodes]);
+  const selectedShotBindingNodes = useMemo(() => selectedNodes.filter((node) => shotBindableNodeTypes.has(String((node.data as Record<string, unknown>).nodeType || ""))), [selectedNodes]);
   const selectedGroupTitles = useMemo(() => {
     const titles = new Set(selectedNodes.map((node) => String((node.data as Record<string, unknown>).group_title || "")).filter(Boolean));
     return [...titles];
@@ -1979,6 +1997,38 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   function clearShotSelection() {
     setSelectedShotIds([]);
     setStatus("已清空分镜选择。");
+  }
+
+  function bindSelectedShotsToSelectedNodes() {
+    if (!selectedShotIds.length) {
+      setStatus("请先在项目分镜面板选择一个或多个分镜。");
+      return;
+    }
+    if (!selectedShotBindingNodes.length) {
+      setStatus("请先框选文本、脚本、分镜图、视频或配音节点，再绑定分镜。");
+      return;
+    }
+    const selectedShotIdSet = new Set(selectedShotIds);
+    const shotsToBind = shotOptions.filter((shot) => selectedShotIdSet.has(shot.id)).sort((left, right) => left.index - right.index);
+    if (!shotsToBind.length) {
+      setStatus("已选择的分镜不在当前项目中，请刷新分镜列表后重试。");
+      return;
+    }
+    const targetNodes = [...selectedShotBindingNodes].sort((left, right) => left.position.y === right.position.y ? left.position.x - right.position.x : left.position.y - right.position.y);
+    const nodesPerShot = Math.max(1, Math.ceil(targetNodes.length / shotsToBind.length));
+    const shotByNodeId = new Map<string, StoryboardShot>();
+    targetNodes.forEach((node, index) => {
+      const shotIndex = shotsToBind.length === 1 ? 0 : Math.min(shotsToBind.length - 1, Math.floor(index / nodesPerShot));
+      shotByNodeId.set(node.id, shotsToBind[shotIndex]);
+    });
+    rememberGraphHistory();
+    setNodes((items) => items.map((node) => {
+      const shot = shotByNodeId.get(node.id);
+      if (!shot) return node;
+      const type = String((node.data as Record<string, unknown>).nodeType || "");
+      return { ...node, data: { ...node.data, ...shotPatchForNode(type, shot) } };
+    }));
+    setStatus(`已把 ${shotsToBind.length} 个分镜绑定到选区 ${targetNodes.length} 个节点，并补全提示词或旁白。`);
   }
 
   function focusShotWorkflow(shot: StoryboardShot) {
@@ -3912,6 +3962,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     { key: "show-palette", title: "打开节点面板", description: "搜索添加平台生成、素材和基础节点", run: () => setShowPalette(true) },
     { key: "show-outline", title: "打开节点大纲", description: "搜索、定位和批量选择节点", disabled: !nodes.length, run: () => setShowOutline(true) },
     { key: "show-shots", title: "打开项目分镜面板", description: "按分镜铺设文本、画面、视频、配音和合成链路", run: () => setShowShots(true) },
+    { key: "bind-selected-shots", title: "把选中分镜绑定到选区节点", description: "按画布位置把分镜提示词和旁白批量写入选区生成节点", disabled: !selectedShotIds.length || !selectedShotBindingNodes.length, run: bindSelectedShotsToSelectedNodes },
     { key: "show-assets", title: "打开素材库", description: "筛选并拖入项目图片、视频和音频素材", run: () => setShowAssets(true) },
     { key: "show-tasks", title: "打开任务队列", description: "筛选、定位、同步、重试和取消生成任务", run: () => setShowTasks(true) },
     { key: "show-event-log", title: "打开画布事件日志", description: "追踪保存、运行、导入导出、复制粘贴和失败提示", run: () => setShowEventLog(true) },
@@ -4522,6 +4573,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy || !selectedParameterPresetNodes.length} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { applySelectedNodesParameterPreset(parameterPresetByKey("video-standard")); setNodeContextMenu(null); }}>选区套用标准 5 秒</button>
             <button disabled={busy || !selectedParameterPresetNodes.length} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { applySelectedNodesParameterPreset(parameterPresetByKey("tts-female")); setNodeContextMenu(null); }}>选区套用女声常速</button>
             <button disabled={busy || !selectedParameterPresetNodes.length} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { applySelectedNodesParameterPreset(parameterPresetByKey("compose-subtitle")); setNodeContextMenu(null); }}>选区套用带字幕成片</button>
+            <button disabled={busy || !selectedShotIds.length || !selectedShotBindingNodes.length} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { bindSelectedShotsToSelectedNodes(); setNodeContextMenu(null); }}>绑定选中分镜</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { groupSelectedNodes(); setNodeContextMenu(null); }}>打组选区</button>
             <button disabled={busy || !selectedGroupIds.size} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSelectedGroups(); setNodeContextMenu(null); }}>选中同组节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { ungroupSelectedNodes(); setNodeContextMenu(null); }}>取消分组</button>
@@ -4619,6 +4671,11 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <div className="grid grid-cols-2 gap-2">
               {nodeParameterPresets.map((preset) => <button key={preset.key} disabled={busy || !selectedNodes.some((node) => preset.nodeTypes.includes(String((node.data as Record<string, unknown>).nodeType || "")))} className="rounded border border-white/10 px-2 py-1.5 text-xs text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={() => applySelectedNodesParameterPreset(preset)}>{preset.label}</button>)}
             </div>
+          </section>
+          <section className="grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">
+            <span className="text-xs text-slate-400">选区绑定分镜</span>
+            <p className="text-xs leading-5 text-slate-500">从左侧分镜面板选择分镜后，可批量写入选区内文本、脚本、分镜图、视频和配音节点。</p>
+            <button disabled={busy || !selectedShotIds.length || !selectedShotBindingNodes.length} className="inline-flex items-center justify-center gap-2 rounded-md border border-blue-400/30 px-3 py-2 text-sm text-blue-50 disabled:opacity-50" onClick={bindSelectedShotsToSelectedNodes}><Clapperboard size={16} />绑定选中分镜 {selectedShotIds.length ? selectedShotIds.length : ""}</button>
           </section>
           <section className="grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">
             <span className="text-xs text-slate-400">选区内部连线</span>
@@ -5009,6 +5066,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <button disabled={!selectedShotIds.length} className="rounded-md border border-white/10 px-3 py-2 text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={clearShotSelection}>清空分镜选择</button>
         </div>
         <button disabled={!selectedFilteredShots.length} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border border-blue-400/40 bg-blue-500/10 px-3 py-2 text-sm text-white hover:bg-blue-500/20 disabled:opacity-50" onClick={addAllShotWorkflows}><GitBranch size={15} />{selectedShotIds.length ? `添加选中分镜链路 ${selectedFilteredShots.length}` : "添加当前分镜链路"}</button>
+        <button disabled={!selectedShotIds.length || !selectedShotBindingNodes.length} className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-md border border-emerald-400/40 bg-emerald-500/10 px-3 py-2 text-sm text-white hover:bg-emerald-500/20 disabled:opacity-50" onClick={bindSelectedShotsToSelectedNodes}><Clapperboard size={15} />绑定选中分镜到选区节点</button>
         <div className="mt-3 grid gap-2 text-sm">
           {filteredShots.map((shot) => <article key={shot.id} className="rounded-md border border-white/10 bg-white/[0.03] p-3">
             <div className="flex items-start justify-between gap-3">

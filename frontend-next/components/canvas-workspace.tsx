@@ -595,6 +595,7 @@ type GraphHistorySnapshot = {
 };
 
 const customPresetStorageKey = "video_gen_canvas_custom_presets";
+const paletteNodeDragType = "application/x-video-gen-node-type";
 
 export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [project, setProject] = useState<Project | null>(null);
@@ -952,6 +953,12 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已添加${nodeLabels[String(node.data.nodeType)] || "节点"}。`);
   }
 
+  function handlePaletteNodeDragStart(event: ReactDragEvent, type: string) {
+    event.dataTransfer.setData(paletteNodeDragType, type);
+    event.dataTransfer.setData("text/plain", nodeLabels[type] || type);
+    event.dataTransfer.effectAllowed = "copy";
+  }
+
   function flowPositionFromEvent(event: Pick<ReactMouseEvent, "clientX" | "clientY"> | Pick<ReactDragEvent, "clientX" | "clientY">) {
     return flowInstance?.screenToFlowPosition({ x: event.clientX, y: event.clientY }) || { x: event.clientX - 360, y: event.clientY - 120 };
   }
@@ -989,6 +996,13 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   function handleCanvasDrop(event: ReactDragEvent) {
     event.preventDefault();
     const position = flowPositionFromEvent(event);
+    const draggedNodeType = event.dataTransfer.getData(paletteNodeDragType);
+    if (draggedNodeType && nodeLabels[draggedNodeType]) {
+      const node = addNodeAtPosition(draggedNodeType, position);
+      setShowPalette(false);
+      setStatus(`已在落点添加${nodeLabels[String(node.data.nodeType)] || "节点"}。`);
+      return;
+    }
     const file = event.dataTransfer.files?.[0];
     if (file) {
       const type = inferAssetNodeType(file.name, file.type);
@@ -1928,7 +1942,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
               <h3 className="text-xs font-medium text-slate-400">{category}</h3>
               {items.map((item) => {
                 const Icon = item.icon;
-                return <button key={item.type} className="flex items-start gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-3 text-left hover:bg-white/10" onClick={() => addNode(item.type)}>
+                return <button key={item.type} draggable className="flex items-start gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-3 text-left hover:bg-white/10" onClick={() => addNode(item.type)} onDragStart={(event) => handlePaletteNodeDragStart(event, item.type)}>
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white/10 text-slate-100"><Icon size={17} /></span>
                   <span className="min-w-0">
                     <span className="block text-sm font-medium text-white">{item.label}</span>

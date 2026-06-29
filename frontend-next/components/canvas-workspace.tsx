@@ -3223,6 +3223,49 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已将选区末端 ${sourceNodes.length} 个节点按媒体类型汇聚到新的合成节点。`);
   }
 
+  function connectSelectedNodesToExistingCompose() {
+    if (!selectedNodes.length) {
+      setStatus("请先框选素材节点和一个合成节点，再接入已有合成。");
+      return;
+    }
+    const selectedComposeNodes = selectedNodes.filter((node) => String((node.data as Record<string, unknown>).nodeType || "") === "compose_generation");
+    if (selectedComposeNodes.length !== 1) {
+      setStatus("请在选区中保留一个合成节点，才能把其他节点接入已有合成。");
+      return;
+    }
+    const composeNode = selectedComposeNodes[0];
+    const candidateNodes = selectedNodes.filter((node) => node.id !== composeNode.id);
+    if (!candidateNodes.length) {
+      setStatus("当前选区只有合成节点，请再选择需要接入的素材或生成节点。");
+      return;
+    }
+    const candidateIds = new Set(candidateNodes.map((node) => node.id));
+    const terminalSelectedNodes = candidateNodes.filter((node) => !selectedSelectionEdges.some((edge) => edge.source === node.id && candidateIds.has(edge.target)));
+    const sourceNodes = terminalSelectedNodes.length ? terminalSelectedNodes : candidateNodes;
+    const timestamp = Date.now();
+    const nextEdges: Edge[] = [];
+    sourceNodes.forEach((node, index) => {
+      const targetHandle = composeTargetHandleForNode(node);
+      const connection = { source: node.id, target: composeNode.id, sourceHandle: "output", targetHandle };
+      if (connectionIssueMessage(connection, [...edges, ...nextEdges])) return;
+      nextEdges.push(edgeWithDefaultHandles({
+        id: `edge-existing-compose-${timestamp}-${index}`,
+        ...connection,
+        animated: true,
+        data: { label: targetHandle === "video" ? "视频合成输入" : targetHandle === "audio" ? "配音合成输入" : targetHandle === "subtitle" ? "字幕合成输入" : "选区接入合成" }
+      } satisfies Edge));
+    });
+    if (!nextEdges.length) {
+      setStatus("选区节点已接入当前合成节点，无需重复连线。");
+      return;
+    }
+    rememberGraphHistory();
+    setEdges((items) => [...items, ...nextEdges]);
+    setSelectedNodeId(composeNode.id);
+    setSelectedEdgeId("");
+    setStatus(`已将选区末端 ${sourceNodes.length} 个节点接入已有合成节点。`);
+  }
+
   function expandSelectedNodesToVideoGeneration() {
     if (!selectedNodes.length) {
       setStatus("请先框选或点选节点，再生成视频链。");
@@ -3827,6 +3870,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     { key: "expand-selection-video", title: "选区生成视频链", description: "为选区末端批量创建镜头视频生成节点并自动连线", disabled: !selectedNodes.length, run: expandSelectedNodesToVideoGeneration },
     { key: "expand-selection-tts", title: "选区生成配音链", description: "为选区末端批量创建旁白配音节点并自动连线", disabled: !selectedNodes.length, run: expandSelectedNodesToTtsGeneration },
     { key: "collect-selection-compose", title: "选区汇聚到合成节点", description: "在选区右侧创建合成节点并连接选区末端分支", disabled: !selectedNodes.length, run: collectSelectedNodesToCompose },
+    { key: "connect-existing-compose", title: "选区接入已有合成节点", description: "把选区末端素材按媒体类型连接到选中的合成节点", disabled: !selectedNodes.length, run: connectSelectedNodesToExistingCompose },
     { key: "clear-selection", title: "清空当前选区", description: "取消节点和连线选择", shortcut: "Esc", disabled: !selectedNodes.length && !selectedEdge, run: clearCanvasSelection },
     { key: "fit-graph", title: "适配全部节点", description: "把完整节点图适配到当前视图", shortcut: "Ctrl/⌘ 1", disabled: !nodes.length, run: fitGraphView },
     { key: "fit-selection", title: "适配选中节点", description: "把当前选区适配到视图中心", shortcut: "Ctrl/⌘ 2", disabled: !selectedNodes.length, run: fitSelectedNodeView },
@@ -4416,6 +4460,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { expandSelectedNodesToVideoGeneration(); setNodeContextMenu(null); }}>生成视频链</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { expandSelectedNodesToTtsGeneration(); setNodeContextMenu(null); }}>生成配音链</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { collectSelectedNodesToCompose(); setNodeContextMenu(null); }}>汇聚到合成节点</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { connectSelectedNodesToExistingCompose(); setNodeContextMenu(null); }}>接入已有合成</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { groupSelectedNodes(); setNodeContextMenu(null); }}>打组选区</button>
             <button disabled={busy || !selectedGroupIds.size} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSelectedGroups(); setNodeContextMenu(null); }}>选中同组节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { ungroupSelectedNodes(); setNodeContextMenu(null); }}>取消分组</button>
@@ -4549,6 +4594,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={expandSelectedNodesToVideoGeneration}><Video size={16} />生成视频</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={expandSelectedNodesToTtsGeneration}><Music size={16} />生成配音</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={collectSelectedNodesToCompose}><Sparkles size={16} />汇聚合成</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={connectSelectedNodesToExistingCompose}><Sparkles size={16} />接入合成</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={groupSelectedNodes}><Boxes size={16} />打组选区</button>
             <button disabled={busy || !selectedGroupIds.size} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={selectSelectedGroups}><Boxes size={16} />选中同组</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={ungroupSelectedNodes}><Boxes size={16} />取消分组</button>

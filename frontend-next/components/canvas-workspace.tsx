@@ -17,7 +17,7 @@ import {
   type NodeChange,
   type NodeProps
 } from "@xyflow/react";
-import { Boxes, Clapperboard, FileText, Image, Library, Music, Play, Plus, RefreshCcw, Save, Search, Sparkles, Trash2, Video, Wand2 } from "lucide-react";
+import { Boxes, Clapperboard, Copy, FileText, GitBranch, Image, Library, Music, Play, Plus, RefreshCcw, Save, Search, Sparkles, Trash2, Video, Wand2 } from "lucide-react";
 import { apiFetch, currentUserId, deleteJson, postJson, type Asset, type GenerationTask, type Project, type ProjectGraph, type ProjectGraphNode } from "../lib/api";
 
 const nodeLabels: Record<string, string> = {
@@ -125,6 +125,36 @@ function fromFlowEdge(edge: Edge): ProjectGraph["edges"][number] {
     targetHandle: edge.targetHandle || "",
     data: (edge.data || {}) as Record<string, unknown>
   };
+}
+
+function upstreamNodeIds(targetId: string, edges: Edge[]) {
+  const visited = new Set<string>();
+  const walk = (nodeId: string) => {
+    for (const edge of edges) {
+      if (edge.target !== nodeId || visited.has(edge.source)) continue;
+      visited.add(edge.source);
+      walk(edge.source);
+    }
+  };
+  walk(targetId);
+  return visited;
+}
+
+function orderedChainNodes(targetId: string, nodes: Node[], edges: Edge[]) {
+  const nodeById = new Map(nodes.map((node) => [node.id, node]));
+  const visited = new Set<string>();
+  const ordered: Node[] = [];
+  const walk = (nodeId: string) => {
+    if (visited.has(nodeId)) return;
+    visited.add(nodeId);
+    for (const edge of edges) {
+      if (edge.target === nodeId) walk(edge.source);
+    }
+    const node = nodeById.get(nodeId);
+    if (node) ordered.push(node);
+  };
+  walk(targetId);
+  return ordered;
 }
 
 const addableNodes = [
@@ -355,6 +385,46 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     }
   }
 
+  async function runSelectedChain() {
+    if (!selectedNode) return;
+    await saveGraph();
+    const upstream = upstreamNodeIds(selectedNode.id, edges);
+    const orderedNodes = orderedChainNodes(selectedNode.id, nodes, edges);
+    setBusy(true);
+    setStatus(`正在运行链路，上游 ${upstream.size} 个，共 ${orderedNodes.length} 个节点...`);
+    try {
+      for (const node of orderedNodes) {
+        const response = await postJson<{ node?: ProjectGraphNode; task?: GenerationTask; message?: string }>(`/api/projects/${projectId}/graph/nodes/${node.id}/run`, {
+          user_id: currentUserId()
+        });
+        if (response.node) {
+          setNodes((items) => items.map((item) => item.id === node.id ? toFlowNode(response.node as ProjectGraphNode) : item));
+        }
+      }
+      setStatus(`链路运行完成：${orderedNodes.length} 个节点已处理。`);
+      await refreshAll();
+    } catch (error) {
+      setStatus(error instanceof Error ? `链路运行失败：${error.message}` : "链路运行失败。请检查节点参数后重试。");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function duplicateSelectedNode() {
+    if (!selectedNode) return;
+    const id = `copy-${selectedNode.id}-${Date.now()}`;
+    const duplicated: Node = {
+      ...selectedNode,
+      id,
+      selected: false,
+      position: { x: selectedNode.position.x + 40, y: selectedNode.position.y + 40 },
+      data: { ...(selectedNode.data as Record<string, unknown>), graphNodeId: id, title: `${String(selectedData.title || nodeLabels[selectedType] || "节点")} 副本`, status: "draft" }
+    };
+    setNodes((items) => [...items, duplicated]);
+    setSelectedNodeId(id);
+    setStatus("节点已复制，可继续编辑参数或接入连线。");
+  }
+
   async function deleteSelectedNode() {
     if (!selectedNode) return;
     const nodeId = selectedNode.id;
@@ -503,7 +573,12 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <label className="grid gap-1"><span className="text-slate-400">语速</span><input type="number" step="0.1" className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.rate || "1")} onChange={(event) => updateSelectedData("rate", event.target.value)} /></label>
           </div>}
           {selectedType === "compose_generation" && <label className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/5 px-3 py-2"><span className="text-slate-300">合成字幕</span><input type="checkbox" checked={selectedData.subtitle !== false} onChange={(event) => updateSelectedData("subtitle", event.target.checked)} /></label>}
-          <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-3 py-2 disabled:opacity-50" onClick={() => void runSelectedNode()}><Play size={16} />运行节点</button>
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-3 py-2 disabled:opacity-50" onClick={() => void runSelectedNode()}><Play size={16} />运行节点</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void runSelectedChain()}><GitBranch size={16} />运行链路</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={duplicateSelectedNode}><Copy size={16} />复制节点</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 text-slate-300 disabled:opacity-50" onClick={() => void deleteSelectedNode()}><Trash2 size={16} />删除节点</button>
+          </div>
         </div> : <p className="mt-4 rounded-md border border-white/10 bg-white/5 p-3 text-sm text-slate-400">点击画布节点后可编辑参数、运行生成或删除节点。</p>}
       </section>
 

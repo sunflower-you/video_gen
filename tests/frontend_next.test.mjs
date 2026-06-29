@@ -290,6 +290,9 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /工作流组/);
   assert.match(canvasWorkspace, /GraphHistorySnapshot/);
   assert.match(canvasWorkspace, /rememberGraphHistory/);
+  assert.match(canvasWorkspace, /rememberSelectedNodeEdit/);
+  assert.match(canvasWorkspace, /onFocus=\{rememberSelectedNodeEdit\}/);
+  assert.match(canvasWorkspace, /function applySelectedNodePreset[\s\S]*rememberGraphHistory/);
   assert.match(canvasWorkspace, /undoGraphChange/);
   assert.match(canvasWorkspace, /redoGraphChange/);
   assert.match(canvasWorkspace, /节点大纲/);

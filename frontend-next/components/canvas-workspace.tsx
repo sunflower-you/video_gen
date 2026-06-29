@@ -5,7 +5,9 @@ import { useEffect, useMemo, useState, type DragEvent as ReactDragEvent, type Mo
 import {
   Background,
   Controls,
+  Handle,
   MiniMap,
+  Position,
   ReactFlow,
   addEdge,
   applyEdgeChanges,
@@ -71,6 +73,17 @@ function activeGraphEdges(edges: Edge[]) {
   return edges.filter((edge) => !isEdgeDisabled(edge));
 }
 
+function edgeWithDefaultHandles(edge: Edge): Edge {
+  const disabled = isEdgeDisabled(edge);
+  return {
+    ...edge,
+    sourceHandle: edge.sourceHandle || "output",
+    targetHandle: edge.targetHandle || "input",
+    animated: !disabled,
+    style: disabled ? { strokeDasharray: "6 4", opacity: 0.45 } : undefined
+  };
+}
+
 function mediaUrlFromData(data: Record<string, unknown>) {
   return String(data.image_url || data.video_url || data.audio_url || data.first_frame_url || data.output_url || data.result_url || data.final_video_url || "");
 }
@@ -108,7 +121,21 @@ function PlatformNode({ data, selected }: NodeProps) {
   const locked = payload.locked === true;
   const disabled = payload.disabled === true;
   return (
-    <div className={`w-[240px] rounded-lg border p-3 text-white shadow-xl ${nodeColors[type] || nodeColors.demo} ${selected ? "ring-2 ring-white" : ""} ${disabled ? "opacity-60 grayscale" : ""}`}>
+    <div className={`relative w-[240px] rounded-lg border p-3 text-white shadow-xl ${nodeColors[type] || nodeColors.demo} ${selected ? "ring-2 ring-white" : ""} ${disabled ? "opacity-60 grayscale" : ""}`}>
+      <Handle
+        id="input"
+        type="target"
+        position={Position.Left}
+        title="输入"
+        className="!h-4 !w-4 !border-2 !border-white !bg-slate-700"
+      />
+      <Handle
+        id="output"
+        type="source"
+        position={Position.Right}
+        title="输出"
+        className="!h-4 !w-4 !border-2 !border-white !bg-blue-500"
+      />
       <div className="flex items-center justify-between gap-2">
         <strong className="truncate text-sm">{title}</strong>
         <span className="inline-flex items-center gap-1 rounded bg-black/30 px-2 py-1 text-[11px]">{disabled ? <Ban size={11} /> : locked ? <Lock size={11} /> : null}{disabled ? "已禁用" : statusText(status)}</span>
@@ -151,18 +178,15 @@ function fromFlowNode(item: Node): ProjectGraphNode {
 function toFlowEdge(edge: ProjectGraph["edges"][number]): Edge {
   const data = edge.data || {};
   const label = typeof data.label === "string" ? data.label : "";
-  const disabled = data.disabled === true;
-  return {
+  return edgeWithDefaultHandles({
     id: edge.id,
     source: edge.source,
     target: edge.target,
     sourceHandle: edge.sourceHandle || undefined,
     targetHandle: edge.targetHandle || undefined,
     label,
-    data,
-    animated: !disabled,
-    style: disabled ? { strokeDasharray: "6 4", opacity: 0.45 } : undefined
-  };
+    data
+  });
 }
 
 function fromFlowEdge(edge: Edge): ProjectGraph["edges"][number] {
@@ -653,7 +677,14 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function onConnect(connection: Connection) {
     rememberGraphHistory();
-    setEdges((items) => addEdge({ ...connection, id: `edge-${connection.source}-${connection.target}-${Date.now()}` }, items));
+    setEdges((items) => addEdge({
+      ...connection,
+      id: `edge-${connection.source}-${connection.target}-${Date.now()}`,
+      sourceHandle: connection.sourceHandle || "output",
+      targetHandle: connection.targetHandle || "input",
+      animated: true,
+      data: { label: "" }
+    }, items));
   }
 
   function selectEdge(edgeId: string) {
@@ -856,8 +887,12 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const createdEdges = preset.edges.map(([sourceIndex, targetIndex], index) => ({
       id: `edge-${preset.key}-${timestamp}-${index}`,
       source: createdNodes[sourceIndex].id,
-      target: createdNodes[targetIndex].id
-    }));
+      target: createdNodes[targetIndex].id,
+      sourceHandle: "output",
+      targetHandle: "input",
+      animated: true,
+      data: { label: "" }
+    } satisfies Edge));
     rememberGraphHistory();
     setNodes((items) => [...items, ...createdNodes]);
     setEdges((items) => [...items, ...createdEdges]);
@@ -889,14 +924,14 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       const source = idMap.get(String(edge.source));
       const target = idMap.get(String(edge.target));
       if (!source || !target) return [];
-      return [{
+      return [edgeWithDefaultHandles({
         id: `edge-custom-${preset.key}-${timestamp}-${index}`,
         source,
         target,
-        sourceHandle: edge.sourceHandle || undefined,
-        targetHandle: edge.targetHandle || undefined,
+        sourceHandle: edge.sourceHandle || "output",
+        targetHandle: edge.targetHandle || "input",
         data: edge.data || {}
-      } satisfies Edge];
+      } satisfies Edge)];
     });
     rememberGraphHistory();
     setNodes((items) => [...items, ...importedNodes]);
@@ -955,8 +990,12 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const createdEdges = edgePairs.map(([sourceIndex, targetIndex], index) => ({
       id: `edge-shot-${shot.id}-${timestamp}-${index}`,
       source: createdNodes[sourceIndex].id,
-      target: createdNodes[targetIndex].id
-    }));
+      target: createdNodes[targetIndex].id,
+      sourceHandle: "output",
+      targetHandle: "input",
+      animated: true,
+      data: { label: "" }
+    } satisfies Edge));
     return { createdNodes, createdEdges };
   }
 
@@ -1272,12 +1311,12 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       const source = idMap.get(edge.source);
       const target = idMap.get(edge.target);
       if (!source || !target) return [];
-      return [{
+      return [edgeWithDefaultHandles({
         ...edge,
         id: `edge-copy-${timestamp}-${index}`,
         source,
         target
-      } satisfies Edge];
+      } satisfies Edge)];
     });
     rememberGraphHistory();
     setNodes((items) => [...items.map((node) => ({ ...node, selected: false })), ...duplicatedNodes]);
@@ -1344,12 +1383,12 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       const source = idMap.get(edge.source);
       const target = idMap.get(edge.target);
       if (!source || !target) return [];
-      return [{
+      return [edgeWithDefaultHandles({
         ...edge,
         id: `edge-paste-${timestamp}-${index}`,
         source,
         target
-      } satisfies Edge];
+      } satisfies Edge)];
     });
     rememberGraphHistory();
     setNodes((items) => [...items, ...pastedNodes]);
@@ -1498,14 +1537,14 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       const source = idMap.get(String(edge.source));
       const target = idMap.get(String(edge.target));
       if (!source || !target) return [];
-      return [{
+      return [edgeWithDefaultHandles({
         id: `edge-import-${timestamp}-${index}`,
         source,
         target,
-        sourceHandle: edge.sourceHandle || undefined,
-        targetHandle: edge.targetHandle || undefined,
+        sourceHandle: edge.sourceHandle || "output",
+        targetHandle: edge.targetHandle || "input",
         data: edge.data || {}
-      } satisfies Edge];
+      } satisfies Edge)];
     });
     rememberGraphHistory();
     setNodes((items) => [...items, ...importedNodes]);

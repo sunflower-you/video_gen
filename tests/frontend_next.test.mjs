@@ -130,6 +130,14 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /Background/);
   assert.match(canvasWorkspace, /Controls/);
   assert.match(canvasWorkspace, /MiniMap/);
+  assert.match(canvasWorkspace, /Handle/);
+  assert.match(canvasWorkspace, /Position\.Left/);
+  assert.match(canvasWorkspace, /Position\.Right/);
+  assert.match(canvasWorkspace, /id="input"/);
+  assert.match(canvasWorkspace, /id="output"/);
+  assert.match(canvasWorkspace, /edgeWithDefaultHandles/);
+  assert.match(canvasWorkspace, /sourceHandle: connection\.sourceHandle \|\| "output"/);
+  assert.match(canvasWorkspace, /targetHandle: connection\.targetHandle \|\| "input"/);
   assert.match(canvasWorkspace, /nodeTypes/);
   assert.match(canvasWorkspace, /文本节点/);
   assert.match(canvasWorkspace, /图片节点/);

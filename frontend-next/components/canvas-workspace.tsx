@@ -2374,6 +2374,48 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(copiedToClipboard ? `已导出并复制画布版本 ProjectGraph JSON：${version.title}。` : "已导出画布版本 ProjectGraph JSON；浏览器剪贴板不可用，已把内容暂存到本地。");
   }
 
+  async function importGraphVersionFromClipboard() {
+    let text = "";
+    const fallbackText = () => window.localStorage.getItem(`project_graph_version_export_${projectId}`) || window.localStorage.getItem(`project_graph_workflow_export_${projectId}`) || "";
+    try {
+      text = await navigator.clipboard.readText();
+    } catch {
+      text = fallbackText();
+    }
+    if (!text.trim()) text = fallbackText();
+    if (!text.trim()) {
+      setStatus("剪贴板中没有可导入为画布版本的 ProjectGraph JSON，请先复制或导出版本快照。");
+      return;
+    }
+    let graph: Partial<ProjectGraph> & { title?: unknown; nodes?: unknown; edges?: unknown; viewport?: unknown };
+    try {
+      graph = JSON.parse(text);
+    } catch {
+      setStatus("画布版本 JSON 解析失败，请检查内容格式。");
+      return;
+    }
+    if (!Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) {
+      setStatus("画布版本 JSON 需要包含 nodes 和 edges。");
+      return;
+    }
+    if (!graph.nodes.length) {
+      setStatus("画布版本 JSON 中没有节点，无法导入为版本快照。");
+      return;
+    }
+    const version: CanvasGraphVersion = {
+      key: `graph-version-import-${Date.now()}`,
+      title: String(graph.title || `${project?.title || "画布"} 导入版本`),
+      nodes: graph.nodes as ProjectGraphNode[],
+      edges: graph.edges as ProjectGraph["edges"],
+      viewport: normalizedViewport(graph.viewport as ProjectGraph["viewport"] | undefined),
+      created_at: new Date().toISOString()
+    };
+    persistGraphVersions([version, ...graphVersions].slice(0, 12));
+    setGraphVersionTitle(version.title);
+    setShowGraphVersions(true);
+    setStatus(`已导入画布版本快照：${version.title}，可在版本历史中恢复。`);
+  }
+
   function toggleSnapToGrid() {
     setSnapToGrid((value) => {
       const next = !value;
@@ -3301,6 +3343,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     { key: "save-preset", title: "保存当前画布为预设", description: "保存到我的工作流预设", disabled: !nodes.length, run: saveCurrentWorkflowAsPreset },
     { key: "save-version", title: "保存画布版本快照", description: "保存当前节点、连线和视口，便于回滚", disabled: !nodes.length, run: saveCurrentGraphVersion },
     { key: "export-version", title: "导出最新画布版本", description: "下载并复制最近保存的版本快照 JSON", disabled: !graphVersions.length, run: () => { if (graphVersions[0]) void exportGraphVersion(graphVersions[0]); } },
+    { key: "import-version", title: "导入画布版本快照", description: "从剪贴板读取 ProjectGraph 并加入版本历史", run: () => void importGraphVersionFromClipboard() },
     { key: "show-versions", title: "打开画布版本历史", description: "恢复或删除本项目的本地画布快照", run: () => setShowGraphVersions(true) },
     { key: "show-palette", title: "打开节点面板", description: "搜索添加平台生成、素材和基础节点", run: () => setShowPalette(true) },
     { key: "show-outline", title: "打开节点大纲", description: "搜索、定位和批量选择节点", disabled: !nodes.length, run: () => setShowOutline(true) },
@@ -3434,6 +3477,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none" value={graphVersionTitle} onChange={(event) => setGraphVersionTitle(event.target.value)} />
         </label>
         <button disabled={!nodes.length} className="mt-2 w-full rounded-md border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-left text-sm text-white hover:bg-blue-500/20 disabled:opacity-50" onClick={saveCurrentGraphVersion}>保存当前版本快照</button>
+        <button className="mt-2 w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-left text-sm text-slate-100 hover:bg-white/10" onClick={() => void importGraphVersionFromClipboard()}>导入版本快照</button>
         <div className="mt-3 grid gap-2 text-sm">
           {graphVersions.map((version) => <article key={version.key} className="rounded-md border border-white/10 bg-white/[0.03] p-2">
             <button className="w-full text-left" onClick={() => restoreGraphVersion(version)}>

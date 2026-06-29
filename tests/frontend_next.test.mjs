@@ -1125,6 +1125,9 @@ test("Next 模板市场读取真实模板并支持复刻项目", () => {
   assert.match(fallbackData, /quick\/seedance2_image_video/);
   assert.match(fallbackData, /Seedance 2\.0 快速体验/);
   assert.match(fallbackData, /workflow_key: "seedance2_image_video"/);
+  assert.match(fallbackData, /quick\/tv_show_storyboard/);
+  assert.match(fallbackData, /TV Show 剧集开场/);
+  assert.match(fallbackData, /workflow_key: "tv_show_storyboard"/);
   assert.match(templateQuickStart, /\/create\?quick=creator-challenge/);
   assert.match(templateQuickStart, /\/create\?quick=tv-show/);
   assert.match(templateQuickStart, /\/create\?quick=seedance2/);

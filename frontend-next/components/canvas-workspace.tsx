@@ -215,6 +215,7 @@ function PlatformNode({ data, selected }: NodeProps) {
   const locked = payload.locked === true;
   const disabled = payload.disabled === true;
   const groupTitle = String(payload.group_title || "");
+  const note = String(payload.note || "");
   return (
     <div className={`relative w-[240px] rounded-lg border p-3 text-white shadow-xl ${nodeColors[type] || nodeColors.demo} ${selected ? "ring-2 ring-white" : ""} ${disabled ? "opacity-60 grayscale" : ""}`}>
       {inputPorts.map((port, index) => (
@@ -246,6 +247,7 @@ function PlatformNode({ data, selected }: NodeProps) {
       {groupTitle && <p className="mt-2 truncate rounded border border-white/10 bg-black/20 px-2 py-1 text-[11px] text-slate-200">组：{groupTitle}</p>}
       {mediaUrlFromData(payload) && <div className="mt-2 overflow-hidden rounded-md border border-white/10 bg-black/30"><MediaPreview data={payload} title={title} compact /></div>}
       <p className="mt-2 line-clamp-3 text-xs text-slate-200">{summary}</p>
+      {note && <p className="mt-2 line-clamp-2 rounded border border-white/10 bg-white/10 px-2 py-1 text-[11px] text-slate-100">备注：{note}</p>}
       <div className="mt-3 grid grid-cols-2 gap-2 border-t border-white/10 pt-2 text-[10px] text-slate-200">
         <div className="flex min-w-0 flex-wrap gap-1">
           {inputPorts.map((port) => <span key={port.id} className="rounded bg-black/25 px-1.5 py-0.5">{port.label}</span>)}
@@ -671,7 +673,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     return graphOutlineNodes.filter((node) => {
       const data = node.data as Record<string, unknown>;
       const type = String(data.nodeType || "text");
-      const text = `${data.title || ""} ${nodeLabels[type] || type} ${data.status || ""} ${data.group_title || ""}`.toLowerCase();
+      const text = `${data.title || ""} ${nodeLabels[type] || type} ${data.status || ""} ${data.group_title || ""} ${data.note || ""}`.toLowerCase();
       const matchesKeyword = !keyword || text.includes(keyword);
       const matchesIssues = !outlineIssuesOnly || outlineIssueNodeIds.has(node.id);
       return matchesKeyword && matchesIssues;
@@ -2328,6 +2330,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             {addableNodes.map((item) => <option key={item.type} value={item.type}>{item.category} · {nodeLabels[item.type] || item.label}</option>)}
           </select></label>
           <label className="grid gap-1"><span className="text-slate-400">标题</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.title || "")} onChange={(event) => updateSelectedData("title", event.target.value)} /></label>
+          <label className="grid gap-1"><span className="text-slate-400">节点备注</span><textarea className="min-h-20 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" placeholder="记录节点用途、模型选择或后续修改点。" value={String(selectedData.note || "")} onChange={(event) => updateSelectedData("note", event.target.value)} /></label>
           {(selectedType === "text" || selectedType === "demo") && <label className="grid gap-1"><span className="text-slate-400">文本内容</span><textarea className="min-h-28 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.text || "")} onChange={(event) => updateSelectedData("text", event.target.value)} /></label>}
           {selectedType === "script" && <label className="grid gap-1"><span className="text-slate-400">脚本</span><textarea className="min-h-40 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.script || "")} onChange={(event) => updateSelectedData("script", event.target.value)} /></label>}
           {(selectedType === "image_generation" || selectedType === "video_generation") && <label className="grid gap-1"><span className="text-slate-400">提示词</span><textarea className="min-h-28 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.prompt || "")} onChange={(event) => updateSelectedData("prompt", event.target.value)} /></label>}

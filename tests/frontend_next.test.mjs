@@ -148,6 +148,12 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /fitSelectedNodeView/);
   assert.match(canvasWorkspace, /resetCanvasViewport/);
   assert.match(canvasWorkspace, /flowInstance\?\.fitView/);
+  assert.match(canvasWorkspace, /snapToGrid/);
+  assert.match(canvasWorkspace, /snapGrid=\{\[24, 24\]\}/);
+  assert.match(canvasWorkspace, /toggleSnapToGrid/);
+  assert.match(canvasWorkspace, /网格吸附/);
+  assert.match(canvasWorkspace, /已开启网格吸附/);
+  assert.match(canvasWorkspace, /已关闭网格吸附/);
   assert.match(canvasWorkspace, /适配全部节点/);
   assert.match(canvasWorkspace, /适配选中节点/);
   assert.match(canvasWorkspace, /重置画布视口/);

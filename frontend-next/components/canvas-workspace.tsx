@@ -631,6 +631,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [edgeContextMenu, setEdgeContextMenu] = useState<{ edgeId: string; x: number; y: number } | null>(null);
   const [graphPast, setGraphPast] = useState<GraphHistorySnapshot[]>([]);
   const [graphFuture, setGraphFuture] = useState<GraphHistorySnapshot[]>([]);
+  const [snapToGrid, setSnapToGrid] = useState(true);
   const [busy, setBusy] = useState(false);
 
   const selectedNode = useMemo(() => nodes.find((item) => item.id === selectedNodeId) || null, [nodes, selectedNodeId]);
@@ -1475,6 +1476,14 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus("已重置画布视口。");
   }
 
+  function toggleSnapToGrid() {
+    setSnapToGrid((value) => {
+      const next = !value;
+      setStatus(next ? "已开启网格吸附，拖动节点会按 24px 网格落位。" : "已关闭网格吸附，可自由摆放节点。");
+      return next;
+    });
+  }
+
   function blockingValidationIssues(nodeIds: string[], includeGlobalIssues = false) {
     const nodeIdSet = new Set(nodeIds);
     return graphValidation.issues.filter((issue) => issue.level === "error" && ((issue.nodeId && nodeIdSet.has(issue.nodeId)) || (includeGlobalIssues && !issue.nodeId)));
@@ -1989,6 +1998,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <button disabled={busy || !graphFuture.length} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={redoGraphChange}><Redo2 size={16} />重做</button>
           <button disabled={busy || !nodes.length} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={exportWorkflowJson}><Download size={16} />导出工作流</button>
           <button disabled={busy} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={() => setShowImport((value) => !value)}><Upload size={16} />导入工作流</button>
+          <button title={snapToGrid ? "关闭网格吸附" : "开启网格吸附"} disabled={busy} className={`inline-flex items-center gap-2 rounded-md border px-3 py-2 disabled:opacity-50 ${snapToGrid ? "border-blue-400/40 bg-blue-500/10 text-blue-50" : "border-white/15"}`} onClick={toggleSnapToGrid}><LayoutGrid size={16} />网格吸附</button>
           <button disabled={busy || !nodes.length} className="inline-flex items-center gap-2 rounded-md border border-amber-400/40 bg-amber-500/10 px-3 py-2 disabled:opacity-50" onClick={() => setShowValidation((value) => !value)}><AlertTriangle size={16} />画布自检 {graphValidation.errorCount ? graphValidation.errorCount : ""}</button>
           <button disabled={busy || !nodes.length} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={autoLayoutGraph}><LayoutGrid size={16} />整理画布</button>
           <button disabled={busy || !nodes.length} className="inline-flex items-center gap-2 rounded-md border border-blue-400/40 bg-blue-500/10 px-3 py-2 disabled:opacity-50" onClick={() => void runCanvasGraph()}><GitBranch size={16} />运行全图</button>
@@ -2185,6 +2195,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           setEdgeContextMenu(null);
         }}
         fitView
+        snapToGrid={snapToGrid}
+        snapGrid={[24, 24]}
         className="h-full w-full"
       >
         <Background color="#334155" gap={24} />

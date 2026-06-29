@@ -1155,6 +1155,33 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已从当前节点添加并连接${nodeLabels[type] || "下游节点"}。`);
   }
 
+  function addUpstreamNodeForSelected(type: string) {
+    if (!selectedNode) return;
+    const incomingCount = edges.filter((edge) => edge.target === selectedNode.id).length;
+    const position = {
+      x: selectedNode.position.x - 320,
+      y: selectedNode.position.y + incomingCount * 96
+    };
+    const node = createFlowNode(type, position, { title: `上游${nodeLabels[type] || "节点"}` });
+    rememberGraphHistory();
+    setNodes((items) => [...items.map((item) => ({ ...item, selected: false })), { ...node, selected: true }]);
+    setEdges((items) => addEdge(edgeWithDefaultHandles({
+      id: `edge-upstream-${node.id}-${selectedNode.id}`,
+      source: node.id,
+      target: selectedNode.id,
+      sourceHandle: "output",
+      targetHandle: "input",
+      animated: true,
+      data: { label: "上游输入" }
+    } satisfies Edge), items));
+    setSelectedNodeId(node.id);
+    setSelectedEdgeId("");
+    setNodeContextMenu(null);
+    setShowPalette(false);
+    rememberRecentNodeType(type);
+    setStatus(`已为当前节点添加并连接${nodeLabels[type] || "上游节点"}。`);
+  }
+
   function handlePaletteNodeDragStart(event: ReactDragEvent, type: string) {
     event.dataTransfer.setData(paletteNodeDragType, type);
     event.dataTransfer.setData("text/plain", nodeLabels[type] || type);
@@ -2702,6 +2729,9 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy || (selectedNode.data as Record<string, unknown>).disabled === true} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setNodeContextMenu(null); void runSelectedNode(); }}>运行节点</button>
             <button disabled={busy || !selectedUpstreamInputs.length} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { fillSelectedFromUpstream(); setNodeContextMenu(null); }}>填充上游参数</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { duplicateSelectedNode(); setNodeContextMenu(null); }}>复制节点</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => addUpstreamNodeForSelected("text")}>添加上游文本</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => addUpstreamNodeForSelected("image")}>添加上游图片</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => addUpstreamNodeForSelected("audio")}>添加上游音频</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => addConnectedNodeFromSelected("image_generation")}>添加下游分镜图</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => addConnectedNodeFromSelected("video_generation")}>添加下游视频</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => addConnectedNodeFromSelected("compose_generation")}>添加下游合成</button>
@@ -2819,6 +2849,15 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <div className="grid grid-cols-2 gap-2">
               <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 text-xs text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={selectSelectedUpstreamChain}><GitBranch size={14} />选中上游</button>
               <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 text-xs text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={selectSelectedDownstreamChain}><GitBranch size={14} />选中下游</button>
+            </div>
+          </section>
+          <section className="grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">
+            <p className="text-xs text-slate-400">快速添加上游</p>
+            <div className="grid grid-cols-2 gap-2">
+              {addableNodes.filter((item) => ["text", "image", "video", "audio", "script"].includes(item.type)).map((item) => {
+                const Icon = item.icon;
+                return <button key={item.type} disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-2 py-2 text-xs text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={() => addUpstreamNodeForSelected(item.type)}><Icon size={14} />{item.label}</button>;
+              })}
             </div>
           </section>
           <section className="grid gap-2 rounded-md border border-white/10 bg-white/[0.03] p-3">

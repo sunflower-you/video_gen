@@ -14,7 +14,8 @@
     "style_prompt": {"type": "string", "required": false, "label": "统一风格提示词"},
     "width": {"type": "integer", "required": true, "label": "宽度"},
     "height": {"type": "integer", "required": true, "label": "高度"},
-    "seed": {"type": "integer", "required": false, "label": "随机种子"}
+    "seed": {"type": "integer", "required": false, "label": "随机种子"},
+    "batch_size": {"type": "integer", "required": false, "label": "生成数量"}
   },
   "default_params": {
     "negative_prompt": "",
@@ -23,7 +24,8 @@
     "style_prompt": "",
     "width": 768,
     "height": 1344,
-    "seed": -1
+    "seed": -1,
+    "batch_size": 1
   },
   "output_nodes": {
     "9": "image"

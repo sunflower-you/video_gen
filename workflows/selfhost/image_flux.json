@@ -1,7 +1,7 @@
 {
   "workflow_key": "selfhost/image_flux",
   "adapter_type": "comfyui",
-  "description": "Flux 分镜图生成工作流适配说明。平台提交时只传业务 inputs，部署时由该文件对应的 ComfyUI 节点图承接 prompt、negative_prompt、reference_image_url、model_key、style_prompt、width、height 和 seed。",
+  "description": "Flux 分镜图生成工作流适配说明。平台提交时只传业务 inputs，部署时由该文件对应的 ComfyUI 节点图承接 prompt、negative_prompt、reference_image_url、model_key、style_prompt、width、height、seed 和 batch_size。",
   "inputs": {
     "prompt": "{{prompt}}",
     "negative_prompt": "{{negative_prompt}}",
@@ -10,7 +10,8 @@
     "style_prompt": "{{style_prompt}}",
     "width": "{{width}}",
     "height": "{{height}}",
-    "seed": "{{seed}}"
+    "seed": "{{seed}}",
+    "batch_size": "{{batch_size}}"
   },
   "outputs": {
     "9": {
@@ -29,7 +30,8 @@
         "style_prompt": "{{style_prompt}}",
         "width": "{{width}}",
         "height": "{{height}}",
-        "seed": "{{seed}}"
+        "seed": "{{seed}}",
+        "batch_size": "{{batch_size}}"
       }
     },
     "9": {

@@ -358,6 +358,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /reference_image_url/);
   assert.match(canvasWorkspace, /model_key/);
   assert.match(canvasWorkspace, /style_prompt/);
+  assert.match(canvasWorkspace, /batch_size/);
   assert.match(canvasWorkspace, /clearShotSelection/);
   assert.match(canvasWorkspace, /focusShotWorkflow/);
   assert.match(canvasWorkspace, /selectedShotBindingNodes/);
@@ -401,6 +402,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /可填写角色图、风格图或上游图片输出 URL/);
   assert.match(canvasWorkspace, /模型 Key/);
   assert.match(canvasWorkspace, /统一风格提示词/);
+  assert.match(canvasWorkspace, /生成数量/);
   assert.match(canvasWorkspace, /生成选区节点变体/);
   assert.match(canvasWorkspace, /生成变体/);
   assert.match(canvasWorkspace, /已生成 .*个生成节点变体/);

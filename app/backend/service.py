@@ -1365,7 +1365,7 @@ class PlatformService:
         return to_jsonable(shot)
 
     def generate_shot_image(self, project_id: str, shot_id: str, payload: dict[str, Any]) -> dict[str, Any]:
-        _reject_unknown_payload_fields(payload, {"user_id", "workflow_key", "prompt", "negative_prompt", "reference_image_url", "model_key", "style_prompt", "width", "height", "seed"})
+        _reject_unknown_payload_fields(payload, {"user_id", "workflow_key", "prompt", "negative_prompt", "reference_image_url", "model_key", "style_prompt", "width", "height", "seed", "batch_size"})
         project, shot = self._project_shot(project_id, shot_id)
         self._assert_project_owner(project, payload.get("user_id"))
         workflow_key = str(payload.get("workflow_key") or self._project_workflow_key(project, TaskType.IMAGE, "selfhost/image_flux"))
@@ -1379,6 +1379,7 @@ class PlatformService:
             "width": _coerce_int_param(payload.get("width", default_params.get("width", 768)), "宽度"),
             "height": _coerce_int_param(payload.get("height", default_params.get("height", 1344)), "高度"),
             "seed": _coerce_int_param(payload.get("seed", default_params.get("seed", -1)), "随机种子"),
+            "batch_size": _coerce_int_range_param(payload.get("batch_size", default_params.get("batch_size", 1)), "生成数量", 1, 8),
         }
         task = self.create_generation_task(
             workflow_key,
@@ -2076,6 +2077,7 @@ class PlatformService:
                         "width": data.get("width"),
                         "height": data.get("height"),
                         "seed": data.get("seed"),
+                        "batch_size": data.get("batch_size"),
                     })
                     task = self.generate_shot_image(project_id, shot_id, image_payload)
                 elif node_type == "video_generation":
@@ -2151,7 +2153,7 @@ class PlatformService:
             base_x = 420 + index * 300
             node_specs = [
                 (f"shot-{shot.id}", "text", {"title": f"分镜 {shot.index}", "text": shot.visual_description, "narration": shot.narration, "shot_id": shot.id}, 120),
-                (f"image-gen-{shot.id}", "image_generation", {"title": "分镜图生成", "prompt": shot.prompt, "negative_prompt": shot.negative_prompt, "reference_image_url": "", "model_key": "", "style_prompt": "", "shot_id": shot.id}, 300),
+                (f"image-gen-{shot.id}", "image_generation", {"title": "分镜图生成", "prompt": shot.prompt, "negative_prompt": shot.negative_prompt, "reference_image_url": "", "model_key": "", "style_prompt": "", "shot_id": shot.id, "batch_size": "1"}, 300),
                 (f"video-gen-{shot.id}", "video_generation", {"title": "镜头视频生成", "prompt": shot.visual_description, "shot_id": shot.id}, 480),
                 (f"tts-gen-{shot.id}", "tts_generation", {"title": "旁白配音", "text": shot.narration, "shot_id": shot.id}, 660),
             ]
@@ -3349,6 +3351,13 @@ def _coerce_int_param(value: Any, label: str) -> int:
         return int(value)
     except (TypeError, ValueError) as exc:
         raise WorkflowValidationError(f"参数“{label}”必须是整数。") from exc
+
+
+def _coerce_int_range_param(value: Any, label: str, minimum: int, maximum: int) -> int:
+    result = _coerce_int_param(value, label)
+    if result < minimum or result > maximum:
+        raise WorkflowValidationError(f"参数“{label}”必须在 {minimum} 到 {maximum} 之间。")
+    return result
 
 
 def _coerce_float_param(value: Any, label: str) -> float:

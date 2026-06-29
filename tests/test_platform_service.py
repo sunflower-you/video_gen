@@ -2339,6 +2339,7 @@ class PlatformServiceTest(unittest.TestCase):
             "reference_image_url": "/storage/reference/hero.png",
             "model_key": "flux-dev",
             "style_prompt": "电影感国漫",
+            "batch_size": 3,
         })
         self.assertEqual(task["workflow_key"], "selfhost/image_flux")
         self.assertEqual(task["input_params"]["prompt"], shot["prompt"])
@@ -2346,6 +2347,7 @@ class PlatformServiceTest(unittest.TestCase):
         self.assertEqual(task["input_params"]["reference_image_url"], "/storage/reference/hero.png")
         self.assertEqual(task["input_params"]["model_key"], "flux-dev")
         self.assertEqual(task["input_params"]["style_prompt"], "电影感国漫")
+        self.assertEqual(task["input_params"]["batch_size"], 3)
         self.assertEqual(task["input_params"]["seed"], 123)
 
         video_task = service.generate_shot_video(
@@ -2362,6 +2364,10 @@ class PlatformServiceTest(unittest.TestCase):
         shot = result["shots"][0]
         with self.assertRaisesRegex(WorkflowValidationError, "业务接口"):
             service.generate_shot_image(project["id"], shot["id"], {"user_id": "author_001", "node_graph": {"1": {}}})
+        with self.assertRaisesRegex(WorkflowValidationError, "生成数量"):
+            service.generate_shot_image(project["id"], shot["id"], {"user_id": "author_001", "batch_size": 0})
+        with self.assertRaisesRegex(WorkflowValidationError, "生成数量"):
+            service.generate_shot_image(project["id"], shot["id"], {"user_id": "author_001", "batch_size": 9})
         with self.assertRaisesRegex(WorkflowValidationError, "业务接口"):
             service.generate_shot_video(
                 project["id"],

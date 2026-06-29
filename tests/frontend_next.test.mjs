@@ -92,6 +92,9 @@ test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
   assert.match(workspace, /apiFetch\(`\/api\/projects\?owner_id=/);
   assert.match(workspace, /postJson<Project>\("\/api\/projects"/);
   assert.match(workspace, /owner_id: currentUserId\(\)/);
+  assert.match(workspace, /href="\/create\?quick=creator-challenge"/);
+  assert.match(workspace, /href="\/create\?quick=seedance2"/);
+  assert.match(workspace, /href="\/create\?quick=tv-show"/);
   assert.match(workspace, /href=\{`\/workspace\/\$\{project\.id\}`\}/);
   assert.match(gallery, /item\.cover_url/);
   assert.match(gallery, /item\.video_url/);

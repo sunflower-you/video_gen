@@ -53,9 +53,9 @@ export function WorkspacePanel() {
         <input className="rounded-md border border-line px-3 py-2" value={title} onChange={(event) => setTitle(event.target.value)} />
         <div className="flex flex-wrap gap-2">
           <a className="rounded-md bg-accent px-4 py-2 text-sm text-white" href="/create">脚本成片</a>
-          <a className="rounded-md border border-line px-4 py-2 text-sm" href="/create">挑战赛</a>
-          <a className="rounded-md border border-line px-4 py-2 text-sm" href="/create">Seedance 2.0</a>
-          <a className="rounded-md border border-line px-4 py-2 text-sm" href="/create">TV Show</a>
+          <a className="rounded-md border border-line px-4 py-2 text-sm" href="/create?quick=creator-challenge">挑战赛</a>
+          <a className="rounded-md border border-line px-4 py-2 text-sm" href="/create?quick=seedance2">Seedance 2.0</a>
+          <a className="rounded-md border border-line px-4 py-2 text-sm" href="/create?quick=tv-show">TV Show</a>
           <button disabled={busy} className="rounded-md border border-line px-4 py-2 text-sm disabled:opacity-50" onClick={() => void createBlankProject()}>
             创建空白项目
           </button>

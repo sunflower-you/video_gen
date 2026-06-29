@@ -727,6 +727,11 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /已复制选区到本地画布剪贴板/);
   assert.match(canvasWorkspace, /已复制链路到系统剪贴板/);
   assert.match(canvasWorkspace, /已粘贴链路到当前视图中心/);
+  assert.match(canvasWorkspace, /CanvasEventLogEntry/);
+  assert.match(canvasWorkspace, /canvasEventLog/);
+  assert.match(canvasWorkspace, /画布事件日志/);
+  assert.match(canvasWorkspace, /追踪保存、运行、导入导出、复制粘贴和失败提示/);
+  assert.match(canvasWorkspace, /暂无画布事件，保存、运行、导入导出或复制粘贴后会自动记录/);
   assert.match(canvasWorkspace, /handleCanvasDoubleClick/);
   assert.match(canvasWorkspace, /handleCanvasDrop/);
   assert.match(canvasWorkspace, /handleCanvasKeyDown/);

@@ -660,6 +660,7 @@ type GraphHistorySnapshot = {
 type CanvasViewport = { x: number; y: number; zoom: number };
 type CanvasViewBookmark = { key: string; title: string; viewport: CanvasViewport; created_at: string };
 type CanvasGraphVersion = { key: string; title: string; nodes: ProjectGraphNode[]; edges: ProjectGraph["edges"]; viewport: CanvasViewport; created_at: string };
+type CanvasEventLogEntry = { key: string; message: string; created_at: string };
 
 const customPresetStorageKey = "video_gen_canvas_custom_presets";
 const recentNodeStorageKey = "video_gen_canvas_recent_nodes";
@@ -689,6 +690,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [showOutline, setShowOutline] = useState(false);
   const [showViewBookmarks, setShowViewBookmarks] = useState(false);
   const [showGraphVersions, setShowGraphVersions] = useState(false);
+  const [showEventLog, setShowEventLog] = useState(false);
   const [showMiniMap, setShowMiniMap] = useState(true);
   const [showPalette, setShowPalette] = useState(true);
   const [paletteQuery, setPaletteQuery] = useState("");
@@ -712,6 +714,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [viewBookmarkTitle, setViewBookmarkTitle] = useState("当前视图");
   const [graphVersions, setGraphVersions] = useState<CanvasGraphVersion[]>([]);
   const [graphVersionTitle, setGraphVersionTitle] = useState("当前画布版本");
+  const [canvasEventLog, setCanvasEventLog] = useState<CanvasEventLogEntry[]>([]);
   const [selectedRenamePrefix, setSelectedRenamePrefix] = useState("镜头节点");
   const [nodeContextMenu, setNodeContextMenu] = useState<{ nodeId: string; x: number; y: number } | null>(null);
   const [edgeContextMenu, setEdgeContextMenu] = useState<{ edgeId: string; x: number; y: number } | null>(null);
@@ -850,6 +853,15 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   }), [filteredAddableNodes, paletteQuery, recentNodeTypes]);
   const viewBookmarkStorageKey = useMemo(() => `${viewBookmarkStoragePrefix}:${projectId}`, [projectId]);
   const graphVersionStorageKey = useMemo(() => `${graphVersionStoragePrefix}:${projectId}`, [projectId]);
+
+  useEffect(() => {
+    const message = status.trim();
+    if (!message) return;
+    setCanvasEventLog((items) => {
+      if (items[0]?.message === message) return items;
+      return [{ key: `canvas-event-${Date.now()}-${items.length}`, message, created_at: new Date().toISOString() }, ...items].slice(0, 80);
+    });
+  }, [status]);
 
   function cloneGraphSnapshot(snapshotNodes = nodes, snapshotEdges = edges, snapshotSelectedNodeId = selectedNodeId, snapshotSelectedEdgeId = selectedEdgeId): GraphHistorySnapshot {
     return {
@@ -3426,6 +3438,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     { key: "show-shots", title: "打开项目分镜面板", description: "按分镜铺设文本、画面、视频、配音和合成链路", run: () => setShowShots(true) },
     { key: "show-assets", title: "打开素材库", description: "筛选并拖入项目图片、视频和音频素材", run: () => setShowAssets(true) },
     { key: "show-tasks", title: "打开任务队列", description: "筛选、定位、同步、重试和取消生成任务", run: () => setShowTasks(true) },
+    { key: "show-event-log", title: "打开画布事件日志", description: "追踪保存、运行、导入导出、复制粘贴和失败提示", run: () => setShowEventLog(true) },
     { key: "select-all", title: "全选画布节点", description: "选中当前画布所有节点", shortcut: "Ctrl/⌘ A", disabled: !nodes.length, run: selectAllCanvasNodes },
     { key: "invert-selection", title: "反选画布节点", description: "反转当前节点选区", shortcut: "Ctrl/⌘ Shift A", disabled: !nodes.length, run: invertCanvasSelection },
     { key: "clear-selection", title: "清空当前选区", description: "取消节点和连线选择", shortcut: "Esc", disabled: !selectedNodes.length && !selectedEdge, run: clearCanvasSelection },
@@ -3515,6 +3528,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         <button title="分镜列表" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowShots((value) => !value)}><Clapperboard size={18} /></button>
         <button title="素材库" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowAssets((value) => !value)}><Library size={18} /></button>
         <button title="任务队列" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowTasks((value) => !value)}><Boxes size={18} /></button>
+        <button title="画布事件日志" className={`grid h-10 w-10 place-items-center rounded-md hover:bg-white/10 ${showEventLog ? "bg-blue-500/15 text-blue-50" : "text-slate-200"}`} onClick={() => setShowEventLog((value) => !value)}><FileText size={18} /></button>
       </aside>
 
       {showViewBookmarks && <aside className="absolute left-20 top-28 z-30 w-[340px] rounded-lg border border-white/10 bg-slate-950/95 p-4 shadow-2xl backdrop-blur">
@@ -3570,6 +3584,26 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             </div>
           </article>)}
           {!graphVersions.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">暂无画布版本快照，可先保存当前版本。</p>}
+        </div>
+      </aside>}
+
+      {showEventLog && <aside className="absolute left-20 top-28 z-30 max-h-[620px] w-[390px] overflow-auto rounded-lg border border-white/10 bg-slate-950/95 p-4 shadow-2xl backdrop-blur">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs text-slate-400">生成过程追踪</p>
+            <h2 className="font-semibold">画布事件日志</h2>
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            <span className="rounded border border-white/10 px-2 py-1 text-slate-400">{canvasEventLog.length}</span>
+            <button className="rounded border border-white/10 px-2 py-1 text-slate-200 hover:bg-white/10" onClick={() => setCanvasEventLog([])}>清空</button>
+          </div>
+        </div>
+        <div className="mt-3 grid gap-2 text-sm">
+          {canvasEventLog.map((item) => <article key={item.key} className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
+            <p className="leading-5 text-slate-100">{item.message}</p>
+            <time className="mt-1 block text-xs text-slate-500">{new Date(item.created_at).toLocaleString("zh-CN", { hour12: false })}</time>
+          </article>)}
+          {!canvasEventLog.length && <p className="rounded-md border border-white/10 px-3 py-4 text-slate-400">暂无画布事件，保存、运行、导入导出或复制粘贴后会自动记录。</p>}
         </div>
       </aside>}
 

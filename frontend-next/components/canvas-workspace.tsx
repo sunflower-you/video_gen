@@ -979,6 +979,16 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         autoLayoutGraph();
         return;
       }
+      if ((event.metaKey || event.ctrlKey) && (event.key === "+" || event.key === "=" || event.code === "NumpadAdd")) {
+        event.preventDefault();
+        zoomCanvas("in");
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && (event.key === "-" || event.code === "NumpadSubtract")) {
+        event.preventDefault();
+        zoomCanvas("out");
+        return;
+      }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "0") {
         event.preventDefault();
         resetCanvasViewport();
@@ -2894,8 +2904,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         <button title="全选画布节点" disabled={!nodes.length} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={selectAllCanvasNodes}><CheckSquare size={18} /></button>
         <button title="反选画布节点" disabled={!nodes.length} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={invertCanvasSelection}><CheckSquare size={18} /></button>
         <button title="清空当前选区" disabled={!selectedNodes.length && !selectedEdge} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={clearCanvasSelection}><XSquare size={18} /></button>
-        <button title="放大画布" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => zoomCanvas("in")}><ZoomIn size={18} /></button>
-        <button title="缩小画布" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => zoomCanvas("out")}><ZoomOut size={18} /></button>
+        <button title="放大画布 Ctrl/⌘ +" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => zoomCanvas("in")}><ZoomIn size={18} /></button>
+        <button title="缩小画布 Ctrl/⌘ -" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => zoomCanvas("out")}><ZoomOut size={18} /></button>
         <button title="适配全部节点" disabled={!nodes.length} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={fitGraphView}><Maximize2 size={18} /></button>
         <button title="适配选中节点" disabled={!selectedNodes.length} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={fitSelectedNodeView}><Focus size={18} /></button>
         <button title="重置画布视口" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={resetCanvasViewport}><RotateCcw size={18} /></button>

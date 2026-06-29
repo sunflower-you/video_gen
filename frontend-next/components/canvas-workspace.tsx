@@ -18,7 +18,7 @@ import {
   type NodeProps,
   type ReactFlowInstance
 } from "@xyflow/react";
-import { Boxes, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, FileText, GitBranch, Image, LayoutGrid, Library, Music, Play, Plus, RefreshCcw, Save, Search, Sparkles, Trash2, Video, Wand2 } from "lucide-react";
+import { Boxes, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, GitBranch, Image, LayoutGrid, Library, Music, Play, Plus, RefreshCcw, Save, Search, Sparkles, Trash2, Upload, Video, Wand2 } from "lucide-react";
 import { apiFetch, currentUserId, deleteJson, postJson, type Asset, type GenerationTask, type Project, type ProjectGraph, type ProjectGraphNode, type StoryboardShot } from "../lib/api";
 
 const nodeLabels: Record<string, string> = {
@@ -272,8 +272,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [showAssets, setShowAssets] = useState(false);
   const [showTasks, setShowTasks] = useState(false);
   const [showShots, setShowShots] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [showPalette, setShowPalette] = useState(true);
   const [paletteQuery, setPaletteQuery] = useState("");
+  const [importText, setImportText] = useState("");
   const [busy, setBusy] = useState(false);
 
   const selectedNode = useMemo(() => nodes.find((item) => item.id === selectedNodeId) || null, [nodes, selectedNodeId]);
@@ -798,6 +800,79 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus("素材已拖入画布。 ");
   }
 
+  function exportWorkflowJson() {
+    const graph = {
+      id: `export-${projectId}-${Date.now()}`,
+      project_id: projectId,
+      title: project?.title || "全画幅工作流",
+      exported_at: new Date().toISOString(),
+      nodes: nodes.map(fromFlowNode),
+      edges: edges.map(fromFlowEdge),
+      viewport: { x: 0, y: 0, zoom: 1 },
+      status: "draft"
+    };
+    const text = JSON.stringify(graph, null, 2);
+    const blob = new Blob([text], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${project?.title || "video-gen-workflow"}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    void navigator.clipboard?.writeText(text).catch(() => undefined);
+    setStatus(`已导出工作流：${graph.nodes.length} 个节点、${graph.edges.length} 条连线。`);
+  }
+
+  function importWorkflowJson() {
+    let graph: Partial<ProjectGraph> & { nodes?: unknown; edges?: unknown };
+    try {
+      graph = JSON.parse(importText);
+    } catch {
+      setStatus("工作流 JSON 解析失败，请检查内容格式。");
+      return;
+    }
+    if (!Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) {
+      setStatus("工作流 JSON 需要包含 nodes 和 edges。");
+      return;
+    }
+    const timestamp = Date.now();
+    const idMap = new Map<string, string>();
+    const importedNodes = (graph.nodes as ProjectGraphNode[]).map((item, index) => {
+      const originalId = String(item.id || `node-${index}`);
+      const id = `import-${timestamp}-${index}`;
+      idMap.set(originalId, id);
+      return toFlowNode({
+        ...item,
+        id,
+        position: {
+          x: Number(item.position?.x || 160) + 48,
+          y: Number(item.position?.y || 120) + 48
+        },
+        status: "draft",
+        data: { ...(item.data || {}), graphNodeId: id }
+      });
+    });
+    const importedEdges = (graph.edges as ProjectGraph["edges"]).flatMap((edge, index) => {
+      const source = idMap.get(String(edge.source));
+      const target = idMap.get(String(edge.target));
+      if (!source || !target) return [];
+      return [{
+        id: `edge-import-${timestamp}-${index}`,
+        source,
+        target,
+        sourceHandle: edge.sourceHandle || undefined,
+        targetHandle: edge.targetHandle || undefined,
+        data: edge.data || {}
+      } satisfies Edge];
+    });
+    setNodes((items) => [...items, ...importedNodes]);
+    setEdges((items) => [...items, ...importedEdges]);
+    setSelectedNodeId(importedNodes[0]?.id || "");
+    setShowImport(false);
+    setImportText("");
+    setStatus(`已导入工作流：${importedNodes.length} 个节点、${importedEdges.length} 条连线。`);
+  }
+
   const selectedData = (selectedNode?.data || {}) as Record<string, unknown>;
   const selectedType = String(selectedData.nodeType || "text");
 
@@ -811,6 +886,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         <div className="flex items-center gap-2 text-sm">
           <span className="max-w-[420px] truncate rounded border border-white/10 bg-white/5 px-3 py-2 text-slate-300">{status}</span>
           <button disabled={busy} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={() => void refreshAll()}><RefreshCcw size={16} />刷新</button>
+          <button disabled={busy || !nodes.length} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={exportWorkflowJson}><Download size={16} />导出工作流</button>
+          <button disabled={busy} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={() => setShowImport((value) => !value)}><Upload size={16} />导入工作流</button>
           <button disabled={busy || !nodes.length} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={autoLayoutGraph}><LayoutGrid size={16} />整理画布</button>
           <button disabled={busy || !nodes.length} className="inline-flex items-center gap-2 rounded-md border border-blue-400/40 bg-blue-500/10 px-3 py-2 disabled:opacity-50" onClick={() => void runCanvasGraph()}><GitBranch size={16} />运行全图</button>
           <button disabled={busy} className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 disabled:opacity-50" onClick={() => void saveGraph()}><Save size={16} />保存画布</button>
@@ -861,6 +938,21 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
               })}
             </section>;
           })}
+        </div>
+      </aside>}
+
+      {showImport && <aside className="absolute left-20 top-28 z-30 w-[460px] rounded-lg border border-white/10 bg-slate-950/95 p-4 shadow-2xl backdrop-blur">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs text-slate-400">工作流复用</p>
+            <h2 className="font-semibold">导入工作流 JSON</h2>
+          </div>
+          <button className="rounded-md border border-white/10 px-2 py-1 text-xs text-slate-300 hover:bg-white/10" onClick={() => setShowImport(false)}>关闭</button>
+        </div>
+        <textarea className="mt-3 min-h-64 w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500" placeholder="粘贴从画布导出的 ProjectGraph JSON，导入后会追加到当前画布。" value={importText} onChange={(event) => setImportText(event.target.value)} />
+        <div className="mt-3 flex items-center justify-between gap-2 text-sm">
+          <span className="text-xs text-slate-400">导入会重置节点状态为草稿，并保留参数、位置和连线。</span>
+          <button disabled={busy || !importText.trim()} className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 disabled:opacity-50" onClick={importWorkflowJson}><Upload size={15} />确认导入</button>
         </div>
       </aside>}
 

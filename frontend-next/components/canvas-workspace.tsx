@@ -208,6 +208,7 @@ function PlatformNode({ data, selected }: NodeProps) {
   const status = String(payload.status || "draft");
   const locked = payload.locked === true;
   const disabled = payload.disabled === true;
+  const groupTitle = String(payload.group_title || "");
   return (
     <div className={`relative w-[240px] rounded-lg border p-3 text-white shadow-xl ${nodeColors[type] || nodeColors.demo} ${selected ? "ring-2 ring-white" : ""} ${disabled ? "opacity-60 grayscale" : ""}`}>
       {inputPorts.map((port, index) => (
@@ -236,6 +237,7 @@ function PlatformNode({ data, selected }: NodeProps) {
         <strong className="truncate text-sm">{title}</strong>
         <span className="inline-flex items-center gap-1 rounded bg-black/30 px-2 py-1 text-[11px]">{disabled ? <Ban size={11} /> : locked ? <Lock size={11} /> : null}{disabled ? "已禁用" : statusText(status)}</span>
       </div>
+      {groupTitle && <p className="mt-2 truncate rounded border border-white/10 bg-black/20 px-2 py-1 text-[11px] text-slate-200">组：{groupTitle}</p>}
       {mediaUrlFromData(payload) && <div className="mt-2 overflow-hidden rounded-md border border-white/10 bg-black/30"><MediaPreview data={payload} title={title} compact /></div>}
       <p className="mt-2 line-clamp-3 text-xs text-slate-200">{summary}</p>
       <div className="mt-3 grid grid-cols-2 gap-2 border-t border-white/10 pt-2 text-[10px] text-slate-200">
@@ -625,6 +627,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   }, [nodes, selectedNode]);
   const selectedNodeIds = useMemo(() => new Set(selectedNodes.map((item) => item.id)), [selectedNodes]);
   const selectedSelectionEdges = useMemo(() => edges.filter((edge) => selectedNodeIds.has(edge.source) && selectedNodeIds.has(edge.target)), [edges, selectedNodeIds]);
+  const selectedGroupTitles = useMemo(() => {
+    const titles = new Set(selectedNodes.map((node) => String((node.data as Record<string, unknown>).group_title || "")).filter(Boolean));
+    return [...titles];
+  }, [selectedNodes]);
   const shotOptions = useMemo(() => project?.shots || [], [project]);
   const taskById = useMemo(() => new Map(tasks.map((task) => [task.id, task])), [tasks]);
   const selectedTask = useMemo(() => {
@@ -1563,6 +1569,39 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(disabled ? `已禁用选区：${selectedNodes.length} 个节点，运行时会跳过。` : `已启用选区：${selectedNodes.length} 个节点。`);
   }
 
+  function groupSelectedNodes() {
+    if (selectedNodes.length <= 1) {
+      setStatus("请先框选多个节点，再打组为工作流片段。");
+      return;
+    }
+    const groupId = `group-${Date.now()}`;
+    const groupTitle = `工作流组 ${selectedNodes.length} 节点`;
+    rememberGraphHistory();
+    setNodes((items) => items.map((node) => selectedNodeIds.has(node.id) ? {
+      ...node,
+      data: { ...(node.data as Record<string, unknown>), group_id: groupId, group_title: groupTitle }
+    } : node));
+    setStatus(`已打组选区：${groupTitle}，可继续复制、整理或保存为我的工作流预设。`);
+  }
+
+  function ungroupSelectedNodes() {
+    if (!selectedNodes.length) return;
+    const groupedCount = selectedNodes.filter((node) => String((node.data as Record<string, unknown>).group_id || "")).length;
+    if (!groupedCount) {
+      setStatus("当前选区没有已打组节点。");
+      return;
+    }
+    rememberGraphHistory();
+    setNodes((items) => items.map((node) => {
+      if (!selectedNodeIds.has(node.id)) return node;
+      const data = { ...(node.data as Record<string, unknown>) };
+      delete data.group_id;
+      delete data.group_title;
+      return { ...node, data };
+    }));
+    setStatus(`已取消 ${groupedCount} 个节点的分组。`);
+  }
+
   async function deleteSelectedNodes() {
     if (!selectedNodes.length) return;
     const unlockedIds = new Set(selectedNodes.filter((node) => (node.data as Record<string, unknown>).locked !== true).map((node) => node.id));
@@ -1934,6 +1973,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { copySelectedNodes(); setNodeContextMenu(null); }}>复制选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { duplicateSelectedNodes(); setNodeContextMenu(null); }}>生成选区副本</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { autoLayoutSelectedNodes(); setNodeContextMenu(null); }}>整理选区</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { groupSelectedNodes(); setNodeContextMenu(null); }}>打组选区</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { ungroupSelectedNodes(); setNodeContextMenu(null); }}>取消分组</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesDisabled(true); setNodeContextMenu(null); }}>禁用选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesDisabled(false); setNodeContextMenu(null); }}>启用选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesLocked(true); setNodeContextMenu(null); }}>锁定选区</button>
@@ -1968,13 +2009,16 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <section className="rounded-md border border-white/10 bg-white/[0.03] p-3">
             <p className="text-xs text-slate-400">批量节点操作</p>
             <h3 className="mt-1 font-semibold text-white">已选择 {selectedNodes.length} 个节点</h3>
-            <p className="mt-2 text-xs leading-5 text-slate-400">选区内包含 {selectedSelectionEdges.length} 条内部连线，可批量复制、整理、锁定、禁用或删除。</p>
+            <p className="mt-2 text-xs leading-5 text-slate-400">选区内包含 {selectedSelectionEdges.length} 条内部连线，可批量复制、整理、打组、锁定、禁用或删除。</p>
+            {!!selectedGroupTitles.length && <p className="mt-2 truncate text-xs text-blue-100">已在组：{selectedGroupTitles.join("、")}</p>}
           </section>
           <div className="grid grid-cols-2 gap-2">
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={copySelectedNodes}><ClipboardCopy size={16} />复制选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={duplicateSelectedNodes}><Copy size={16} />生成副本</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={pasteCopiedSelection}><ClipboardPaste size={16} />粘贴选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={autoLayoutSelectedNodes}><LayoutGrid size={16} />整理选区</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={groupSelectedNodes}><Boxes size={16} />打组选区</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={ungroupSelectedNodes}><Boxes size={16} />取消分组</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesDisabled(true)}><Ban size={16} />禁用选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesDisabled(false)}><Play size={16} />启用选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesLocked(true)}><Lock size={16} />锁定选区</button>

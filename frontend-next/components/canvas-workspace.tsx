@@ -49,6 +49,77 @@ const nodeColors: Record<string, string> = {
   demo: "border-slate-400 bg-slate-900/80"
 };
 
+type NodePort = {
+  id: string;
+  label: string;
+  side: "input" | "output";
+  tone?: "text" | "image" | "video" | "audio" | "final";
+};
+
+const portColors: Record<NonNullable<NodePort["tone"]> | "default", string> = {
+  text: "!bg-sky-500",
+  image: "!bg-emerald-500",
+  video: "!bg-violet-500",
+  audio: "!bg-amber-500",
+  final: "!bg-rose-500",
+  default: "!bg-slate-600"
+};
+
+function semanticPortsForType(type: string): NodePort[] {
+  const common: NodePort[] = [
+    { id: "input", label: "输入", side: "input" },
+    { id: "output", label: "输出", side: "output" }
+  ];
+  const map: Record<string, NodePort[]> = {
+    text: [
+      { id: "input", label: "参考", side: "input", tone: "text" },
+      { id: "output", label: "文本", side: "output", tone: "text" }
+    ],
+    image: [
+      { id: "input", label: "参考", side: "input", tone: "image" },
+      { id: "output", label: "图片", side: "output", tone: "image" }
+    ],
+    video: [
+      { id: "input", label: "参考", side: "input", tone: "video" },
+      { id: "output", label: "视频", side: "output", tone: "video" }
+    ],
+    audio: [
+      { id: "input", label: "参考", side: "input", tone: "audio" },
+      { id: "output", label: "音频", side: "output", tone: "audio" }
+    ],
+    script: [
+      { id: "input", label: "参考", side: "input", tone: "text" },
+      { id: "output", label: "脚本", side: "output", tone: "text" }
+    ],
+    image_generation: [
+      { id: "input", label: "提示词", side: "input", tone: "text" },
+      { id: "reference", label: "参考图", side: "input", tone: "image" },
+      { id: "output", label: "分镜图", side: "output", tone: "image" }
+    ],
+    video_generation: [
+      { id: "input", label: "提示词", side: "input", tone: "text" },
+      { id: "first_frame", label: "首帧", side: "input", tone: "image" },
+      { id: "output", label: "镜头视频", side: "output", tone: "video" }
+    ],
+    tts_generation: [
+      { id: "input", label: "旁白", side: "input", tone: "text" },
+      { id: "output", label: "配音", side: "output", tone: "audio" }
+    ],
+    compose_generation: [
+      { id: "input", label: "输入", side: "input", tone: "final" },
+      { id: "video", label: "视频", side: "input", tone: "video" },
+      { id: "audio", label: "音频", side: "input", tone: "audio" },
+      { id: "subtitle", label: "字幕", side: "input", tone: "text" },
+      { id: "output", label: "成片", side: "output", tone: "final" }
+    ]
+  };
+  return map[type] || common;
+}
+
+function portTop(index: number, total: number) {
+  return `${Math.round(((index + 1) * 100) / (total + 1))}%`;
+}
+
 function statusText(status?: string) {
   const map: Record<string, string> = {
     draft: "草稿",
@@ -129,6 +200,9 @@ function MediaPreview({ data, title, compact = false }: { data: Record<string, u
 function PlatformNode({ data, selected }: NodeProps) {
   const payload = data as Record<string, unknown>;
   const type = String(payload.nodeType || "text");
+  const ports = semanticPortsForType(type);
+  const inputPorts = ports.filter((port) => port.side === "input");
+  const outputPorts = ports.filter((port) => port.side === "output");
   const title = String(payload.title || nodeLabels[type] || "节点");
   const summary = String(payload.text || payload.script || payload.prompt || payload.narration || payload.result_summary || payload.workflow_key || "等待编辑参数");
   const status = String(payload.status || "draft");
@@ -136,26 +210,42 @@ function PlatformNode({ data, selected }: NodeProps) {
   const disabled = payload.disabled === true;
   return (
     <div className={`relative w-[240px] rounded-lg border p-3 text-white shadow-xl ${nodeColors[type] || nodeColors.demo} ${selected ? "ring-2 ring-white" : ""} ${disabled ? "opacity-60 grayscale" : ""}`}>
-      <Handle
-        id="input"
-        type="target"
-        position={Position.Left}
-        title="输入"
-        className="!h-4 !w-4 !border-2 !border-white !bg-slate-700"
-      />
-      <Handle
-        id="output"
-        type="source"
-        position={Position.Right}
-        title="输出"
-        className="!h-4 !w-4 !border-2 !border-white !bg-blue-500"
-      />
+      {inputPorts.map((port, index) => (
+        <Handle
+          key={port.id}
+          id={port.id}
+          type="target"
+          position={Position.Left}
+          title={port.label}
+          style={{ top: portTop(index, inputPorts.length) }}
+          className={`!h-4 !w-4 !border-2 !border-white ${portColors[port.tone || "default"]}`}
+        />
+      ))}
+      {outputPorts.map((port, index) => (
+        <Handle
+          key={port.id}
+          id={port.id}
+          type="source"
+          position={Position.Right}
+          title={port.label}
+          style={{ top: portTop(index, outputPorts.length) }}
+          className={`!h-4 !w-4 !border-2 !border-white ${portColors[port.tone || "default"]}`}
+        />
+      ))}
       <div className="flex items-center justify-between gap-2">
         <strong className="truncate text-sm">{title}</strong>
         <span className="inline-flex items-center gap-1 rounded bg-black/30 px-2 py-1 text-[11px]">{disabled ? <Ban size={11} /> : locked ? <Lock size={11} /> : null}{disabled ? "已禁用" : statusText(status)}</span>
       </div>
       {mediaUrlFromData(payload) && <div className="mt-2 overflow-hidden rounded-md border border-white/10 bg-black/30"><MediaPreview data={payload} title={title} compact /></div>}
       <p className="mt-2 line-clamp-3 text-xs text-slate-200">{summary}</p>
+      <div className="mt-3 grid grid-cols-2 gap-2 border-t border-white/10 pt-2 text-[10px] text-slate-200">
+        <div className="flex min-w-0 flex-wrap gap-1">
+          {inputPorts.map((port) => <span key={port.id} className="rounded bg-black/25 px-1.5 py-0.5">{port.label}</span>)}
+        </div>
+        <div className="flex min-w-0 flex-wrap justify-end gap-1">
+          {outputPorts.map((port) => <span key={port.id} className="rounded bg-white/10 px-1.5 py-0.5">{port.label}</span>)}
+        </div>
+      </div>
       {String(payload.task_id || "") && <p className="mt-2 truncate text-[11px] text-slate-300">任务：{String(payload.task_id)}</p>}
     </div>
   );

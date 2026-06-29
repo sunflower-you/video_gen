@@ -114,6 +114,7 @@ function parameterPresetByKey(key: string) {
 }
 
 const shotBindableNodeTypes = new Set(["text", "script", "image_generation", "video_generation", "tts_generation"]);
+const variantNodeTypes = new Set(["image_generation", "video_generation", "tts_generation", "compose_generation"]);
 
 function shotPatchForNode(type: string, shot: StoryboardShot) {
   const visual = shot.visual_description || shot.prompt || "";
@@ -823,6 +824,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const selectedSelectionEdges = useMemo(() => edges.filter((edge) => selectedNodeIds.has(edge.source) && selectedNodeIds.has(edge.target)), [edges, selectedNodeIds]);
   const selectedParameterPresetNodes = useMemo(() => selectedNodes.filter((node) => nodeParameterPresets.some((preset) => preset.nodeTypes.includes(String((node.data as Record<string, unknown>).nodeType || "")))), [selectedNodes]);
   const selectedShotBindingNodes = useMemo(() => selectedNodes.filter((node) => shotBindableNodeTypes.has(String((node.data as Record<string, unknown>).nodeType || ""))), [selectedNodes]);
+  const selectedVariantNodes = useMemo(() => selectedNodes.filter((node) => variantNodeTypes.has(String((node.data as Record<string, unknown>).nodeType || ""))), [selectedNodes]);
   const selectedGroupTitles = useMemo(() => {
     const titles = new Set(selectedNodes.map((node) => String((node.data as Record<string, unknown>).group_title || "")).filter(Boolean));
     return [...titles];
@@ -3096,6 +3098,81 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已复制选区：${duplicatedNodes.length} 个节点、${duplicatedEdges.length} 条连线。`);
   }
 
+  function variantDataForNode(node: Node, index: number, timestamp: number) {
+    const data = node.data as Record<string, unknown>;
+    const type = String(data.nodeType || "text");
+    const next: Record<string, unknown> = {
+      ...data,
+      status: "draft",
+      task_id: "",
+      prompt_id: "",
+      output_url: "",
+      image_url: "",
+      video_url: "",
+      audio_url: "",
+      error_message: "",
+      retry_advice: "",
+      title: `${String(data.title || nodeLabels[type] || "生成节点")} 变体 ${index + 1}`
+    };
+    if (type === "image_generation") next.seed = String((timestamp + index * 7919) % 100000000);
+    if (type === "video_generation") next.video_url = "";
+    if (type === "tts_generation") next.audio_url = "";
+    return next;
+  }
+
+  function createSelectedNodeVariants() {
+    if (!selectedVariantNodes.length) {
+      setStatus("请先选择分镜图、视频、配音或合成生成节点，再生成变体。");
+      return;
+    }
+    const timestamp = Date.now();
+    const variantIdBySourceId = new Map<string, string>();
+    const variantNodes = selectedVariantNodes.map((node, index) => {
+      const id = `variant-${node.id}-${timestamp}-${index}`;
+      variantIdBySourceId.set(node.id, id);
+      return {
+        ...node,
+        id,
+        selected: true,
+        draggable: true,
+        position: { x: node.position.x + 340, y: node.position.y + index * 36 },
+        data: { ...variantDataForNode(node, index, timestamp), graphNodeId: id, locked: false, disabled: false }
+      } satisfies Node;
+    });
+    const incomingVariantEdges = edges.flatMap((edge, index) => {
+      const target = variantIdBySourceId.get(edge.target);
+      if (!target || variantIdBySourceId.has(edge.source)) return [];
+      const connection = { source: edge.source, target, sourceHandle: edge.sourceHandle || "output", targetHandle: edge.targetHandle || "input" };
+      if (connectionIssueMessage(connection, edges)) return [];
+      return [edgeWithDefaultHandles({
+        ...edge,
+        id: `edge-variant-input-${timestamp}-${index}`,
+        target,
+        selected: false,
+        data: { ...(edge.data as Record<string, unknown> | undefined), label: String((edge.data as Record<string, unknown> | undefined)?.label || "变体输入") }
+      } satisfies Edge)];
+    });
+    const internalVariantEdges = selectedSelectionEdges.flatMap((edge, index) => {
+      const source = variantIdBySourceId.get(edge.source);
+      const target = variantIdBySourceId.get(edge.target);
+      if (!source || !target) return [];
+      return [edgeWithDefaultHandles({
+        ...edge,
+        id: `edge-variant-chain-${timestamp}-${index}`,
+        source,
+        target,
+        selected: false,
+        data: { ...(edge.data as Record<string, unknown> | undefined), label: String((edge.data as Record<string, unknown> | undefined)?.label || "变体链路") }
+      } satisfies Edge)];
+    });
+    rememberGraphHistory();
+    setNodes((items) => [...items.map((node) => ({ ...node, selected: false })), ...variantNodes]);
+    setEdges((items) => [...items, ...incomingVariantEdges, ...internalVariantEdges]);
+    setSelectedNodeId(variantNodes[variantNodes.length - 1]?.id || "");
+    setSelectedEdgeId("");
+    setStatus(`已生成 ${variantNodes.length} 个生成节点变体，并保留 ${incomingVariantEdges.length + internalVariantEdges.length} 条参考连线。`);
+  }
+
   function parseClipboardGraphSnapshot(text: string): { nodes: Node[]; edges: Edge[] } | null {
     if (!text.trim()) return null;
     const graph = JSON.parse(text) as { nodes?: unknown; edges?: unknown };
@@ -4059,6 +4136,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     { key: "expand-selection-tts", title: "选区生成配音链", description: "为选区末端批量创建旁白配音节点并自动连线", disabled: !selectedNodes.length, run: expandSelectedNodesToTtsGeneration },
     { key: "collect-selection-compose", title: "选区汇聚到合成节点", description: "在选区右侧创建合成节点并连接选区末端分支", disabled: !selectedNodes.length, run: collectSelectedNodesToCompose },
     { key: "connect-existing-compose", title: "选区接入已有合成节点", description: "把选区末端素材按媒体类型连接到选中的合成节点", disabled: !selectedNodes.length, run: connectSelectedNodesToExistingCompose },
+    { key: "create-node-variants", title: "生成选区节点变体", description: "复制选区内生成节点并保留上游参考输入，用于快速试多个版本", disabled: !selectedVariantNodes.length, run: createSelectedNodeVariants },
     { key: "selection-preset-portrait", title: "选区参数预设：竖屏 9:16", description: "批量设置选区内分镜图生成节点尺寸", disabled: !selectedParameterPresetNodes.length, run: () => applySelectedNodesParameterPreset(parameterPresetByKey("image-portrait")) },
     { key: "selection-preset-video-standard", title: "选区参数预设：标准 5 秒", description: "批量设置选区内镜头视频生成节点时长和帧率", disabled: !selectedParameterPresetNodes.length, run: () => applySelectedNodesParameterPreset(parameterPresetByKey("video-standard")) },
     { key: "selection-preset-tts-female", title: "选区参数预设：女声常速", description: "批量设置选区内旁白配音节点音色和语速", disabled: !selectedParameterPresetNodes.length, run: () => applySelectedNodesParameterPreset(parameterPresetByKey("tts-female")) },
@@ -4802,6 +4880,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={connectSelectedNodesInOrder}><GitBranch size={16} />串联选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={expandSelectedNodesToVideoGeneration}><Video size={16} />生成视频</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={expandSelectedNodesToTtsGeneration}><Music size={16} />生成配音</button>
+            <button disabled={busy || !selectedVariantNodes.length} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={createSelectedNodeVariants}><Copy size={16} />生成变体</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={collectSelectedNodesToCompose}><Sparkles size={16} />汇聚合成</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={connectSelectedNodesToExistingCompose}><Sparkles size={16} />接入合成</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={groupSelectedNodes}><Boxes size={16} />打组选区</button>
@@ -4990,6 +5069,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy || selectedData.disabled === true} className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-3 py-2 disabled:opacity-50" onClick={() => void runSelectedNode()}><Play size={16} />运行节点</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void runSelectedChain()}><GitBranch size={16} />运行链路</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={duplicateSelectedNode}><Copy size={16} />复制节点</button>
+            <button disabled={busy || !selectedVariantNodes.length} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={createSelectedNodeVariants}><Copy size={16} />生成变体</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void cutSelectedNodes()}><Scissors size={16} />剪切节点</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void copySelectedNodeId()}><ClipboardCopy size={16} />复制 ID</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void copySelectedNodeParams()}><FileText size={16} />复制参数</button>

@@ -1171,14 +1171,20 @@ test("Next 创作工作台调用真实项目和生成接口", () => {
   assert.match(createWorkbench, /projectType === "空白项目"/);
   assert.match(createWorkbench, /projectType === "模板复刻"/);
   assert.match(createWorkbench, /quickStartModes/);
+  assert.match(createWorkbench, /type QuickModeKey = keyof typeof quickStartModes/);
+  assert.match(createWorkbench, /const quickModeOptions/);
+  assert.match(createWorkbench, /aria-label="Liblib 快捷创作模式"/);
   assert.match(createWorkbench, /const params = new URLSearchParams\(window\.location\.search\)/);
   assert.match(createWorkbench, /params\.get\("quick"\)/);
   assert.match(createWorkbench, /params\.get\("template"\)/);
+  assert.match(createWorkbench, /applyQuickMode\(quick as QuickModeKey\)/);
   assert.match(createWorkbench, /setProjectType\("模板复刻"\)/);
   assert.match(createWorkbench, /setSelectedTemplateId\(templateId\)/);
   assert.match(createWorkbench, /已从模板市场预选模板/);
   assert.match(createWorkbench, /const \[activeQuickMode, setActiveQuickMode\]/);
-  assert.match(createWorkbench, /setActiveQuickMode\(quick\)/);
+  assert.match(createWorkbench, /function applyQuickMode/);
+  assert.match(createWorkbench, /function clearQuickMode/);
+  assert.match(createWorkbench, /setStatus\("已切换为普通创建模式/);
   assert.match(createWorkbench, /function primaryCreateLabel/);
   assert.match(createWorkbench, /function createPrimaryProject/);
   assert.match(createWorkbench, /activeQuickMode === "seedance2"/);
@@ -1206,7 +1212,7 @@ test("Next 创作工作台调用真实项目和生成接口", () => {
   assert.match(createWorkbench, /compose/);
   assert.match(createWorkbench, /href=\{`\/workspace\/\$\{project\.id\}`\}/);
   assert.match(createWorkbench, /window\.location\.href = `\/workspace\/\$\{created\.id\}`/);
-  for (const text of ["创建项目并生成分镜草稿", "复刻模板并生成分镜草稿", "模板复刻项目已继承", "一键创建 Seedance 2.0 画布", "一键创建 TV Show 画布", "一键创建挑战赛画布", "Seedance 2.0 快速体验", "创建 TV Show", "参加创作者挑战赛", "9:16 竖屏短视频", "16:9 横屏短片", "1:1 方形画布", "创建空白项目", "参考图 URL", "批量生成素材", "生成时间线", "合成成片", "任务队列", "积分余额不足", "进入项目工作台"]) {
+  for (const text of ["创建项目并生成分镜草稿", "复刻模板并生成分镜草稿", "模板复刻项目已继承", "一键创建 Seedance 2.0 画布", "一键创建 TV Show 画布", "一键创建挑战赛画布", "Seedance 2.0 快速体验", "创建 TV Show", "参加创作者挑战赛", "Liblib 快捷创作", "普通创建", "赛题 brief", "图生视频", "主持人口播", "9:16 竖屏短视频", "16:9 横屏短片", "1:1 方形画布", "创建空白项目", "参考图 URL", "批量生成素材", "生成时间线", "合成成片", "任务队列", "积分余额不足", "进入项目工作台"]) {
     assert.match(createWorkbench, new RegExp(text));
   }
 });

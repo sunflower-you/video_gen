@@ -25,6 +25,13 @@ const quickStartModes = {
     status: "已预选创作者挑战赛，可一键创建参赛片画布。"
   }
 };
+type QuickModeKey = keyof typeof quickStartModes;
+
+const quickModeOptions: { key: QuickModeKey; label: string; description: string }[] = [
+  { key: "seedance2", label: "Seedance 2.0", description: "参考图、动作提示词、图生视频和成片合成链路。" },
+  { key: "tv-show", label: "TV Show", description: "剧集脚本、分镜图、镜头视频、主持人口播和成片合成链路。" },
+  { key: "creator-challenge", label: "创作者挑战赛", description: "赛题 brief、参赛海报首帧、短片镜头、宣发口播和成片提交链路。" }
+];
 
 function quickPresetWorkspaceHref(projectId: string, presetKey: string) {
   return `/workspace/${projectId}?preset=${presetKey}&presetMode=replace`;
@@ -57,10 +64,7 @@ export function CreateWorkbench() {
     const templateId = params.get("template") || "";
     const mode = quickStartModes[quick as keyof typeof quickStartModes];
     if (mode) {
-      setActiveQuickMode(quick);
-      setTitle(mode.title);
-      setScript(mode.script);
-      setStatus(mode.status);
+      applyQuickMode(quick as QuickModeKey);
     }
     if (templateId) {
       setProjectType("模板复刻");
@@ -81,6 +85,19 @@ export function CreateWorkbench() {
     if (activeQuickMode === "tv-show") return createTvShowProject();
     if (activeQuickMode === "creator-challenge") return createCreatorChallengeProject();
     return createProjectFlow();
+  }
+
+  function applyQuickMode(modeKey: QuickModeKey) {
+    const mode = quickStartModes[modeKey];
+    setActiveQuickMode(modeKey);
+    setTitle(mode.title);
+    setScript(mode.script);
+    setStatus(mode.status);
+  }
+
+  function clearQuickMode() {
+    setActiveQuickMode("");
+    setStatus("已切换为普通创建模式，可选择脚本成片、图片成片、模板复刻或空白项目。");
   }
 
   async function loadTemplates() {
@@ -273,6 +290,22 @@ export function CreateWorkbench() {
     <section className="grid grid-cols-[420px_minmax(0,1fr)] gap-4">
       <aside className="rounded-panel border border-line bg-panel p-4">
         <h2 className="font-semibold">创建项目</h2>
+        <section className="mt-4 grid gap-2" aria-label="Liblib 快捷创作模式">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-medium">Liblib 快捷创作</span>
+            <button className="text-xs text-muted hover:text-foreground" onClick={clearQuickMode}>普通创建</button>
+          </div>
+          {quickModeOptions.map((item) => (
+            <button
+              key={item.key}
+              className={`rounded-md border px-3 py-2 text-left text-sm ${activeQuickMode === item.key ? "border-accent bg-blue-50 text-accent" : "border-line hover:border-accent"}`}
+              onClick={() => applyQuickMode(item.key)}
+            >
+              <strong className="block">{item.label}</strong>
+              <span className="mt-1 block text-xs text-muted">{item.description}</span>
+            </button>
+          ))}
+        </section>
         <div className="mt-4 grid gap-3">
           <input className="rounded-md border border-line px-3 py-2" value={title} onChange={(event) => setTitle(event.target.value)} />
           <select className="rounded-md border border-line px-3 py-2" value={projectType} onChange={(event) => { setActiveQuickMode(""); setProjectType(event.target.value); }}>

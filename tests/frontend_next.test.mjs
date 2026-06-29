@@ -339,11 +339,14 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /请输入选区批量命名前缀/);
   assert.match(canvasWorkspace, /已按前缀/);
   assert.match(canvasWorkspace, /setSelectedSelectionEdgesDisabled/);
+  assert.match(canvasWorkspace, /deleteSelectedSelectionEdges/);
   assert.match(canvasWorkspace, /setSelectedSelectionEdgesColor/);
   assert.match(canvasWorkspace, /setSelectedSelectionEdgesStyle/);
   assert.match(canvasWorkspace, /选区内部连线/);
   assert.match(canvasWorkspace, /禁用内部连线/);
   assert.match(canvasWorkspace, /启用内部连线/);
+  assert.match(canvasWorkspace, /删除内部连线/);
+  assert.match(canvasWorkspace, /已删除选区内部连线/);
   assert.match(canvasWorkspace, /已设置选区内部连线颜色/);
   assert.match(canvasWorkspace, /已设置选区内部连线样式/);
   assert.match(canvasWorkspace, /当前选区没有内部连线/);

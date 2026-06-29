@@ -721,6 +721,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [selectionOnDrag, setSelectionOnDrag] = useState(false);
   const [linkedNodeIdHandled, setLinkedNodeIdHandled] = useState("");
   const [linkedEdgeIdHandled, setLinkedEdgeIdHandled] = useState("");
+  const [linkedViewHandled, setLinkedViewHandled] = useState("");
   const [busy, setBusy] = useState(false);
 
   const selectedNode = useMemo(() => nodes.find((item) => item.id === selectedNodeId) || null, [nodes, selectedNodeId]);
@@ -904,6 +905,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   useEffect(() => {
     setLinkedNodeIdHandled("");
     setLinkedEdgeIdHandled("");
+    setLinkedViewHandled("");
   }, [projectId]);
 
   useEffect(() => {
@@ -930,6 +932,27 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     void flowInstance.setCenter(linkedNode.position.x + 120, linkedNode.position.y + 80, { duration: 420, zoom: 1 });
     setStatus("已通过节点链接定位到画布节点。");
   }, [flowInstance, linkedNodeIdHandled, nodes]);
+
+  useEffect(() => {
+    if (!flowInstance) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("node") || params.get("edge")) return;
+    const viewport = normalizedViewport({
+      x: Number(params.get("viewX")),
+      y: Number(params.get("viewY")),
+      zoom: Number(params.get("viewZoom"))
+    });
+    const viewKey = `${viewport.x}:${viewport.y}:${viewport.zoom}`;
+    if (viewKey === "0:0:1" || viewKey === linkedViewHandled) return;
+    setLinkedViewHandled(viewKey);
+    void flowInstance.setViewport(viewport, { duration: 420 });
+    setInitialViewport(viewport);
+    setSelectedNodeId("");
+    setSelectedEdgeId("");
+    setNodeContextMenu(null);
+    setEdgeContextMenu(null);
+    setStatus("已通过画布视图链接恢复缩放和位置。");
+  }, [flowInstance, linkedViewHandled]);
 
   useEffect(() => {
     if (!flowInstance || !edges.length) return;
@@ -2285,6 +2308,19 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(direction === "in" ? `已放大画布到 ${Math.round(nextZoom * 100)}%。` : `已缩小画布到 ${Math.round(nextZoom * 100)}%。`);
   }
 
+  async function copyCurrentViewLink() {
+    const viewport = currentCanvasViewport();
+    const url = new URL(window.location.href);
+    url.searchParams.delete("node");
+    url.searchParams.delete("edge");
+    url.searchParams.set("viewX", String(Math.round(viewport.x)));
+    url.searchParams.set("viewY", String(Math.round(viewport.y)));
+    url.searchParams.set("viewZoom", String(Number(viewport.zoom.toFixed(3))));
+    url.hash = "";
+    const copiedToClipboard = await copyTextToSystemClipboard(url.toString(), `project_graph_view_link_${projectId}`);
+    setStatus(copiedToClipboard ? "已复制当前画布视图链接到系统剪贴板。" : "浏览器剪贴板不可用，已把画布视图链接暂存到本地。");
+  }
+
   function persistViewBookmarks(next: CanvasViewBookmark[]) {
     setViewBookmarks(next);
     window.localStorage.setItem(viewBookmarkStorageKey, JSON.stringify(next));
@@ -3356,6 +3392,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     { key: "fit-graph", title: "适配全部节点", description: "把完整节点图适配到当前视图", shortcut: "Ctrl/⌘ 1", disabled: !nodes.length, run: fitGraphView },
     { key: "fit-selection", title: "适配选中节点", description: "把当前选区适配到视图中心", shortcut: "Ctrl/⌘ 2", disabled: !selectedNodes.length, run: fitSelectedNodeView },
     { key: "reset-view", title: "重置画布视口", description: "恢复默认缩放和平移", shortcut: "Ctrl/⌘ 0", run: resetCanvasViewport },
+    { key: "copy-view-link", title: "复制当前视图链接", description: "分享当前画布缩放和平移位置", run: () => void copyCurrentViewLink() },
     { key: "view-bookmark", title: "打开画布视图书签", description: "保存和恢复常用画布视角", run: () => setShowViewBookmarks(true) }
   ];
   const filteredCommandPaletteItems = commandPaletteItems.filter((item) => {
@@ -3431,6 +3468,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         <button title="适配全部节点" disabled={!nodes.length} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={fitGraphView}><Maximize2 size={18} /></button>
         <button title="适配选中节点" disabled={!selectedNodes.length} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={fitSelectedNodeView}><Focus size={18} /></button>
         <button title="重置画布视口" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={resetCanvasViewport}><RotateCcw size={18} /></button>
+        <button title="复制当前视图链接" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => void copyCurrentViewLink()}><ClipboardCopy size={18} /></button>
         <button title="视图书签" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowViewBookmarks((value) => !value)}><Save size={18} /></button>
         <button title="画布版本历史" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowGraphVersions((value) => !value)}><RotateCcw size={18} /></button>
         <button title={showMiniMap ? "隐藏画布导航器" : "显示画布导航器"} className={`grid h-10 w-10 place-items-center rounded-md hover:bg-white/10 ${showMiniMap ? "bg-blue-500/15 text-blue-50" : "text-slate-200"}`} onClick={toggleMiniMap}><MapIcon size={18} /></button>
@@ -3452,6 +3490,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none" value={viewBookmarkTitle} onChange={(event) => setViewBookmarkTitle(event.target.value)} />
         </label>
         <button className="mt-2 w-full rounded-md border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-left text-sm text-white hover:bg-blue-500/20" onClick={saveCurrentViewBookmark}>保存当前视图</button>
+        <button className="mt-2 w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-left text-sm text-slate-100 hover:bg-white/10" onClick={() => void copyCurrentViewLink()}>复制当前视图链接</button>
         <div className="mt-3 grid gap-2 text-sm">
           {viewBookmarks.map((bookmark) => <article key={bookmark.key} className="rounded-md border border-white/10 bg-white/[0.03] p-2">
             <button className="w-full text-left" onClick={() => restoreViewBookmark(bookmark)}>

@@ -187,6 +187,14 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /适配全部节点/);
   assert.match(canvasWorkspace, /适配选中节点/);
   assert.match(canvasWorkspace, /重置画布视口/);
+  assert.match(canvasWorkspace, /copyCurrentViewLink/);
+  assert.match(canvasWorkspace, /复制当前视图链接/);
+  assert.match(canvasWorkspace, /viewX/);
+  assert.match(canvasWorkspace, /viewY/);
+  assert.match(canvasWorkspace, /viewZoom/);
+  assert.match(canvasWorkspace, /已复制当前画布视图链接到系统剪贴板/);
+  assert.match(canvasWorkspace, /浏览器剪贴板不可用，已把画布视图链接暂存到本地/);
+  assert.match(canvasWorkspace, /已通过画布视图链接恢复缩放和位置/);
   assert.match(canvasWorkspace, /画布视图书签/);
   assert.match(canvasWorkspace, /保存当前视图/);
   assert.match(canvasWorkspace, /CanvasGraphVersion/);

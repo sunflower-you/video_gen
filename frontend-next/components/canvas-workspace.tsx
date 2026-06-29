@@ -1060,6 +1060,15 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     return flowInstance?.getViewport() || initialViewport;
   }
 
+  function currentViewportCenter() {
+    const viewport = currentCanvasViewport();
+    const zoom = viewport.zoom || 1;
+    return {
+      x: (window.innerWidth / 2 - viewport.x) / zoom,
+      y: (window.innerHeight / 2 - viewport.y) / zoom
+    };
+  }
+
   function restoreCanvasViewport(viewport: ProjectGraph["viewport"] | undefined) {
     setInitialViewport(normalizedViewport(viewport));
   }
@@ -2382,7 +2391,15 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     }
     const timestamp = Date.now();
     const idMap = new Map<string, string>();
-    const pastedNodes = (cached.nodes as Node[]).map((node, index) => {
+    const cachedNodes = cached.nodes as Node[];
+    const left = Math.min(...cachedNodes.map((node) => node.position.x));
+    const right = Math.max(...cachedNodes.map((node) => node.position.x));
+    const top = Math.min(...cachedNodes.map((node) => node.position.y));
+    const bottom = Math.max(...cachedNodes.map((node) => node.position.y));
+    const center = currentViewportCenter();
+    const offsetX = Number.isFinite(left) && Number.isFinite(right) ? center.x - (left + right) / 2 : 72;
+    const offsetY = Number.isFinite(top) && Number.isFinite(bottom) ? center.y - (top + bottom) / 2 : 72;
+    const pastedNodes = cachedNodes.map((node, index) => {
       const id = `paste-${node.id}-${timestamp}-${index}`;
       idMap.set(node.id, id);
       const data: Record<string, unknown> = { ...(node.data as Record<string, unknown>), graphNodeId: id, status: "draft" };
@@ -2391,7 +2408,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         id,
         selected: false,
         draggable: data.locked !== true,
-        position: { x: node.position.x + 72, y: node.position.y + 72 },
+        position: { x: node.position.x + offsetX, y: node.position.y + offsetY },
         data
       } satisfies Node;
     });
@@ -2410,7 +2427,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setNodes((items) => [...items, ...pastedNodes]);
     setEdges((items) => [...items, ...pastedEdges]);
     setSelectedNodeId(pastedNodes[pastedNodes.length - 1]?.id || "");
-    setStatus(`已粘贴链路：${pastedNodes.length} 个节点、${pastedEdges.length} 条连线。`);
+    setStatus(`已粘贴链路到当前视图中心：${pastedNodes.length} 个节点、${pastedEdges.length} 条连线。`);
   }
 
   function autoLayoutSelectedNodes() {

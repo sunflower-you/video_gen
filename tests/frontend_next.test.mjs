@@ -578,6 +578,9 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /setSelectedNodesDisabled/);
   assert.match(canvasWorkspace, /copySelectedChain/);
   assert.match(canvasWorkspace, /pasteCopiedSelection/);
+  assert.match(canvasWorkspace, /currentViewportCenter/);
+  assert.match(canvasWorkspace, /offsetX/);
+  assert.match(canvasWorkspace, /已粘贴链路到当前视图中心/);
   assert.match(canvasWorkspace, /handleCanvasDoubleClick/);
   assert.match(canvasWorkspace, /handleCanvasDrop/);
   assert.match(canvasWorkspace, /handleCanvasKeyDown/);

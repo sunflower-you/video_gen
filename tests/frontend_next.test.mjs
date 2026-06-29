@@ -488,9 +488,13 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /alignSelectedNodes/);
   assert.match(canvasWorkspace, /对齐与分布/);
   assert.match(canvasWorkspace, /左对齐选区/);
+  assert.match(canvasWorkspace, /右对齐选区/);
   assert.match(canvasWorkspace, /顶部对齐选区/);
+  assert.match(canvasWorkspace, /底部对齐选区/);
   assert.match(canvasWorkspace, /水平等距分布选区/);
   assert.match(canvasWorkspace, /垂直等距分布选区/);
+  assert.match(canvasWorkspace, /"右对齐"/);
+  assert.match(canvasWorkspace, /"底部对齐"/);
   assert.match(canvasWorkspace, /\$\{label\}选区/);
   assert.match(canvasWorkspace, /\$\{selectedNodes\.length\} 个节点/);
   assert.match(canvasWorkspace, /工作流组/);

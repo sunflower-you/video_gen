@@ -59,20 +59,47 @@ function statusText(status?: string) {
   return map[status || "draft"] || status || "草稿";
 }
 
+function mediaUrlFromData(data: Record<string, unknown>) {
+  return String(data.image_url || data.video_url || data.audio_url || data.first_frame_url || data.output_url || data.result_url || data.final_video_url || "");
+}
+
+function mediaKindFromData(data: Record<string, unknown>, fallbackType = "") {
+  if (data.image_url || data.first_frame_url) return "image";
+  if (data.video_url || data.final_video_url) return "video";
+  if (data.audio_url) return "audio";
+  const url = mediaUrlFromData(data).toLowerCase();
+  if (/\.(mp4|mov|webm|m4v)(\?|$)/.test(url)) return "video";
+  if (/\.(mp3|wav|m4a|aac|ogg)(\?|$)/.test(url)) return "audio";
+  if (/\.(png|jpe?g|webp|gif|avif)(\?|$)/.test(url)) return "image";
+  return fallbackType === "video" || fallbackType === "audio" ? fallbackType : "image";
+}
+
+function MediaPreview({ data, title, compact = false }: { data: Record<string, unknown>; title: string; compact?: boolean }) {
+  const url = mediaUrlFromData(data);
+  if (!url) return null;
+  const kind = mediaKindFromData(data, String(data.nodeType || ""));
+  if (kind === "video") {
+    return <video src={url} controls={!compact} muted={compact} className={`${compact ? "aspect-video" : "max-h-52"} w-full rounded-md bg-black object-cover`} />;
+  }
+  if (kind === "audio") {
+    return <audio src={url} controls className="w-full" />;
+  }
+  return <img src={url} alt={title} className={`${compact ? "aspect-video" : "max-h-52"} w-full rounded-md bg-black object-cover`} />;
+}
+
 function PlatformNode({ data, selected }: NodeProps) {
   const payload = data as Record<string, unknown>;
   const type = String(payload.nodeType || "text");
   const title = String(payload.title || nodeLabels[type] || "节点");
   const summary = String(payload.text || payload.script || payload.prompt || payload.narration || payload.result_summary || payload.workflow_key || "等待编辑参数");
   const status = String(payload.status || "draft");
-  const previewUrl = String(payload.image_url || payload.video_url || payload.audio_url || "");
   return (
     <div className={`w-[240px] rounded-lg border p-3 text-white shadow-xl ${nodeColors[type] || nodeColors.demo} ${selected ? "ring-2 ring-white" : ""}`}>
       <div className="flex items-center justify-between gap-2">
         <strong className="truncate text-sm">{title}</strong>
         <span className="rounded bg-black/30 px-2 py-1 text-[11px]">{statusText(status)}</span>
       </div>
-      {previewUrl && (type === "image" ? <img src={previewUrl} alt={title} className="mt-2 aspect-video w-full rounded object-cover" /> : <div className="mt-2 truncate rounded bg-black/25 px-2 py-1 text-xs">{previewUrl}</div>)}
+      {mediaUrlFromData(payload) && <div className="mt-2 overflow-hidden rounded-md border border-white/10 bg-black/30"><MediaPreview data={payload} title={title} compact /></div>}
       <p className="mt-2 line-clamp-3 text-xs text-slate-200">{summary}</p>
       {String(payload.task_id || "") && <p className="mt-2 truncate text-[11px] text-slate-300">任务：{String(payload.task_id)}</p>}
     </div>
@@ -1207,6 +1234,14 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           {selectedNode && <button title="删除节点" className="rounded-md border border-white/10 p-2 text-slate-300 hover:bg-white/10" onClick={() => void deleteSelectedNode()}><Trash2 size={16} /></button>}
         </div>
         {selectedNode ? <div className="mt-4 grid gap-3 text-sm">
+          {mediaUrlFromData(selectedData) && <section className="rounded-md border border-white/10 bg-black/25 p-2">
+            <div className="mb-2 flex items-center justify-between gap-2 text-xs text-slate-400">
+              <span>素材预览</span>
+              <span>{mediaKindFromData(selectedData, selectedType) === "video" ? "视频" : mediaKindFromData(selectedData, selectedType) === "audio" ? "音频" : "图片"}</span>
+            </div>
+            <MediaPreview data={selectedData} title={String(selectedData.title || "节点预览")} />
+            <p className="mt-2 truncate text-xs text-slate-500">{mediaUrlFromData(selectedData)}</p>
+          </section>}
           <label className="grid gap-1"><span className="text-slate-400">标题</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.title || "")} onChange={(event) => updateSelectedData("title", event.target.value)} /></label>
           {(selectedType === "text" || selectedType === "demo") && <label className="grid gap-1"><span className="text-slate-400">文本内容</span><textarea className="min-h-28 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.text || "")} onChange={(event) => updateSelectedData("text", event.target.value)} /></label>}
           {selectedType === "script" && <label className="grid gap-1"><span className="text-slate-400">脚本</span><textarea className="min-h-40 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.script || "")} onChange={(event) => updateSelectedData("script", event.target.value)} /></label>}
@@ -1277,7 +1312,23 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       {showAssets && <aside className="absolute bottom-6 left-24 z-20 max-h-[320px] w-[360px] overflow-auto rounded-lg border border-white/10 bg-slate-950/90 p-4 shadow-2xl backdrop-blur">
         <h2 className="font-semibold">项目素材库</h2>
         <div className="mt-3 grid gap-2 text-sm">
-          {assets.map((asset) => <button key={asset.id} className="rounded-md border border-white/10 px-3 py-2 text-left text-slate-300 hover:bg-white/10" onClick={() => addAssetNode(asset)}>{asset.asset_type} · {asset.url || asset.id}</button>)}
+          {assets.map((asset) => {
+            const type = asset.asset_type === "video" ? "video" : asset.asset_type === "audio" ? "audio" : "image";
+            const dataKey = type === "video" ? "video_url" : type === "audio" ? "audio_url" : "image_url";
+            const previewData = { nodeType: type, [dataKey]: asset.url };
+            return <button key={asset.id} className="rounded-md border border-white/10 px-3 py-2 text-left text-slate-300 hover:bg-white/10" onClick={() => addAssetNode(asset)}>
+              <div className="flex gap-3">
+                <div className="h-16 w-20 shrink-0 overflow-hidden rounded border border-white/10 bg-black/30">
+                  <MediaPreview data={previewData} title={`素材 ${asset.asset_type}`} compact />
+                </div>
+                <div className="min-w-0">
+                  <span className="block text-white">{asset.asset_type} · {asset.shot_index ? `分镜 ${asset.shot_index}` : "项目素材"}</span>
+                  <span className="mt-1 block truncate text-xs text-slate-400">{asset.workflow_key || asset.source_task_type || asset.id}</span>
+                  <span className="mt-1 block truncate text-xs text-slate-500">{asset.url || asset.id}</span>
+                </div>
+              </div>
+            </button>;
+          })}
           {!assets.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">暂无素材，可先运行生成节点。</p>}
         </div>
       </aside>}

@@ -20,7 +20,7 @@ import {
   type NodeProps,
   type ReactFlowInstance
 } from "@xyflow/react";
-import { AlertTriangle, AlignHorizontalDistributeCenter, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, AlignHorizontalJustifyStart, AlignVerticalDistributeCenter, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, Ban, Boxes, CheckSquare, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, Focus, GitBranch, Image, LayoutGrid, Library, ListTree, Lock, Map as MapIcon, Maximize2, Minimize2, Music, Play, Plus, Redo2, RefreshCcw, RotateCcw, Save, Scissors, Search, Sparkles, Trash2, Undo2, Unlock, Upload, Video, Wand2, XSquare, ZoomIn, ZoomOut } from "lucide-react";
+import { AlertTriangle, AlignHorizontalDistributeCenter, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, AlignHorizontalJustifyStart, AlignVerticalDistributeCenter, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, Ban, Boxes, BringToFront, CheckSquare, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, Focus, GitBranch, Image, LayoutGrid, Library, ListTree, Lock, Map as MapIcon, Maximize2, Minimize2, Music, Play, Plus, Redo2, RefreshCcw, RotateCcw, Save, Scissors, Search, SendToBack, Sparkles, Trash2, Undo2, Unlock, Upload, Video, Wand2, XSquare, ZoomIn, ZoomOut } from "lucide-react";
 import { apiFetch, currentUserId, deleteJson, postJson, type Asset, type GenerationTask, type Project, type ProjectGraph, type ProjectGraphNode, type StoryboardShot } from "../lib/api";
 
 const nodeLabels: Record<string, string> = {
@@ -308,10 +308,12 @@ function PlatformNode({ data, selected }: NodeProps) {
 const nodeTypes = { platform: PlatformNode };
 
 function toFlowNode(item: ProjectGraphNode): Node {
+  const layerZ = Number(item.data?.layer_z);
   return {
     id: item.id,
     type: "platform",
     position: item.position,
+    zIndex: Number.isFinite(layerZ) ? layerZ : 0,
     draggable: item.data?.locked !== true,
     data: { ...item.data, nodeType: item.type, graphNodeId: item.id, status: item.status || "draft" }
   };
@@ -319,6 +321,7 @@ function toFlowNode(item: ProjectGraphNode): Node {
 
 function fromFlowNode(item: Node): ProjectGraphNode {
   const data = { ...(item.data as Record<string, unknown>) };
+  if (typeof item.zIndex === "number" && Number.isFinite(item.zIndex)) data.layer_z = item.zIndex;
   const nodeType = String(data.nodeType || "text");
   delete data.nodeType;
   delete data.graphNodeId;
@@ -2615,6 +2618,31 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已向${direction}微调选区 ${distance}px：${movableIds.size} 个节点${movableIds.size < selectedNodes.length ? "，已跳过锁定节点" : ""}。`);
   }
 
+  function nodeLayerValue(node: Node) {
+    if (typeof node.zIndex === "number" && Number.isFinite(node.zIndex)) return node.zIndex;
+    const dataLayer = Number((node.data as Record<string, unknown>).layer_z);
+    return Number.isFinite(dataLayer) ? dataLayer : 0;
+  }
+
+  function setSelectedNodesLayer(mode: "front" | "back") {
+    if (!selectedNodes.length) {
+      setStatus("请先选择节点，再调整层级。");
+      return;
+    }
+    const layerValues = nodes.map(nodeLayerValue);
+    const maxLayer = layerValues.length ? Math.max(...layerValues) : 0;
+    const minLayer = layerValues.length ? Math.min(...layerValues) : 0;
+    const selectedByLayer = [...selectedNodes].sort((a, b) => mode === "front" ? nodeLayerValue(a) - nodeLayerValue(b) : nodeLayerValue(b) - nodeLayerValue(a));
+    const nextLayerById = new Map<string, number>();
+    selectedByLayer.forEach((node, index) => nextLayerById.set(node.id, mode === "front" ? maxLayer + index + 1 : minLayer - index - 1));
+    rememberGraphHistory();
+    setNodes((items) => items.map((node) => {
+      const nextLayer = nextLayerById.get(node.id);
+      return nextLayer === undefined ? node : { ...node, zIndex: nextLayer, data: { ...(node.data as Record<string, unknown>), layer_z: nextLayer } };
+    }));
+    setStatus(`已${mode === "front" ? "置顶" : "置底"}选区：${nextLayerById.size} 个节点。`);
+  }
+
   function setSelectedNodesLocked(locked: boolean) {
     if (!selectedNodes.length) return;
     rememberGraphHistory();
@@ -3239,6 +3267,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { saveSelectedWorkflowAsPreset(); setNodeContextMenu(null); }}>保存选区为预设</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { duplicateSelectedNodes(); setNodeContextMenu(null); }}>生成选区副本</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { autoLayoutSelectedNodes(); setNodeContextMenu(null); }}>整理选区</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesLayer("front"); setNodeContextMenu(null); }}>置顶选区</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesLayer("back"); setNodeContextMenu(null); }}>置底选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { connectSelectedNodesInOrder(); setNodeContextMenu(null); }}>串联选区</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { groupSelectedNodes(); setNodeContextMenu(null); }}>打组选区</button>
             <button disabled={busy || !selectedGroupIds.size} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { selectSelectedGroups(); setNodeContextMenu(null); }}>选中同组节点</button>
@@ -3259,6 +3289,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy || !selectedUpstreamInputs.length} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { fillSelectedFromUpstream(); setNodeContextMenu(null); }}>填充上游参数</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setNodeContextMenu(null); void cutSelectedNodes(); }}>剪切节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { duplicateSelectedNode(); setNodeContextMenu(null); }}>复制节点</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesLayer("front"); setNodeContextMenu(null); }}>置顶节点</button>
+            <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => { setSelectedNodesLayer("back"); setNodeContextMenu(null); }}>置底节点</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => addUpstreamNodeForSelected("text")}>添加上游文本</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => addUpstreamNodeForSelected("image")}>添加上游图片</button>
             <button disabled={busy} className="rounded px-2 py-2 text-left hover:bg-white/10 disabled:opacity-50" onClick={() => addUpstreamNodeForSelected("audio")}>添加上游音频</button>
@@ -3361,6 +3393,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={duplicateSelectedNodes}><Copy size={16} />生成副本</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={pasteCopiedSelection}><ClipboardPaste size={16} />粘贴选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={autoLayoutSelectedNodes}><LayoutGrid size={16} />整理选区</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesLayer("front")}><BringToFront size={16} />置顶选区</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesLayer("back")}><SendToBack size={16} />置底选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={connectSelectedNodesInOrder}><GitBranch size={16} />串联选区</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={groupSelectedNodes}><Boxes size={16} />打组选区</button>
             <button disabled={busy || !selectedGroupIds.size} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={selectSelectedGroups}><Boxes size={16} />选中同组</button>
@@ -3558,6 +3592,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void cutSelectedNodes()}><Scissors size={16} />剪切节点</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={copySelectedChain}><ClipboardCopy size={16} />复制链路</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={pasteCopiedSelection}><ClipboardPaste size={16} />粘贴链路</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesLayer("front")}><BringToFront size={16} />置顶节点</button>
+            <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => setSelectedNodesLayer("back")}><SendToBack size={16} />置底节点</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={disconnectSelectedNodes}><XSquare size={16} />断开连线</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 text-slate-300 disabled:opacity-50" onClick={() => void deleteSelectedNode()}><Trash2 size={16} />删除节点</button>
           </div>

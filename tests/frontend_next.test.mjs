@@ -146,6 +146,16 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /window\.localStorage\.setItem\(`project_graph_/);
   assert.match(canvasWorkspace, /项目素材库/);
   assert.match(canvasWorkspace, /任务队列/);
+  assert.match(canvasWorkspace, /生成过程追踪/);
+  assert.match(canvasWorkspace, /运行诊断/);
+  assert.match(canvasWorkspace, /taskAction/);
+  assert.match(canvasWorkspace, /focusTaskNode/);
+  assert.match(canvasWorkspace, /taskStatusCounts/);
+  assert.match(canvasWorkspace, /selectedTask/);
+  assert.match(canvasWorkspace, /\/api\/tasks\/\$\{taskId\}\/\$\{action\}/);
+  assert.match(canvasWorkspace, /\/api\/comfy\/tasks\/\$\{taskId\}\/sync/);
+  assert.match(canvasWorkspace, /ComfyUI/);
+  assert.match(canvasWorkspace, /prompt_id/);
   assert.match(canvasWorkspace, /分镜列表/);
   assert.match(canvasWorkspace, /项目分镜/);
   assert.match(canvasWorkspace, /分镜生成链路/);

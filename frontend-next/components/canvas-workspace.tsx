@@ -278,6 +278,15 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   const selectedNode = useMemo(() => nodes.find((item) => item.id === selectedNodeId) || null, [nodes, selectedNodeId]);
   const shotOptions = useMemo(() => project?.shots || [], [project]);
+  const taskById = useMemo(() => new Map(tasks.map((task) => [task.id, task])), [tasks]);
+  const selectedTask = useMemo(() => {
+    const taskId = String((selectedNode?.data as Record<string, unknown> | undefined)?.task_id || "");
+    return taskId ? taskById.get(taskId) || null : null;
+  }, [selectedNode, taskById]);
+  const taskStatusCounts = useMemo(() => tasks.reduce<Record<string, number>>((counts, task) => {
+    counts[task.status] = (counts[task.status] || 0) + 1;
+    return counts;
+  }, {}), [tasks]);
   const filteredAddableNodes = useMemo(() => {
     const keyword = paletteQuery.trim().toLowerCase();
     return addableNodes.filter((item) => {
@@ -570,6 +579,37 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   function updateSelectedData(key: string, value: string | boolean) {
     if (!selectedNode) return;
     setNodes((items) => items.map((node) => node.id === selectedNode.id ? { ...node, data: { ...node.data, [key]: value } } : node));
+  }
+
+  async function taskAction(taskId: string, action: "submit" | "sync" | "cancel" | "retry") {
+    const path = action === "sync" ? `/api/comfy/tasks/${taskId}/sync` : `/api/tasks/${taskId}/${action}`;
+    setBusy(true);
+    setStatus(action === "submit" ? "正在提交任务到 ComfyUI..." : action === "sync" ? "正在同步任务状态..." : action === "cancel" ? "正在取消任务..." : "正在重试任务...");
+    try {
+      const task = await postJson<GenerationTask>(path, {
+        user_id: currentUserId(),
+        reason: "用户在全画幅画布操作。"
+      });
+      setTasks((items) => items.map((item) => item.id === task.id ? task : item));
+      setNodes((items) => items.map((node) => String((node.data as Record<string, unknown>).task_id || "") === task.id ? { ...node, data: { ...node.data, status: task.status } } : node));
+      setStatus(`任务状态已更新：${statusText(task.status)}`);
+      await refreshAll();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "任务操作失败，请稍后重试。");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function focusTaskNode(taskId: string) {
+    const node = nodes.find((item) => String((item.data as Record<string, unknown>).task_id || "") === taskId);
+    if (!node) {
+      setStatus("画布中暂未找到关联这个任务的节点。");
+      return;
+    }
+    setSelectedNodeId(node.id);
+    flowInstance?.setCenter(node.position.x + 120, node.position.y + 80, { duration: 420, zoom: 1 });
+    setStatus("已定位到任务关联节点。");
   }
 
   async function runSelectedNode() {
@@ -884,6 +924,31 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <label className="grid gap-1"><span className="text-slate-400">语速</span><input type="number" step="0.1" className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" value={String(selectedData.rate || "1")} onChange={(event) => updateSelectedData("rate", event.target.value)} /></label>
           </div>}
           {selectedType === "compose_generation" && <label className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/5 px-3 py-2"><span className="text-slate-300">合成字幕</span><input type="checkbox" checked={selectedData.subtitle !== false} onChange={(event) => updateSelectedData("subtitle", event.target.checked)} /></label>}
+          {String(selectedData.task_id || "") && <section className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs text-slate-400">运行诊断</p>
+                <strong className="text-sm text-white">{selectedTask ? statusText(selectedTask.status) : "等待同步"}</strong>
+              </div>
+              <span className="max-w-[160px] truncate rounded bg-black/25 px-2 py-1 text-[11px] text-slate-300">{String(selectedData.task_id)}</span>
+            </div>
+            {selectedTask ? <div className="mt-3 grid gap-2 text-xs text-slate-300">
+              <p>类型：{selectedTask.task_type} · 工作流：{selectedTask.workflow_key || "默认"}</p>
+              {typeof selectedTask.progress === "number" && <p>进度：{selectedTask.progress}%</p>}
+              {selectedTask.prompt_id && <p className="truncate">ComfyUI：{selectedTask.prompt_id}</p>}
+              {selectedTask.error_message && <p className="rounded border border-red-400/30 bg-red-500/10 px-2 py-1 text-red-100">{selectedTask.error_message}</p>}
+              {selectedTask.retry_advice && <p className="rounded border border-amber-400/30 bg-amber-500/10 px-2 py-1 text-amber-100">{selectedTask.retry_advice}</p>}
+              {!!selectedTask.events?.length && <div className="max-h-24 overflow-auto rounded border border-white/10 bg-black/20 px-2 py-1">
+                {selectedTask.events.slice(-4).map((event, index) => <p key={`${event.created_at || "event"}-${index}`} className="truncate">{event.created_at || "刚刚"} · {event.message}</p>)}
+              </div>}
+              <div className="grid grid-cols-4 gap-1 pt-1">
+                <button disabled={busy} className="rounded border border-white/10 px-2 py-1 disabled:opacity-50" onClick={() => void taskAction(selectedTask.id, "submit")}>提交</button>
+                <button disabled={busy} className="rounded border border-white/10 px-2 py-1 disabled:opacity-50" onClick={() => void taskAction(selectedTask.id, "sync")}>同步</button>
+                <button disabled={busy} className="rounded border border-white/10 px-2 py-1 disabled:opacity-50" onClick={() => void taskAction(selectedTask.id, "retry")}>重试</button>
+                <button disabled={busy} className="rounded border border-red-400/30 px-2 py-1 text-red-100 disabled:opacity-50" onClick={() => void taskAction(selectedTask.id, "cancel")}>取消</button>
+              </div>
+            </div> : <p className="mt-2 text-xs text-slate-400">刷新任务队列后可查看进度、错误和 ComfyUI prompt_id。</p>}
+          </section>}
           <div className="grid grid-cols-2 gap-2 pt-1">
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-3 py-2 disabled:opacity-50" onClick={() => void runSelectedNode()}><Play size={16} />运行节点</button>
             <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 disabled:opacity-50" onClick={() => void runSelectedChain()}><GitBranch size={16} />运行链路</button>
@@ -929,9 +994,29 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       </aside>}
 
       {showTasks && <aside className="absolute bottom-6 left-[500px] z-20 max-h-[320px] w-[380px] overflow-auto rounded-lg border border-white/10 bg-slate-950/90 p-4 shadow-2xl backdrop-blur">
-        <h2 className="font-semibold">任务队列</h2>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs text-slate-400">生成过程追踪</p>
+            <h2 className="font-semibold">任务队列</h2>
+          </div>
+          <div className="flex flex-wrap justify-end gap-1 text-[11px] text-slate-300">
+            {Object.entries(taskStatusCounts).map(([taskStatus, count]) => <span key={taskStatus} className="rounded border border-white/10 px-2 py-1">{statusText(taskStatus)} {count}</span>)}
+          </div>
+        </div>
         <div className="mt-3 grid gap-2 text-sm">
-          {tasks.map((task) => <div key={task.id} className="rounded-md border border-white/10 px-3 py-2 text-slate-300">{task.task_type} · {task.status} · {task.workflow_key || "workflow"}</div>)}
+          {tasks.map((task) => <article key={task.id} className="rounded-md border border-white/10 px-3 py-2 text-slate-300">
+            <button className="w-full text-left hover:text-white" onClick={() => focusTaskNode(task.id)}>
+              <span className="block text-white">{task.task_type} · {statusText(task.status)}</span>
+              <span className="mt-1 block truncate text-xs text-slate-400">{task.workflow_key || "workflow"} · {task.prompt_id || task.id}</span>
+              {task.error_message && <span className="mt-1 block rounded border border-red-400/30 bg-red-500/10 px-2 py-1 text-xs text-red-100">{task.error_message}</span>}
+            </button>
+            <div className="mt-2 grid grid-cols-4 gap-1 text-xs">
+              <button disabled={busy} className="rounded border border-white/10 px-2 py-1 disabled:opacity-50" onClick={() => void taskAction(task.id, "submit")}>提交</button>
+              <button disabled={busy} className="rounded border border-white/10 px-2 py-1 disabled:opacity-50" onClick={() => void taskAction(task.id, "sync")}>同步</button>
+              <button disabled={busy} className="rounded border border-white/10 px-2 py-1 disabled:opacity-50" onClick={() => void taskAction(task.id, "retry")}>重试</button>
+              <button disabled={busy} className="rounded border border-red-400/30 px-2 py-1 text-red-100 disabled:opacity-50" onClick={() => void taskAction(task.id, "cancel")}>取消</button>
+            </div>
+          </article>)}
           {!tasks.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">暂无生成任务</p>}
         </div>
       </aside>}

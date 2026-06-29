@@ -659,10 +659,12 @@ type GraphHistorySnapshot = {
 
 type CanvasViewport = { x: number; y: number; zoom: number };
 type CanvasViewBookmark = { key: string; title: string; viewport: CanvasViewport; created_at: string };
+type CanvasGraphVersion = { key: string; title: string; nodes: ProjectGraphNode[]; edges: ProjectGraph["edges"]; viewport: CanvasViewport; created_at: string };
 
 const customPresetStorageKey = "video_gen_canvas_custom_presets";
 const recentNodeStorageKey = "video_gen_canvas_recent_nodes";
 const viewBookmarkStoragePrefix = "video_gen_canvas_view_bookmarks";
+const graphVersionStoragePrefix = "video_gen_canvas_graph_versions";
 const paletteNodeDragType = "application/x-video-gen-node-type";
 const defaultCanvasViewport: CanvasViewport = { x: 0, y: 0, zoom: 1 };
 
@@ -686,6 +688,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [showValidation, setShowValidation] = useState(false);
   const [showOutline, setShowOutline] = useState(false);
   const [showViewBookmarks, setShowViewBookmarks] = useState(false);
+  const [showGraphVersions, setShowGraphVersions] = useState(false);
   const [showMiniMap, setShowMiniMap] = useState(true);
   const [showPalette, setShowPalette] = useState(true);
   const [paletteQuery, setPaletteQuery] = useState("");
@@ -707,6 +710,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [presetTitle, setPresetTitle] = useState("自定义工作流");
   const [viewBookmarks, setViewBookmarks] = useState<CanvasViewBookmark[]>([]);
   const [viewBookmarkTitle, setViewBookmarkTitle] = useState("当前视图");
+  const [graphVersions, setGraphVersions] = useState<CanvasGraphVersion[]>([]);
+  const [graphVersionTitle, setGraphVersionTitle] = useState("当前画布版本");
   const [selectedRenamePrefix, setSelectedRenamePrefix] = useState("镜头节点");
   const [nodeContextMenu, setNodeContextMenu] = useState<{ nodeId: string; x: number; y: number } | null>(null);
   const [edgeContextMenu, setEdgeContextMenu] = useState<{ edgeId: string; x: number; y: number } | null>(null);
@@ -843,6 +848,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     return [node];
   }), [filteredAddableNodes, paletteQuery, recentNodeTypes]);
   const viewBookmarkStorageKey = useMemo(() => `${viewBookmarkStoragePrefix}:${projectId}`, [projectId]);
+  const graphVersionStorageKey = useMemo(() => `${graphVersionStoragePrefix}:${projectId}`, [projectId]);
 
   function cloneGraphSnapshot(snapshotNodes = nodes, snapshotEdges = edges, snapshotSelectedNodeId = selectedNodeId, snapshotSelectedEdgeId = selectedEdgeId): GraphHistorySnapshot {
     return {
@@ -975,6 +981,15 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       window.localStorage.removeItem(viewBookmarkStorageKey);
     }
   }, [viewBookmarkStorageKey]);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(graphVersionStorageKey) || "[]");
+      if (Array.isArray(saved)) setGraphVersions(saved.filter((item) => Array.isArray(item?.nodes) && Array.isArray(item?.edges) && item?.viewport));
+    } catch {
+      window.localStorage.removeItem(graphVersionStorageKey);
+    }
+  }, [graphVersionStorageKey]);
 
   useEffect(() => {
     const handleCanvasKeyDown = (event: KeyboardEvent) => {
@@ -2300,6 +2315,48 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus("已删除画布视图书签。");
   }
 
+  function persistGraphVersions(next: CanvasGraphVersion[]) {
+    setGraphVersions(next);
+    window.localStorage.setItem(graphVersionStorageKey, JSON.stringify(next));
+  }
+
+  function saveCurrentGraphVersion() {
+    if (!nodes.length) {
+      setStatus("画布暂无节点，无法保存版本快照。");
+      return;
+    }
+    const title = graphVersionTitle.trim() || `${project?.title || "画布"} 版本 ${graphVersions.length + 1}`;
+    const version: CanvasGraphVersion = {
+      key: `graph-version-${Date.now()}`,
+      title,
+      nodes: nodes.map(fromFlowNode),
+      edges: edges.map(fromFlowEdge),
+      viewport: currentCanvasViewport(),
+      created_at: new Date().toISOString()
+    };
+    persistGraphVersions([version, ...graphVersions].slice(0, 12));
+    setGraphVersionTitle(title);
+    setShowGraphVersions(true);
+    setStatus(`已保存画布版本快照：${title}。`);
+  }
+
+  function restoreGraphVersion(version: CanvasGraphVersion) {
+    rememberGraphHistory();
+    setNodes(version.nodes.map(toFlowNode));
+    setEdges(version.edges.map(toFlowEdge));
+    restoreCanvasViewport(version.viewport);
+    setSelectedNodeId(version.nodes[0]?.id || "");
+    setSelectedEdgeId("");
+    setShowGraphVersions(false);
+    setStatus(`已恢复画布版本快照：${version.title}。`);
+  }
+
+  function deleteGraphVersion(versionKey: string) {
+    const next = graphVersions.filter((item) => item.key !== versionKey);
+    persistGraphVersions(next);
+    setStatus("已删除画布版本快照。");
+  }
+
   function toggleSnapToGrid() {
     setSnapToGrid((value) => {
       const next = !value;
@@ -3225,6 +3282,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     { key: "export", title: "导出工作流 JSON", description: "下载并复制当前完整工作流", disabled: busy || !nodes.length, run: () => void exportWorkflowJson() },
     { key: "export-selection", title: "导出选区 JSON", description: "下载并复制当前选区节点和连线", disabled: busy || !selectedNodes.length, run: () => void exportSelectedWorkflowJson() },
     { key: "save-preset", title: "保存当前画布为预设", description: "保存到我的工作流预设", disabled: !nodes.length, run: saveCurrentWorkflowAsPreset },
+    { key: "save-version", title: "保存画布版本快照", description: "保存当前节点、连线和视口，便于回滚", disabled: !nodes.length, run: saveCurrentGraphVersion },
+    { key: "show-versions", title: "打开画布版本历史", description: "恢复或删除本项目的本地画布快照", run: () => setShowGraphVersions(true) },
     { key: "show-palette", title: "打开节点面板", description: "搜索添加平台生成、素材和基础节点", run: () => setShowPalette(true) },
     { key: "show-outline", title: "打开节点大纲", description: "搜索、定位和批量选择节点", disabled: !nodes.length, run: () => setShowOutline(true) },
     { key: "show-shots", title: "打开项目分镜面板", description: "按分镜铺设文本、画面、视频、配音和合成链路", run: () => setShowShots(true) },
@@ -3312,6 +3371,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         <button title="适配选中节点" disabled={!selectedNodes.length} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={fitSelectedNodeView}><Focus size={18} /></button>
         <button title="重置画布视口" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={resetCanvasViewport}><RotateCcw size={18} /></button>
         <button title="视图书签" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowViewBookmarks((value) => !value)}><Save size={18} /></button>
+        <button title="画布版本历史" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowGraphVersions((value) => !value)}><RotateCcw size={18} /></button>
         <button title={showMiniMap ? "隐藏画布导航器" : "显示画布导航器"} className={`grid h-10 w-10 place-items-center rounded-md hover:bg-white/10 ${showMiniMap ? "bg-blue-500/15 text-blue-50" : "text-slate-200"}`} onClick={toggleMiniMap}><MapIcon size={18} /></button>
         <button title="分镜列表" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowShots((value) => !value)}><Clapperboard size={18} /></button>
         <button title="素材库" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowAssets((value) => !value)}><Library size={18} /></button>
@@ -3340,6 +3400,34 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button className="mt-2 inline-flex items-center gap-1 rounded border border-red-400/30 px-2 py-1 text-xs text-red-100" onClick={() => deleteViewBookmark(bookmark.key)}><Trash2 size={12} />删除书签</button>
           </article>)}
           {!viewBookmarks.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">暂无视图书签，可先保存当前视图。</p>}
+        </div>
+      </aside>}
+
+      {showGraphVersions && <aside className="absolute left-20 top-28 z-30 max-h-[620px] w-[380px] overflow-auto rounded-lg border border-white/10 bg-slate-950/95 p-4 shadow-2xl backdrop-blur">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs text-slate-400">版本回滚</p>
+            <h2 className="font-semibold">画布版本历史</h2>
+          </div>
+          <span className="rounded border border-white/10 px-2 py-1 text-xs text-slate-400">{graphVersions.length}/12</span>
+        </div>
+        <label className="mt-3 grid gap-1 text-xs text-slate-400">
+          版本名称
+          <input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none" value={graphVersionTitle} onChange={(event) => setGraphVersionTitle(event.target.value)} />
+        </label>
+        <button disabled={!nodes.length} className="mt-2 w-full rounded-md border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-left text-sm text-white hover:bg-blue-500/20 disabled:opacity-50" onClick={saveCurrentGraphVersion}>保存当前版本快照</button>
+        <div className="mt-3 grid gap-2 text-sm">
+          {graphVersions.map((version) => <article key={version.key} className="rounded-md border border-white/10 bg-white/[0.03] p-2">
+            <button className="w-full text-left" onClick={() => restoreGraphVersion(version)}>
+              <span className="block truncate font-medium text-white">{version.title}</span>
+              <span className="mt-1 block text-xs text-slate-400">{version.nodes.length} 个节点 / {version.edges.length} 条连线 · 缩放 {version.viewport.zoom.toFixed(2)}</span>
+            </button>
+            <div className="mt-2 flex gap-2 text-xs">
+              <button className="rounded border border-blue-400/30 px-2 py-1 text-blue-100 hover:bg-blue-500/10" onClick={() => restoreGraphVersion(version)}>恢复版本</button>
+              <button className="rounded border border-red-400/30 px-2 py-1 text-red-100" onClick={() => deleteGraphVersion(version.key)}>删除版本</button>
+            </div>
+          </article>)}
+          {!graphVersions.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">暂无画布版本快照，可先保存当前版本。</p>}
         </div>
       </aside>}
 

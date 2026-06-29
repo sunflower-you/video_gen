@@ -189,6 +189,15 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /重置画布视口/);
   assert.match(canvasWorkspace, /画布视图书签/);
   assert.match(canvasWorkspace, /保存当前视图/);
+  assert.match(canvasWorkspace, /CanvasGraphVersion/);
+  assert.match(canvasWorkspace, /graphVersionStorageKey/);
+  assert.match(canvasWorkspace, /saveCurrentGraphVersion/);
+  assert.match(canvasWorkspace, /restoreGraphVersion/);
+  assert.match(canvasWorkspace, /deleteGraphVersion/);
+  assert.match(canvasWorkspace, /画布版本历史/);
+  assert.match(canvasWorkspace, /保存当前版本快照/);
+  assert.match(canvasWorkspace, /已恢复画布版本快照/);
+  assert.match(canvasWorkspace, /暂无画布版本快照，可先保存当前版本/);
   assert.match(canvasWorkspace, /已保存画布视图书签/);
   assert.match(canvasWorkspace, /已恢复画布视图书签/);
   assert.match(canvasWorkspace, /已适配选区视图/);

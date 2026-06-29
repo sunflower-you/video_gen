@@ -4746,6 +4746,14 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             })}
           </div>
         </section>}
+        <section className="mt-4 grid gap-2 rounded-md border border-blue-400/20 bg-blue-500/[0.06] p-3">
+          <h3 className="text-xs font-medium text-blue-100">快捷创作</h3>
+          <div className="grid grid-cols-3 gap-2">
+            <button disabled={busy} className="rounded-md border border-blue-400/30 bg-blue-500/10 px-2 py-2 text-xs text-blue-50 hover:bg-blue-500/20 disabled:opacity-50" onClick={() => addWorkflowPreset("seedance2_image_video")}>Seedance</button>
+            <button disabled={busy} className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-2 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPreset("tv_show_storyboard")}>TV Show</button>
+            <button disabled={busy} className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-2 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPreset("creator_challenge_entry")}>挑战赛</button>
+          </div>
+        </section>
         <section className="mt-4 grid gap-2">
           <h3 className="text-xs font-medium text-slate-400">工作流预设</h3>
           {workflowPresets.map((preset) => <button key={preset.key} className="rounded-md border border-blue-400/30 bg-blue-500/10 px-3 py-3 text-left hover:bg-blue-500/20" onClick={() => addWorkflowPreset(preset.key)}>

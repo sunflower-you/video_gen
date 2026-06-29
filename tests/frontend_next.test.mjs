@@ -954,6 +954,9 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /收藏节点/);
   assert.match(canvasWorkspace, /已收藏\$\{nodeLabels\[type\]\}，会显示在收藏节点区/);
   assert.match(canvasWorkspace, /已取消收藏\$\{nodeLabels\[type\]\}/);
+  assert.match(canvasWorkspace, /Seedance<\/button>/);
+  assert.match(canvasWorkspace, /TV Show<\/button>/);
+  assert.match(canvasWorkspace, /挑战赛<\/button>/);
   assert.match(canvasWorkspace, /工作流预设/);
   assert.match(canvasWorkspace, /我的工作流预设/);
   assert.match(canvasWorkspace, /保存当前画布为预设/);

@@ -158,9 +158,14 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /toggleSnapToGrid/);
   assert.match(canvasWorkspace, /showMiniMap/);
   assert.match(canvasWorkspace, /toggleMiniMap/);
+  assert.match(canvasWorkspace, /selectionOnDrag/);
+  assert.match(canvasWorkspace, /toggleSelectionOnDrag/);
+  assert.match(canvasWorkspace, /panOnDrag=\{!selectionOnDrag\}/);
   assert.match(canvasWorkspace, /网格吸附/);
   assert.match(canvasWorkspace, /已开启网格吸附/);
   assert.match(canvasWorkspace, /已关闭网格吸附/);
+  assert.match(canvasWorkspace, /拖拽框选模式/);
+  assert.match(canvasWorkspace, /空白处拖动恢复为平移画布/);
   assert.match(canvasWorkspace, /画布导航器/);
   assert.match(canvasWorkspace, /迷你地图/);
   assert.match(canvasWorkspace, /释放右下角预览空间/);

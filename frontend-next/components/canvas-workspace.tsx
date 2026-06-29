@@ -708,6 +708,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [graphPast, setGraphPast] = useState<GraphHistorySnapshot[]>([]);
   const [graphFuture, setGraphFuture] = useState<GraphHistorySnapshot[]>([]);
   const [snapToGrid, setSnapToGrid] = useState(true);
+  const [selectionOnDrag, setSelectionOnDrag] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const selectedNode = useMemo(() => nodes.find((item) => item.id === selectedNodeId) || null, [nodes, selectedNodeId]);
@@ -2112,6 +2113,14 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     });
   }
 
+  function toggleSelectionOnDrag() {
+    setSelectionOnDrag((value) => {
+      const next = !value;
+      setStatus(next ? "已开启拖拽框选模式，拖动画布空白处可直接框选节点。" : "已关闭拖拽框选模式，空白处拖动恢复为平移画布。");
+      return next;
+    });
+  }
+
   function blockingValidationIssues(nodeIds: string[], includeGlobalIssues = false) {
     const nodeIdSet = new Set(nodeIds);
     return graphValidation.issues.filter((issue) => issue.level === "error" && ((issue.nodeId && nodeIdSet.has(issue.nodeId)) || (includeGlobalIssues && !issue.nodeId)));
@@ -2796,6 +2805,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       <aside className="absolute left-4 top-28 z-20 grid gap-2 rounded-lg border border-white/10 bg-slate-950/85 p-2 shadow-2xl backdrop-blur">
         <button title="添加节点" className="grid h-10 w-10 place-items-center rounded-md bg-blue-600 text-white hover:bg-blue-500" onClick={() => setShowPalette((value) => !value)}><Plus size={18} /></button>
         <button title="节点大纲" className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10" onClick={() => setShowOutline((value) => !value)}><ListTree size={18} /></button>
+        <button title={selectionOnDrag ? "关闭拖拽框选" : "开启拖拽框选"} disabled={!nodes.length} className={`grid h-10 w-10 place-items-center rounded-md hover:bg-white/10 disabled:opacity-40 ${selectionOnDrag ? "bg-blue-500/15 text-blue-50" : "text-slate-200"}`} onClick={toggleSelectionOnDrag}><CheckSquare size={18} /></button>
         <button title="全选画布节点" disabled={!nodes.length} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={selectAllCanvasNodes}><CheckSquare size={18} /></button>
         <button title="反选画布节点" disabled={!nodes.length} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={invertCanvasSelection}><CheckSquare size={18} /></button>
         <button title="清空当前选区" disabled={!selectedNodes.length && !selectedEdge} className="grid h-10 w-10 place-items-center rounded-md text-slate-200 hover:bg-white/10 disabled:opacity-40" onClick={clearCanvasSelection}><XSquare size={18} /></button>
@@ -3033,6 +3043,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         fitView
         snapToGrid={snapToGrid}
         snapGrid={[24, 24]}
+        selectionOnDrag={selectionOnDrag}
+        panOnDrag={!selectionOnDrag}
         className="h-full w-full"
       >
         <Background color="#334155" gap={24} />

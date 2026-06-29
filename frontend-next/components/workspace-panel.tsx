@@ -38,7 +38,8 @@ export function WorkspacePanel() {
         owner_id: currentUserId()
       });
       setProjects((items) => [project, ...items]);
-      setStatus(`空白项目已创建：${project.title}`);
+      setStatus(`空白项目已创建：${project.title}，正在进入全画幅画布...`);
+      window.location.href = `/workspace/${project.id}`;
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "空白项目创建失败，请稍后重试。");
     } finally {

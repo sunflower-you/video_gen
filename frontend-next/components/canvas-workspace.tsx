@@ -1996,7 +1996,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function saveCurrentWorkflowAsPreset() {
     if (!nodes.length) {
-      setStatus("画布暂无节点，无法保存为预设。");
+      setShowPalette(true);
+      setStatus("画布暂无节点，已打开节点面板；请先添加节点、追加工作流预设或导入 ProjectGraph 后再保存为预设。");
       return;
     }
     const title = presetTitle.trim() || `${project?.title || "自定义工作流"} 预设`;
@@ -2017,7 +2018,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function saveSelectedWorkflowAsPreset() {
     if (!selectedNodes.length) {
-      setStatus("请先框选或点选节点，再保存选区为预设。");
+      setShowOutline(true);
+      setStatus("请先框选或点选节点，再保存选区为预设；已打开节点大纲，可先定位并选择要复用的链路。");
       return;
     }
     const left = Math.min(...selectedNodes.map((node) => node.position.x));

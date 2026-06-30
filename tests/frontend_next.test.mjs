@@ -1124,6 +1124,8 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /customWorkflowPresets/);
   assert.match(canvasWorkspace, /saveCurrentWorkflowAsPreset/);
   assert.match(canvasWorkspace, /saveSelectedWorkflowAsPreset/);
+  assert.match(canvasWorkspace, /画布暂无节点，已打开节点面板；请先添加节点、追加工作流预设或导入 ProjectGraph 后再保存为预设/);
+  assert.match(canvasWorkspace, /请先框选或点选节点，再保存选区为预设；已打开节点大纲，可先定位并选择要复用的链路/);
   assert.match(canvasWorkspace, /addCustomWorkflowPreset/);
   assert.match(canvasWorkspace, /exportCustomWorkflowPreset/);
   assert.match(canvasWorkspace, /importCustomWorkflowPresetFromClipboard/);

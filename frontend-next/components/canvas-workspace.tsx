@@ -2645,7 +2645,14 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         ? filteredTasks.filter((task) => task.status === "pending" || task.status === "running")
         : filteredTasks;
     if (!targets.length) {
-      setStatus(action === "submit" ? "当前筛选结果没有可提交任务。" : action === "sync" ? "当前筛选结果没有可同步任务。" : action === "retry" ? "当前筛选结果没有失败任务可重试。" : "当前筛选结果没有待生成或生成中的任务可取消。");
+      setShowTasks(true);
+      setStatus(action === "submit"
+        ? "当前筛选结果没有可提交任务，已打开任务队列；可先清空筛选、调整任务状态或运行画布生成新任务。"
+        : action === "sync"
+          ? "当前筛选结果没有可同步任务，已打开任务队列；可先清空筛选或调整任务状态。"
+          : action === "retry"
+            ? "当前筛选结果没有失败任务可重试，已打开任务队列；可先切换到失败任务或同步任务状态。"
+            : "当前筛选结果没有待生成或生成中的任务可取消，已打开任务队列；可先切换状态筛选或同步任务状态。");
       return;
     }
     setBusy(true);

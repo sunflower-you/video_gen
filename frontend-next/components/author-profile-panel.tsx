@@ -24,6 +24,7 @@ export function AuthorProfilePanel({ userId }: { userId: string }) {
   const [profile, setProfile] = useState<AuthorProfile>(emptyProfile);
   const [status, setStatus] = useState("正在加载作者主页...");
   const [creatingSameStyleId, setCreatingSameStyleId] = useState("");
+  const [sharingItemId, setSharingItemId] = useState("");
 
   useEffect(() => {
     void loadProfile();
@@ -79,6 +80,44 @@ export function AuthorProfilePanel({ userId }: { userId: string }) {
     }
   }
 
+  async function copyWorkShareLink(work: AuthorProfile["works"][number]) {
+    const shareUrl = `${window.location.origin}/works/${work.id}`;
+    setSharingItemId(`work:${work.id}`);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        setStatus(`已复制《${work.title}》分享链接。`);
+      } else {
+        window.localStorage.setItem(`work_share_link_${work.id}`, shareUrl);
+        setStatus(`浏览器剪贴板不可用，已暂存《${work.title}》分享链接。`);
+      }
+    } catch {
+      window.localStorage.setItem(`work_share_link_${work.id}`, shareUrl);
+      setStatus(`作品分享链接复制失败，已暂存到本地：${shareUrl}`);
+    } finally {
+      setSharingItemId("");
+    }
+  }
+
+  async function copyTemplateShareLink(template: AuthorProfile["templates"][number]) {
+    const shareUrl = `${window.location.origin}/templates?template=${encodeURIComponent(template.id)}`;
+    setSharingItemId(`template:${template.id}`);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        setStatus(`已复制「${template.name}」模板分享链接。`);
+      } else {
+        window.localStorage.setItem(`template_share_link_${template.id}`, shareUrl);
+        setStatus(`浏览器剪贴板不可用，已暂存「${template.name}」模板分享链接。`);
+      }
+    } catch {
+      window.localStorage.setItem(`template_share_link_${template.id}`, shareUrl);
+      setStatus(`模板分享链接复制失败，已暂存到本地：${shareUrl}`);
+    } finally {
+      setSharingItemId("");
+    }
+  }
+
   return (
     <section className="grid gap-4">
       <header className="rounded-panel border border-line bg-panel p-4">
@@ -130,6 +169,9 @@ export function AuthorProfilePanel({ userId }: { userId: string }) {
                     {creatingSameStyleId === `work:${work.id}` ? "创建中" : "同款创作"}
                   </button>
                   <a className="rounded-md border border-line px-3 py-1 text-xs" href={`/works/${work.id}`}>查看详情</a>
+                  <button className="rounded-md border border-line px-3 py-1 text-xs disabled:opacity-60" disabled={sharingItemId === `work:${work.id}`} onClick={() => void copyWorkShareLink(work)}>
+                    {sharingItemId === `work:${work.id}` ? "复制中" : "分享作品"}
+                  </button>
                 </div>
               </article>
             ))}
@@ -151,6 +193,9 @@ export function AuthorProfilePanel({ userId }: { userId: string }) {
                     {creatingSameStyleId === `template:${template.id}` ? "创建中" : "快速同款创作"}
                   </button>
                   <a className="rounded-md border border-line px-3 py-1 text-xs" href="/templates">查看模板市场</a>
+                  <button className="rounded-md border border-line px-3 py-1 text-xs disabled:opacity-60" disabled={sharingItemId === `template:${template.id}`} onClick={() => void copyTemplateShareLink(template)}>
+                    {sharingItemId === `template:${template.id}` ? "复制中" : "分享模板"}
+                  </button>
                 </div>
               </article>
             ))}

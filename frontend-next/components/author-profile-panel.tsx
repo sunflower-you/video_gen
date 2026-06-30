@@ -141,6 +141,10 @@ export function AuthorProfilePanel({ userId }: { userId: string }) {
     return `/templates?template=${encodeURIComponent(template.id)}`;
   }
 
+  function templateChannelHref(template: AuthorProfile["templates"][number]) {
+    return `/templates?channel=${encodeURIComponent(template.category || "全部")}`;
+  }
+
   return (
     <section className="grid gap-4">
       <header className="rounded-panel border border-line bg-panel p-4">
@@ -217,7 +221,10 @@ export function AuthorProfilePanel({ userId }: { userId: string }) {
               <article key={template.id} className="rounded-md border border-line px-3 py-2 hover:border-accent">
                 <a className="block" href={templateMarketHref(template)}>
                   <strong className="block">{template.name}</strong>
-                  <span className="text-muted">{template.category} · {template.workflow_key}</span>
+                  <span className="text-muted">{template.workflow_key}</span>
+                </a>
+                <a className="mt-1 inline-flex rounded-sm bg-canvas px-2 py-1 text-xs text-muted hover:text-accent" href={templateChannelHref(template)}>
+                  {template.category}
                 </a>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <button className="rounded-md bg-accent px-3 py-1 text-xs text-white disabled:opacity-60" disabled={creatingSameStyleId === `template:${template.id}`} onClick={() => void createSameStyleTemplate(template)}>

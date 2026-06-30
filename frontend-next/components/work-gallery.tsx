@@ -175,7 +175,9 @@ export function WorkGallery({
                   模板：{item.template_name || item.template_id}
                 </a>
               ) : (
-                <small className="block text-muted">模板：未绑定模板</small>
+                <a className="block text-xs text-muted hover:text-accent" href="/templates">
+                  模板：未绑定模板，去模板市场找同款
+                </a>
               )}
               <div className="mt-2 flex flex-wrap gap-1">
                 {(item.tags || []).slice(0, 3).map((tag) => (

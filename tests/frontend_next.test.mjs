@@ -123,6 +123,7 @@ test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
   assert.match(gallery, /item\.video_url/);
   assert.match(gallery, /item\.template_name/);
   assert.match(gallery, /item\.tags/);
+  assert.match(gallery, /href=\{`\/users\/\$\{item\.author_id \|\| "system"\}`\}/);
   assert.match(gallery, /quickStartHrefForWork/);
   assert.match(gallery, /createSameStyleProjectFromHref/);
   assert.match(gallery, /function createSameStyleWork/);
@@ -148,7 +149,7 @@ test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
   assert.match(gallery, /onSubmit=\{submitSearch\}/);
   assert.match(gallery, /onQueryChange/);
   assert.match(gallery, /sortOptions/);
-  for (const text of ["搜索作品", "最新发布", "最多浏览", "最多点赞", "最多收藏", "成片", "模板：", "同款创作", "查看详情", "分享", "暂无匹配作品", "全部作品", "当前频道", "可直接进入同款创作画布"]) {
+  for (const text of ["搜索作品", "最新发布", "最多浏览", "最多点赞", "最多收藏", "成片", "作者：", "模板：", "同款创作", "查看详情", "分享", "暂无匹配作品", "全部作品", "当前频道", "可直接进入同款创作画布"]) {
     assert.match(gallery, new RegExp(text));
   }
   assert.doesNotMatch(`${page}\n${dashboard}`, /hero/i);

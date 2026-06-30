@@ -139,9 +139,11 @@ export function WorkGallery({
                   {item.video_url ? <span className="absolute right-2 top-2 rounded-sm bg-black/70 px-2 py-1 text-xs text-white">成片</span> : null}
                 </div>
                 <strong className="block">{item.title}</strong>
-                <small className="block text-muted">{item.author_id || "平台作者"}</small>
-                <small className="block text-muted">模板：{item.template_name || item.template_id || "未绑定模板"}</small>
               </a>
+              <a className="mt-1 block text-xs text-muted hover:text-accent" href={`/users/${item.author_id || "system"}`}>
+                作者：{item.author_id || "平台作者"}
+              </a>
+              <small className="block text-muted">模板：{item.template_name || item.template_id || "未绑定模板"}</small>
               <div className="mt-2 flex flex-wrap gap-1">
                 {(item.tags || []).slice(0, 3).map((tag) => (
                   <span key={tag} className="rounded-sm bg-canvas px-2 py-1 text-xs text-muted">{tag}</span>

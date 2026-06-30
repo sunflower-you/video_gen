@@ -72,7 +72,7 @@ test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
   assert.match(layout, /lang="zh-CN"/);
   assert.match(layout, /漫剧工坊/);
   assert.match(page, /PlatformDashboard/);
-  for (const text of ["作品广场", "开始创作", "模板市场", "脚本成片", "创作者挑战赛", "挑战赛", "Seedance 2.0", "TV Show", "创建空白项目", "刷新草稿", "暂无项目草稿", "全画幅创作入口", "快速体验 Seedance 2.0", "快速体验模板"]) {
+  for (const text of ["作品广场", "开始创作", "模板市场", "脚本成片", "创作者挑战赛", "挑战赛", "Seedance 2.0", "TV Show", "创建空白项目", "空白画布", "刷新草稿", "暂无项目草稿", "全画幅创作入口", "快速体验 Seedance 2.0", "快速体验模板"]) {
     assert.match(`${dashboard}\n${shell}\n${gallery}\n${workspace}\n${templates}`, new RegExp(text));
   }
   assert.doesNotMatch(shell, /发布审核/);
@@ -126,6 +126,8 @@ test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
   assert.match(workspace, /createQuickProject\("\/create\?quick=creator-challenge"/);
   assert.match(workspace, /createQuickProject\("\/create\?quick=seedance2"/);
   assert.match(workspace, /createQuickProject\("\/create\?quick=tv-show"/);
+  assert.match(workspace, /暂无项目草稿，可直接创建脚本成片、空白画布或 Seedance 2\.0 快速体验/);
+  assert.match(workspace, /createQuickProject\("\/create\?quick=seedance2", "Seedance 2\.0"\)/);
   assert.match(workspace, /window\.location\.href = `\/workspace\/\$\{project\.id\}`/);
   assert.match(workspace, /href=\{`\/workspace\/\$\{project\.id\}`\}/);
   assert.match(gallery, /item\.cover_url/);

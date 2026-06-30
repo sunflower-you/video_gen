@@ -107,7 +107,14 @@ export function WorkspacePanel() {
           </a>
         ))}
         {!projects.length && (
-          <div className="rounded-md border border-line px-3 py-2 text-muted">暂无项目草稿</div>
+          <div className="rounded-md border border-line px-3 py-2 text-muted">
+            <p>暂无项目草稿，可直接创建脚本成片、空白画布或 Seedance 2.0 快速体验。</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button disabled={busy} className="rounded-md bg-accent px-3 py-1 text-xs text-white disabled:opacity-50" onClick={() => void createScriptCanvas()}>脚本成片</button>
+              <button disabled={busy} className="rounded-md border border-line px-3 py-1 text-xs disabled:opacity-50" onClick={() => void createBlankProject()}>空白画布</button>
+              <button disabled={busy} className="rounded-md border border-line px-3 py-1 text-xs disabled:opacity-50" onClick={() => void createQuickProject("/create?quick=seedance2", "Seedance 2.0")}>Seedance 2.0</button>
+            </div>
+          </div>
         )}
       </div>
     </aside>

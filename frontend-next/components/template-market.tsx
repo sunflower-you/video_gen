@@ -21,6 +21,10 @@ function formatParams(params?: Record<string, unknown>): string {
   return entries.map(([key, value]) => `${key}: ${Array.isArray(value) ? `${value.length} 项` : String(value)}`).join(" / ");
 }
 
+function templateShareHref(template: Template): string {
+  return `/templates?template=${encodeURIComponent(template.id)}`;
+}
+
 export function TemplateMarket({
   templates,
   highlightedTemplateId,
@@ -139,7 +143,7 @@ export function TemplateMarket({
   }
 
   async function copyTemplateShareLink(template: Template) {
-    const shareUrl = `${window.location.origin}/templates?template=${encodeURIComponent(template.id)}`;
+    const shareUrl = `${window.location.origin}${templateShareHref(template)}`;
     setSharingTemplateId(template.id);
     try {
       if (navigator.clipboard?.writeText) {
@@ -189,7 +193,7 @@ export function TemplateMarket({
           <article key={item.id} id={`template-${item.id}`} className={`rounded-md border p-3 ${highlightedTemplateId === item.id ? "border-accent bg-blue-50" : "border-line"}`}>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <strong>{item.name}</strong>
+                <a className="font-semibold hover:text-accent" href={templateShareHref(item)}>{item.name}</a>
                 {highlightedTemplateId === item.id ? <span className="ml-2 rounded-sm bg-accent px-2 py-1 text-xs text-white">分享定位</span> : null}
               </div>
               <div className="flex shrink-0 flex-wrap justify-end gap-2">

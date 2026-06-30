@@ -1262,8 +1262,10 @@ test("Next 模板市场读取真实模板并支持复刻项目", () => {
   assert.match(templates, /当前频道 \{visibleTemplates\.length\} 个模板/);
   assert.match(templates, /当前频道暂无模板/);
   assert.match(templates, /const \[sharingTemplateId, setSharingTemplateId\]/);
+  assert.match(templates, /function templateShareHref\(template: Template\): string/);
   assert.match(templates, /function copyTemplateShareLink/);
   assert.match(templates, /\/templates\?template=\$\{encodeURIComponent\(template\.id\)\}/);
+  assert.match(templates, /`\$\{window\.location\.origin\}\$\{templateShareHref\(template\)\}`/);
   assert.match(templates, /navigator\.clipboard\?\.writeText/);
   assert.match(templates, /template_share_link_\$\{template\.id\}/);
   assert.match(templates, /已复制「\$\{template\.name\}」模板分享链接/);
@@ -1273,6 +1275,7 @@ test("Next 模板市场读取真实模板并支持复刻项目", () => {
   assert.match(templates, /setActiveChannel\("全部"\)/);
   assert.match(templates, /scrollIntoView\(\{ block: "center", behavior: "smooth" \}\)/);
   assert.match(templates, /id=\{`template-\$\{item\.id\}`\}/);
+  assert.match(templates, /href=\{templateShareHref\(item\)\}/);
   assert.match(templates, /const \[creatingShortcut, setCreatingShortcut\]/);
   assert.match(templates, /function createChannelCanvas/);
   assert.match(templates, /window\.location\.href = await createSameStyleProjectFromHref\(activeShortcut\.href/);

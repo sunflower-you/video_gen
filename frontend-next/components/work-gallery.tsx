@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutGrid } from "lucide-react";
+import { LayoutGrid, X } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 import type { Work } from "../lib/api";
 import { categories } from "../lib/fallback-data";
@@ -39,6 +39,12 @@ export function WorkGallery({
   const [sharingWorkId, setSharingWorkId] = useState("");
   const [creatingChannel, setCreatingChannel] = useState(false);
   const [actionStatus, setActionStatus] = useState("");
+  const hasActiveFilter = query.category !== "全部" || Boolean(query.keyword.trim()) || query.sortBy !== "latest";
+  const activeFilterText = [
+    query.category !== "全部" ? `频道：${query.category}` : "",
+    query.keyword.trim() ? `关键词：${query.keyword.trim()}` : "",
+    query.sortBy !== "latest" ? `排序：${sortOptions.find((item) => item.value === query.sortBy)?.label || query.sortBy}` : ""
+  ].filter(Boolean).join(" / ");
 
   useEffect(() => {
     setKeywordDraft(query.keyword);
@@ -51,6 +57,12 @@ export function WorkGallery({
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     updateQuery({ keyword: keywordDraft });
+  }
+
+  function clearFilters() {
+    setKeywordDraft("");
+    onQueryChange({ category: "全部", keyword: "", sortBy: "latest" });
+    setActionStatus("已清空作品筛选，正在显示全部作品。");
   }
 
   async function createSameStyleWork(item: Work) {
@@ -100,7 +112,7 @@ export function WorkGallery({
 
   return (
     <section className="grid gap-4">
-      <form className="grid grid-cols-[minmax(0,1fr)_160px_auto] gap-2" onSubmit={submitSearch}>
+      <form className="grid grid-cols-[minmax(0,1fr)_160px_auto_auto] gap-2" onSubmit={submitSearch}>
         <label className="flex h-11 items-center gap-2 rounded-lg border border-line bg-panel px-3">
           <input className="w-full border-0 bg-transparent outline-none" value={keywordDraft} onChange={(event) => setKeywordDraft(event.target.value)} placeholder="搜索短片剧集、AI 漫剧、模板" />
         </label>
@@ -110,6 +122,9 @@ export function WorkGallery({
           ))}
         </select>
         <button className="h-11 rounded-md bg-accent px-4 text-sm text-white" type="submit">搜索作品</button>
+        <button className="inline-flex h-11 items-center justify-center gap-1 rounded-md border border-line px-3 text-sm hover:border-accent disabled:cursor-not-allowed disabled:opacity-50" type="button" disabled={!hasActiveFilter} onClick={clearFilters}>
+          <X size={15} />清空
+        </button>
       </form>
       <section className="flex flex-wrap gap-2" aria-label="作品筛选">
         {categories.map((item) => (
@@ -122,6 +137,7 @@ export function WorkGallery({
         <div>
           <strong>{query.category === "全部" ? "全部作品" : query.category}</strong>
           <span className="ml-2 text-muted">当前频道 {works.length} 个作品，可直接进入同款创作画布。</span>
+          {hasActiveFilter ? <span className="ml-2 text-accent">当前筛选：{activeFilterText}</span> : null}
         </div>
         <button className="rounded-md bg-accent px-3 py-2 text-white disabled:opacity-60" disabled={creatingChannel} onClick={() => void createChannelCanvas()}>
           {creatingChannel ? "创建中" : query.category === "全部" ? "开始创作" : `创作${query.category}`}

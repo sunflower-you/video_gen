@@ -108,6 +108,16 @@ export function PlatformDashboard() {
     }
   }
 
+  function updateWorkQuery(nextQuery: WorkQuery) {
+    setWorkQuery(nextQuery);
+    const params = new URLSearchParams();
+    if (nextQuery.category !== "全部") params.set("category", nextQuery.category);
+    if (nextQuery.keyword.trim()) params.set("keyword", nextQuery.keyword.trim());
+    if (nextQuery.sortBy !== "latest") params.set("sort_by", nextQuery.sortBy);
+    const nextUrl = params.toString() ? `/?${params.toString()}` : "/";
+    window.history.replaceState(null, "", nextUrl);
+  }
+
 
   return (
     <AppShell>
@@ -130,7 +140,7 @@ export function PlatformDashboard() {
           <button
             key={item.label}
             className={`rounded-md border px-3 py-2 ${workQuery.category === item.category ? "border-accent bg-accent text-white" : "border-line hover:border-accent"}`}
-            onClick={() => setWorkQuery((query) => ({ ...query, category: item.category }))}
+            onClick={() => updateWorkQuery({ ...workQuery, category: item.category })}
           >
             {item.label}
           </button>
@@ -140,7 +150,7 @@ export function PlatformDashboard() {
         </button>
       </nav>
       <section className="grid grid-cols-[minmax(0,1.35fr)_420px] gap-4">
-        <WorkGallery works={works} query={workQuery} status={workStatus} onQueryChange={setWorkQuery} />
+        <WorkGallery works={works} query={workQuery} status={workStatus} onQueryChange={updateWorkQuery} />
         <WorkspacePanel />
       </section>
       <section className="mt-4">

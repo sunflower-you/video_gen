@@ -104,7 +104,10 @@ test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
   assert.match(dashboard, /createQuickCanvas\("\/create\?quick=creator-challenge"/);
   assert.match(dashboard, /createQuickCanvas\("\/create\?quick=seedance2"/);
   assert.match(dashboard, /createQuickCanvas\("\/create\?quick=tv-show"/);
-  assert.match(dashboard, /setWorkQuery\(\(query\) => \(\{ \.\.\.query, category: item\.category \}\)\)/);
+  assert.match(dashboard, /function updateWorkQuery\(nextQuery: WorkQuery\)/);
+  assert.match(dashboard, /window\.history\.replaceState\(null, "", nextUrl\)/);
+  assert.match(dashboard, /params\.set\("sort_by", nextQuery\.sortBy\)/);
+  assert.match(dashboard, /updateWorkQuery\(\{ \.\.\.workQuery, category: item\.category \}\)/);
   assert.match(fallbackData, /category: "Seedance 2\.0"/);
   assert.match(fallbackData, /Seedance 雨夜回眸/);
   assert.match(fallbackData, /category: "TV Show"/);
@@ -131,6 +134,11 @@ test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
   assert.match(gallery, /item\.tags/);
   assert.match(gallery, /useEffect\(\(\) => \{\s*setKeywordDraft\(query\.keyword\);/);
   assert.match(gallery, /\}, \[query\.keyword\]\)/);
+  assert.match(gallery, /const hasActiveFilter = query\.category !== "全部"/);
+  assert.match(gallery, /function clearFilters\(\)/);
+  assert.match(gallery, /onQueryChange\(\{ category: "全部", keyword: "", sortBy: "latest" \}\)/);
+  assert.match(gallery, /已清空作品筛选/);
+  assert.match(gallery, /当前筛选：\{activeFilterText\}/);
   assert.match(gallery, /href=\{`\/users\/\$\{item\.author_id \|\| "system"\}`\}/);
   assert.match(gallery, /quickStartHrefForWork/);
   assert.match(gallery, /createSameStyleProjectFromHref/);
@@ -157,7 +165,7 @@ test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
   assert.match(gallery, /onSubmit=\{submitSearch\}/);
   assert.match(gallery, /onQueryChange/);
   assert.match(gallery, /sortOptions/);
-  for (const text of ["搜索作品", "最新发布", "最多浏览", "最多点赞", "最多收藏", "成片", "作者：", "模板：", "同款创作", "查看详情", "分享", "暂无匹配作品", "全部作品", "当前频道", "可直接进入同款创作画布"]) {
+  for (const text of ["搜索作品", "清空", "最新发布", "最多浏览", "最多点赞", "最多收藏", "成片", "作者：", "模板：", "同款创作", "查看详情", "分享", "暂无匹配作品", "全部作品", "当前频道", "当前筛选", "可直接进入同款创作画布"]) {
     assert.match(gallery, new RegExp(text));
   }
   assert.doesNotMatch(`${page}\n${dashboard}`, /hero/i);

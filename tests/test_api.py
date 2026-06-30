@@ -917,6 +917,25 @@ class ApiTest(unittest.TestCase):
         shot_id = analysis.json()["shots"][0]["id"]
         character_id = analysis.json()["characters"][0]["id"]
 
+        character_create = self.client.post(
+            f"/api/projects/{project_id}/characters",
+            json={
+                "name": "阿宁二号",
+                "description": "接口新增角色",
+                "reference_image_url": "/storage/reference/aning.png",
+                "style_prompt": "统一蓝色外套",
+                "user_id": "author_api",
+            },
+        )
+        self.assertEqual(character_create.status_code, 200)
+        self.assertEqual(character_create.json()["name"], "阿宁二号")
+        invalid_character_create = self.client.post(
+            f"/api/projects/{project_id}/characters",
+            json={"name": "", "user_id": "author_api"},
+        )
+        self.assertEqual(invalid_character_create.status_code, 400)
+        self.assertIn("角色名称不能为空", invalid_character_create.json()["detail"])
+
         character_update = self.client.patch(
             f"/api/projects/{project_id}/characters/{character_id}",
             json={"name": "阿宁改", "description": "接口更新角色", "style_prompt": "统一蓝色外套", "user_id": "author_api"},

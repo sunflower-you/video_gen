@@ -1225,6 +1225,35 @@ class PlatformService:
             "task": to_jsonable(task),
         }
 
+    def create_character(self, project_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+        project = self._project(project_id)
+        self._assert_project_owner(project, payload.get("user_id"))
+        _reject_unknown_payload_fields(
+            payload,
+            {"user_id", "name", "description", "reference_image_url", "style_prompt", "model_config"},
+        )
+        name = str(payload.get("name", "")).strip()
+        if not name:
+            raise WorkflowValidationError("角色名称不能为空。")
+        model_config = payload.get("model_config", {})
+        if not isinstance(model_config, dict):
+            raise WorkflowValidationError("角色模型配置必须是对象。")
+        character = Character(
+            project_id=project.id,
+            name=name,
+            description=str(payload.get("description", "")),
+            reference_image_url=str(payload.get("reference_image_url", "")),
+            style_prompt=str(payload.get("style_prompt", "")),
+            model_config=model_config,
+            created_by=project.owner_id,
+        )
+        self.repository.characters[character.id] = character
+        project.character_ids.append(character.id)
+        project.current_step = "storyboard"
+        project.touch()
+        self._persist()
+        return to_jsonable(character)
+
     def update_character(self, project_id: str, character_id: str, payload: dict[str, Any]) -> dict[str, Any]:
         project = self._project(project_id)
         self._assert_project_owner(project, payload.get("user_id"))

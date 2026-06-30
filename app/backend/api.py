@@ -713,6 +713,14 @@ def create_app(
         except PlatformError as exc:
             raise _http_error(exc) from exc
 
+    @app.post("/api/projects/{project_id}/characters")
+    def create_character(project_id: str, payload: dict[str, Any], request: Request) -> dict[str, Any]:
+        try:
+            payload = _payload_with_session_user(payload, request, expected_session_secret)
+            return service.create_character(project_id, payload)
+        except PlatformError as exc:
+            raise _http_error(exc) from exc
+
     @app.patch("/api/projects/{project_id}/characters/{character_id}")
     def update_character(project_id: str, character_id: str, payload: dict[str, Any], request: Request) -> dict[str, Any]:
         try:

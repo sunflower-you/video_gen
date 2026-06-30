@@ -2374,6 +2374,32 @@ class PlatformServiceTest(unittest.TestCase):
         with self.assertRaisesRegex(WorkflowValidationError, "非作者"):
             service.update_character(project["id"], character["id"], {"user_id": "viewer_001", "name": "越权"})
 
+    def test_create_character_for_project(self) -> None:
+        service = self.make_service()
+        project = service.create_project({"title": "角色新增项目", "owner_id": "author_001"})
+        character = service.create_character(
+            project["id"],
+            {
+                "user_id": "author_001",
+                "name": "林夏",
+                "description": "红色雨衣、短发",
+                "reference_image_url": "/storage/reference/linxia.png",
+                "style_prompt": "悬疑漫剧统一风格",
+            },
+        )
+        detail = service.get_project(project["id"])
+        self.assertEqual(character["name"], "林夏")
+        self.assertEqual(character["created_by"], "author_001")
+        self.assertEqual(detail["characters"][0]["id"], character["id"])
+        self.assertEqual(detail["current_step"], "storyboard")
+
+        with self.assertRaisesRegex(WorkflowValidationError, "角色名称不能为空"):
+            service.create_character(project["id"], {"user_id": "author_001", "name": " "})
+        with self.assertRaisesRegex(WorkflowValidationError, "请求参数未在业务接口中声明"):
+            service.create_character(project["id"], {"user_id": "author_001", "name": "阿宁", "node_graph": {}})
+        with self.assertRaisesRegex(WorkflowValidationError, "非作者"):
+            service.create_character(project["id"], {"user_id": "viewer_001", "name": "越权"})
+
     def test_generate_shot_image_uses_storyboard_prompt(self) -> None:
         service = self.make_service()
         project = service.create_project({"title": "分镜图项目", "owner_id": "author_001"})

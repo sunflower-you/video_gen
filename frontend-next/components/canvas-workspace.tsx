@@ -21,7 +21,7 @@ import {
   type ReactFlowInstance
 } from "@xyflow/react";
 import { AlertTriangle, AlignHorizontalDistributeCenter, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, AlignHorizontalJustifyStart, AlignVerticalDistributeCenter, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, Ban, Boxes, BringToFront, CheckSquare, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, Focus, GitBranch, Image, LayoutGrid, Library, ListTree, Lock, Map as MapIcon, Maximize2, Minimize2, Music, Play, Plus, Redo2, RefreshCcw, RotateCcw, Save, Scissors, Search, SendToBack, Sparkles, Star, StickyNote, Trash2, Undo2, Unlock, Upload, Video, Wand2, XSquare, ZoomIn, ZoomOut } from "lucide-react";
-import { apiFetch, currentUserId, deleteJson, postJson, type Asset, type Character, type GenerationTask, type Project, type ProjectGraph, type ProjectGraphNode, type StoryboardShot } from "../lib/api";
+import { apiFetch, currentUserId, deleteJson, patchJson, postJson, type Asset, type Character, type GenerationTask, type Project, type ProjectGraph, type ProjectGraphNode, type StoryboardShot } from "../lib/api";
 
 const nodeLabels: Record<string, string> = {
   text: "文本节点",
@@ -846,6 +846,7 @@ type CanvasViewport = { x: number; y: number; zoom: number };
 type CanvasViewBookmark = { key: string; title: string; viewport: CanvasViewport; created_at: string };
 type CanvasGraphVersion = { key: string; title: string; nodes: ProjectGraphNode[]; edges: ProjectGraph["edges"]; viewport: CanvasViewport; created_at: string };
 type CanvasEventLogEntry = { key: string; message: string; created_at: string };
+type CharacterDraft = Pick<Character, "name" | "description" | "reference_image_url" | "style_prompt">;
 
 const customPresetStorageKey = "video_gen_canvas_custom_presets";
 const recentNodeStorageKey = "video_gen_canvas_recent_nodes";
@@ -855,6 +856,7 @@ const graphVersionStoragePrefix = "video_gen_canvas_graph_versions";
 const eventLogStoragePrefix = "video_gen_canvas_event_log";
 const paletteNodeDragType = "application/x-video-gen-node-type";
 const defaultCanvasViewport: CanvasViewport = { x: 0, y: 0, zoom: 1 };
+const emptyCharacterDraft: CharacterDraft = { name: "", description: "", reference_image_url: "", style_prompt: "" };
 
 export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [project, setProject] = useState<Project | null>(null);
@@ -893,6 +895,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [assetQuery, setAssetQuery] = useState("");
   const [taskQuery, setTaskQuery] = useState("");
   const [characterQuery, setCharacterQuery] = useState("");
+  const [characterDraft, setCharacterDraft] = useState<CharacterDraft>(emptyCharacterDraft);
+  const [editingCharacterId, setEditingCharacterId] = useState("");
   const [eventLogQuery, setEventLogQuery] = useState("");
   const [shotStatusFilter, setShotStatusFilter] = useState("all");
   const [shotQuery, setShotQuery] = useState("");
@@ -1695,6 +1699,120 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const node = addNodeAtPosition(type, { x: 160 + nodes.length * 36, y: 120 + nodes.length * 28 });
     setShowPalette(false);
     setStatus(`已添加${nodeLabels[String(node.data.nodeType)] || "节点"}。`);
+  }
+
+  function startNewCharacterDraft() {
+    setEditingCharacterId("");
+    setCharacterDraft(emptyCharacterDraft);
+    setStatus("已清空角色表单，可直接在全画幅角色库中新建角色。");
+  }
+
+  function editCharacterDraft(character: Character) {
+    setEditingCharacterId(character.id);
+    setCharacterDraft({
+      name: character.name,
+      description: character.description || "",
+      reference_image_url: character.reference_image_url || "",
+      style_prompt: character.style_prompt || ""
+    });
+    setStatus(`正在编辑角色：${character.name}。`);
+  }
+
+  function syncCharacterIntoCanvasNodes(character: Character) {
+    setNodes((items) => items.map((node) => {
+      const data = node.data as Record<string, unknown>;
+      if (String(data.character_id || "") !== character.id) return node;
+      const nodeType = String(data.nodeType || "");
+      return {
+        ...node,
+        data: {
+          ...data,
+          ...(nodeType === "character" ? characterNodeData(character) : {
+            character_name: character.name,
+            character_description: character.description || "",
+            reference_image_url: nodeType === "image_generation" ? character.reference_image_url || "" : data.reference_image_url,
+            first_frame_url: nodeType === "video_generation" ? character.reference_image_url || "" : data.first_frame_url,
+            style_prompt: nodeType === "image_generation" ? character.style_prompt || "" : data.style_prompt
+          })
+        }
+      };
+    }));
+  }
+
+  async function createCanvasCharacter() {
+    const name = characterDraft.name.trim();
+    if (!name) {
+      setShowCharacters(true);
+      setStatus("角色名称不能为空；已保留角色库面板，可补全名称后保存。");
+      return;
+    }
+    setBusy(true);
+    setStatus("正在创建项目角色...");
+    try {
+      const created = await postJson<Character>(`/api/projects/${projectId}/characters`, {
+        user_id: currentUserId(),
+        name,
+        description: characterDraft.description || "",
+        reference_image_url: characterDraft.reference_image_url || "",
+        style_prompt: characterDraft.style_prompt || ""
+      });
+      setProject((item) => item ? { ...item, characters: [...(item.characters || []), created], current_step: "storyboard" } : item);
+      setEditingCharacterId(created.id);
+      setCharacterDraft({
+        name: created.name,
+        description: created.description || "",
+        reference_image_url: created.reference_image_url || "",
+        style_prompt: created.style_prompt || ""
+      });
+      setStatus(`角色 ${created.name} 已创建，可添加为角色节点或绑定到当前生成节点。`);
+    } catch (error) {
+      setShowCharacters(true);
+      setStatus(error instanceof Error ? `角色创建失败：${error.message}` : "角色创建失败，请检查名称和参考图后重试。");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveCanvasCharacter() {
+    if (!editingCharacterId) {
+      await createCanvasCharacter();
+      return;
+    }
+    const name = characterDraft.name.trim();
+    if (!name) {
+      setShowCharacters(true);
+      setStatus("角色名称不能为空；已保留角色库面板，可补全名称后保存。");
+      return;
+    }
+    setBusy(true);
+    setStatus("正在保存角色设定...");
+    try {
+      const updated = await patchJson<Character>(`/api/projects/${projectId}/characters/${editingCharacterId}`, {
+        user_id: currentUserId(),
+        name,
+        description: characterDraft.description || "",
+        reference_image_url: characterDraft.reference_image_url || "",
+        style_prompt: characterDraft.style_prompt || ""
+      });
+      setProject((item) => item ? {
+        ...item,
+        characters: (item.characters || []).map((character) => character.id === updated.id ? updated : character),
+        current_step: "storyboard"
+      } : item);
+      syncCharacterIntoCanvasNodes(updated);
+      setCharacterDraft({
+        name: updated.name,
+        description: updated.description || "",
+        reference_image_url: updated.reference_image_url || "",
+        style_prompt: updated.style_prompt || ""
+      });
+      setStatus(`角色 ${updated.name} 已保存，并同步到已绑定的画布节点。`);
+    } catch (error) {
+      setShowCharacters(true);
+      setStatus(error instanceof Error ? `角色保存失败：${error.message}` : "角色保存失败，请检查角色设定后重试。");
+    } finally {
+      setBusy(false);
+    }
   }
 
   function addCharacterNode(character: Character) {
@@ -5988,7 +6106,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         </div>}
       </section>
 
-      {showCharacters && <aside className="absolute bottom-6 left-24 z-20 max-h-[360px] w-[380px] overflow-auto rounded-lg border border-white/10 bg-slate-950/90 p-4 shadow-2xl backdrop-blur">
+      {showCharacters && <aside className="absolute bottom-6 left-24 z-20 max-h-[560px] w-[420px] overflow-auto rounded-lg border border-white/10 bg-slate-950/90 p-4 shadow-2xl backdrop-blur">
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-xs text-slate-400">项目角色库</p>
@@ -5996,6 +6114,31 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           </div>
           <span className="rounded border border-white/10 px-2 py-1 text-xs text-slate-400">{filteredCharacters.length}/{characterOptions.length}</span>
         </div>
+        <section className="mt-3 grid gap-2 rounded-md border border-cyan-300/20 bg-cyan-500/[0.05] p-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs text-cyan-100">{editingCharacterId ? "编辑项目角色" : "新建项目角色"}</p>
+            <button className="rounded border border-white/10 px-2 py-1 text-xs text-slate-200 hover:bg-white/10" onClick={startNewCharacterDraft}>新建</button>
+          </div>
+          <label className="grid gap-1 text-xs text-slate-400">角色名称
+            <input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none" placeholder="例如：林夏" value={characterDraft.name} onChange={(event) => setCharacterDraft((draft) => ({ ...draft, name: event.target.value }))} />
+          </label>
+          <label className="grid gap-1 text-xs text-slate-400">角色描述
+            <textarea className="min-h-20 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none" placeholder="外观、服装、年龄、气质、固定道具" value={characterDraft.description || ""} onChange={(event) => setCharacterDraft((draft) => ({ ...draft, description: event.target.value }))} />
+          </label>
+          <label className="grid gap-1 text-xs text-slate-400">参考图 URL
+            <input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none" placeholder="/storage/reference/role.png" value={characterDraft.reference_image_url || ""} onChange={(event) => setCharacterDraft((draft) => ({ ...draft, reference_image_url: event.target.value }))} />
+          </label>
+          <label className="grid gap-1 text-xs text-slate-400">统一风格
+            <input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none" placeholder="国漫漫剧质感，角色一致，电影级布光" value={characterDraft.style_prompt || ""} onChange={(event) => setCharacterDraft((draft) => ({ ...draft, style_prompt: event.target.value }))} />
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <button disabled={busy || !characterDraft.name.trim()} className="rounded-md border border-cyan-300/30 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-50 hover:bg-cyan-500/20 disabled:opacity-50" onClick={() => void saveCanvasCharacter()}>{editingCharacterId ? "保存修改" : "创建角色"}</button>
+            <button disabled={busy || !editingCharacterId} className="rounded-md border border-white/10 px-3 py-2 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => {
+              const character = characterOptions.find((item) => item.id === editingCharacterId);
+              if (character) addCharacterNode(character);
+            }}>添加到画布</button>
+          </div>
+        </section>
         <label className="mt-3 flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm">
           <Search size={16} className="text-slate-400" />
           <input className="w-full bg-transparent outline-none placeholder:text-slate-500" placeholder="搜索角色名称、描述、参考图或风格" value={characterQuery} onChange={(event) => setCharacterQuery(event.target.value)} />
@@ -6006,17 +6149,19 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
               {character.reference_image_url ? <img src={character.reference_image_url} alt={character.name} className="h-16 w-16 shrink-0 rounded-md bg-black object-cover" /> : <div className="grid h-16 w-16 shrink-0 place-items-center rounded-md border border-white/10 bg-black/20 text-xs text-slate-400">无参考图</div>}
               <div className="min-w-0 flex-1">
                 <h3 className="truncate text-sm font-medium text-white">{character.name}</h3>
-                <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-400">{character.description || "暂无角色描述，可在旧项目工作台补充后回到画布使用。"}</p>
+                <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-400">{character.description || "暂无角色描述，可在上方角色表单补充后保存。"}</p>
                 {character.style_prompt && <p className="mt-1 truncate text-[11px] text-cyan-100">风格：{character.style_prompt}</p>}
               </div>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2">
+              <button disabled={busy} className="rounded-md border border-cyan-300/20 px-3 py-2 text-xs text-cyan-50 hover:bg-cyan-500/10 disabled:opacity-50" onClick={() => editCharacterDraft(character)}>编辑角色</button>
+              <button disabled={busy || editingCharacterId !== character.id} className="rounded-md border border-cyan-300/30 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-50 hover:bg-cyan-500/20 disabled:opacity-50" onClick={() => void saveCanvasCharacter()}>保存修改</button>
               <button disabled={busy} className="rounded-md border border-white/10 px-3 py-2 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addCharacterNode(character)}>添加角色节点</button>
               <button disabled={busy || !selectedNode || !["image_generation", "video_generation"].includes(selectedType)} className="rounded-md border border-cyan-300/30 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-50 hover:bg-cyan-500/20 disabled:opacity-50" onClick={() => applyCharacterToSelectedNode(character)}>绑定到当前节点</button>
             </div>
           </article>)}
           {!filteredCharacters.length && <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-4 text-sm text-slate-400">
-            <p>{characterOptions.length ? "没有匹配角色，可清空搜索后继续选择。" : "项目暂无角色，可先追加脚本拆解工作流生成角色，或在项目工作台维护角色设定。"}</p>
+            <p>{characterOptions.length ? "没有匹配角色，可清空搜索后继续选择。" : "项目暂无角色，可先用上方表单创建角色，或追加脚本拆解工作流生成角色。"}</p>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <button className="rounded-md border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-xs text-blue-50 hover:bg-blue-500/20" onClick={() => setCharacterQuery("")}>清空搜索</button>
               <button disabled={busy} className="rounded-md border border-white/10 px-3 py-2 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPreset("script_to_storyboard")}>追加脚本拆解</button>

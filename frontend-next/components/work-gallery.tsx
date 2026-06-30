@@ -23,6 +23,10 @@ function quickHrefForCategory(category: string): string {
   return "/create";
 }
 
+function templateHrefForWork(item: Work): string {
+  return item.template_id ? `/templates?template=${encodeURIComponent(item.template_id)}` : "";
+}
+
 export function WorkGallery({
   works,
   query,
@@ -163,10 +167,16 @@ export function WorkGallery({
               <a className="mt-1 block text-xs text-muted hover:text-accent" href={`/users/${item.author_id || "system"}`}>
                 作者：{item.author_id || "平台作者"}
               </a>
-              <small className="block text-muted">模板：{item.template_name || item.template_id || "未绑定模板"}</small>
+              {templateHrefForWork(item) ? (
+                <a className="block text-xs text-muted hover:text-accent" href={templateHrefForWork(item)}>
+                  模板：{item.template_name || item.template_id}
+                </a>
+              ) : (
+                <small className="block text-muted">模板：未绑定模板</small>
+              )}
               <div className="mt-2 flex flex-wrap gap-1">
                 {(item.tags || []).slice(0, 3).map((tag) => (
-                  <span key={tag} className="rounded-sm bg-canvas px-2 py-1 text-xs text-muted">{tag}</span>
+                  <a key={tag} className="rounded-sm bg-canvas px-2 py-1 text-xs text-muted hover:text-accent" href={`/?keyword=${encodeURIComponent(tag)}`}>{tag}</a>
                 ))}
               </div>
               <small className="block text-muted">{item.view_count || 0} 浏览 · {item.like_count || 0} 点赞 · {item.favorite_count || 0} 收藏</small>

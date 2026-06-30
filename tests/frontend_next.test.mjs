@@ -1045,6 +1045,10 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /params\.get\("sourceWorkflowKey"\)/);
   assert.match(canvasWorkspace, /params\.get\("sourceScript"\)/);
   assert.match(canvasWorkspace, /params\.get\("sourceReferenceUrl"\)/);
+  assert.match(canvasWorkspace, /params\.get\("sourceDuration"\)/);
+  assert.match(canvasWorkspace, /params\.get\("sourceFps"\)/);
+  assert.match(canvasWorkspace, /params\.get\("sourceVoice"\)/);
+  assert.match(canvasWorkspace, /params\.get\("sourceRate"\)/);
   assert.match(canvasWorkspace, /presetMode === "replace"/);
   assert.match(canvasWorkspace, /params\.delete\("presetMode"\)/);
   assert.match(canvasWorkspace, /params\.delete\("referenceImageUrl"\)/);
@@ -1055,6 +1059,10 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /params\.delete\("sourceWorkflowKey"\)/);
   assert.match(canvasWorkspace, /params\.delete\("sourceScript"\)/);
   assert.match(canvasWorkspace, /params\.delete\("sourceReferenceUrl"\)/);
+  assert.match(canvasWorkspace, /params\.delete\("sourceDuration"\)/);
+  assert.match(canvasWorkspace, /params\.delete\("sourceFps"\)/);
+  assert.match(canvasWorkspace, /params\.delete\("sourceVoice"\)/);
+  assert.match(canvasWorkspace, /params\.delete\("sourceRate"\)/);
   assert.match(canvasWorkspace, /overrides\?\.referenceImageUrl/);
   assert.match(canvasWorkspace, /overrides\?\.quickScript/);
   assert.match(canvasWorkspace, /overrides\?\.sourceTitle/);
@@ -1073,6 +1081,11 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /preset\.key === "script_to_storyboard"/);
   assert.match(canvasWorkspace, /preset\.key === "image_to_video"/);
   assert.match(canvasWorkspace, /preset\.key === "voice_compose"/);
+  assert.match(canvasWorkspace, /generationParamOverride/);
+  assert.match(canvasWorkspace, /duration: overrides\.sourceDuration/);
+  assert.match(canvasWorkspace, /fps: overrides\.sourceFps/);
+  assert.match(canvasWorkspace, /voice: overrides\.sourceVoice/);
+  assert.match(canvasWorkspace, /rate: overrides\.sourceRate/);
   assert.match(canvasWorkspace, /window\.history\.replaceState/);
   assert.match(canvasWorkspace, /addWorkflowPreset/);
   assert.match(canvasWorkspace, /平台生成/);
@@ -1197,6 +1210,10 @@ test("Next 模板市场读取真实模板并支持复刻项目", () => {
   assert.match(templateQuickStart, /sourceWorkflowKey/);
   assert.match(templateQuickStart, /sourceScript/);
   assert.match(templateQuickStart, /sourceReferenceUrl/);
+  assert.match(templateQuickStart, /sourceDuration/);
+  assert.match(templateQuickStart, /sourceFps/);
+  assert.match(templateQuickStart, /sourceVoice/);
+  assert.match(templateQuickStart, /sourceRate/);
   assert.match(sameStyleCreate, /export async function createSameStyleProjectFromHref/);
   assert.match(sameStyleCreate, /quickCreateModes/);
   assert.match(sameStyleCreate, /workflowPresetByKey/);

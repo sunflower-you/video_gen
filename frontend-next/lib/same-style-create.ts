@@ -34,7 +34,7 @@ const workflowPresetByKey: Record<string, string> = {
   creator_challenge_entry: "creator_challenge_entry"
 };
 
-const sameStyleKeys = ["sourceTitle", "sourceWorkId", "sourceTemplateId", "sourceWorkflowKey", "sourceScript", "sourceReferenceUrl"];
+const sameStyleKeys = ["sourceTitle", "sourceWorkId", "sourceTemplateId", "sourceWorkflowKey", "sourceScript", "sourceReferenceUrl", "sourceDuration", "sourceFps", "sourceVoice", "sourceRate"];
 
 export async function createSameStyleProjectFromHref(href: string, fallbackTitle: string) {
   const url = new URL(href, window.location.origin);

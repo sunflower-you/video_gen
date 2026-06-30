@@ -803,6 +803,10 @@ type WorkflowPresetOverrides = {
   sourceWorkflowKey?: string;
   sourceScript?: string;
   sourceReferenceUrl?: string;
+  sourceDuration?: string;
+  sourceFps?: string;
+  sourceVoice?: string;
+  sourceRate?: string;
 };
 
 type GraphHistorySnapshot = {
@@ -1138,6 +1142,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const sourceWorkflowKey = params.get("sourceWorkflowKey") || "";
     const sourceScript = params.get("sourceScript") || "";
     const sourceReferenceUrl = params.get("sourceReferenceUrl") || "";
+    const sourceDuration = params.get("sourceDuration") || "";
+    const sourceFps = params.get("sourceFps") || "";
+    const sourceVoice = params.get("sourceVoice") || "";
+    const sourceRate = params.get("sourceRate") || "";
     const presetLinkKey = `${presetMode}:${presetKey}`;
     if (!presetKey || presetLinkKey === linkedPresetHandled) return;
     setLinkedPresetHandled(presetLinkKey);
@@ -1146,7 +1154,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       setStatus("画布预设不存在，请从左侧工作流预设重新选择。");
       return;
     }
-    const overrides = referenceImageUrl.trim() || quickScript.trim() || sourceTitle.trim() || sourceWorkId.trim() || sourceTemplateId.trim() || sourceWorkflowKey.trim() || sourceScript.trim() || sourceReferenceUrl.trim() ? { referenceImageUrl: referenceImageUrl.trim(), quickScript: quickScript.trim(), sourceTitle: sourceTitle.trim(), sourceWorkId: sourceWorkId.trim(), sourceTemplateId: sourceTemplateId.trim(), sourceWorkflowKey: sourceWorkflowKey.trim(), sourceScript: sourceScript.trim(), sourceReferenceUrl: sourceReferenceUrl.trim() } : undefined;
+    const overrides = referenceImageUrl.trim() || quickScript.trim() || sourceTitle.trim() || sourceWorkId.trim() || sourceTemplateId.trim() || sourceWorkflowKey.trim() || sourceScript.trim() || sourceReferenceUrl.trim() || sourceDuration.trim() || sourceFps.trim() || sourceVoice.trim() || sourceRate.trim() ? { referenceImageUrl: referenceImageUrl.trim(), quickScript: quickScript.trim(), sourceTitle: sourceTitle.trim(), sourceWorkId: sourceWorkId.trim(), sourceTemplateId: sourceTemplateId.trim(), sourceWorkflowKey: sourceWorkflowKey.trim(), sourceScript: sourceScript.trim(), sourceReferenceUrl: sourceReferenceUrl.trim(), sourceDuration: sourceDuration.trim(), sourceFps: sourceFps.trim(), sourceVoice: sourceVoice.trim(), sourceRate: sourceRate.trim() } : undefined;
     if (presetMode === "replace") replaceCanvasWithWorkflowPreset(preset.key, overrides);
     else addWorkflowPreset(preset.key, { x: 140, y: 140 }, overrides);
     params.delete("preset");
@@ -1159,6 +1167,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     params.delete("sourceWorkflowKey");
     params.delete("sourceScript");
     params.delete("sourceReferenceUrl");
+    params.delete("sourceDuration");
+    params.delete("sourceFps");
+    params.delete("sourceVoice");
+    params.delete("sourceRate");
     const nextQuery = params.toString();
     window.history.replaceState(null, "", `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`);
   }, [linkedPresetHandled, project]);
@@ -1855,21 +1867,22 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       const generationData = item.type.includes("generation") && item.type !== "compose_generation" ? { shot_id: firstShotId } : {};
       const referenceOverride = overrides?.referenceImageUrl && (preset.key === "seedance2_image_video" || preset.key === "image_to_video") && item.type === "image" ? { image_url: overrides.referenceImageUrl } : overrides?.referenceImageUrl && preset.key === "script_to_storyboard" && item.type === "image_generation" ? { reference_image_url: overrides.referenceImageUrl } : {};
       const quickScriptOverride = overrides?.quickScript && preset.key === "seedance2_image_video" && item.type === "text" ? { text: overrides.quickScript } : overrides?.quickScript && preset.key === "seedance2_image_video" && item.type === "video_generation" ? { prompt: overrides.quickScript } : overrides?.quickScript && (preset.key === "tv_show_storyboard" || preset.key === "script_to_storyboard") && item.type === "script" ? { script: overrides.quickScript } : overrides?.quickScript && preset.key === "script_to_storyboard" && item.type === "image_generation" ? { prompt: overrides.quickScript } : overrides?.quickScript && preset.key === "creator_challenge_entry" && item.type === "text" ? { text: overrides.quickScript } : overrides?.quickScript && preset.key === "image_to_video" && item.type === "video_generation" ? { prompt: overrides.quickScript } : overrides?.quickScript && preset.key === "voice_compose" && item.type === "text" ? { text: overrides.quickScript } : {};
+      const generationParamOverride = item.type === "video_generation" ? { ...(overrides?.sourceDuration ? { duration: overrides.sourceDuration } : {}), ...(overrides?.sourceFps ? { fps: overrides.sourceFps } : {}) } : item.type === "tts_generation" ? { ...(overrides?.sourceVoice ? { voice: overrides.sourceVoice } : {}), ...(overrides?.sourceRate ? { rate: overrides.sourceRate } : {}) } : {};
       return {
         id,
         type: "platform",
         position: { x: baseX + item.offset.x, y: baseY + item.offset.y },
-        data: { ...item.data, ...referenceOverride, ...quickScriptOverride, ...generationData, nodeType: item.type, graphNodeId: id, status: "draft" }
+        data: { ...item.data, ...referenceOverride, ...quickScriptOverride, ...generationParamOverride, ...generationData, nodeType: item.type, graphNodeId: id, status: "draft" }
       } satisfies Node;
     });
     const sourceNodeId = `preset-${preset.key}-${timestamp}-source`;
-    const sourceNode = overrides?.sourceTitle || overrides?.sourceWorkId || overrides?.sourceTemplateId || overrides?.sourceWorkflowKey || overrides?.sourceScript || overrides?.sourceReferenceUrl ? {
+    const sourceNode = overrides?.sourceTitle || overrides?.sourceWorkId || overrides?.sourceTemplateId || overrides?.sourceWorkflowKey || overrides?.sourceScript || overrides?.sourceReferenceUrl || overrides?.sourceDuration || overrides?.sourceFps || overrides?.sourceVoice || overrides?.sourceRate ? {
       id: sourceNodeId,
       type: "platform",
       position: { x: baseX, y: baseY - 150 },
       data: {
         title: "同款来源",
-        text: [`来源：${overrides?.sourceTitle || "未命名作品/模板"}`, overrides?.sourceTemplateId ? `模板 ID：${overrides.sourceTemplateId}` : "", overrides?.sourceWorkId ? `作品 ID：${overrides.sourceWorkId}` : "", overrides?.sourceWorkflowKey ? `工作流：${overrides.sourceWorkflowKey}` : "", overrides?.sourceScript ? `示例提示词：${overrides.sourceScript}` : "", overrides?.sourceReferenceUrl ? `参考图：${overrides.sourceReferenceUrl}` : ""].filter(Boolean).join("\n"),
+        text: [`来源：${overrides?.sourceTitle || "未命名作品/模板"}`, overrides?.sourceTemplateId ? `模板 ID：${overrides.sourceTemplateId}` : "", overrides?.sourceWorkId ? `作品 ID：${overrides.sourceWorkId}` : "", overrides?.sourceWorkflowKey ? `工作流：${overrides.sourceWorkflowKey}` : "", overrides?.sourceScript ? `示例提示词：${overrides.sourceScript}` : "", overrides?.sourceReferenceUrl ? `参考图：${overrides.sourceReferenceUrl}` : "", overrides?.sourceDuration ? `时长：${overrides.sourceDuration}` : "", overrides?.sourceFps ? `帧率：${overrides.sourceFps}` : "", overrides?.sourceVoice ? `音色：${overrides.sourceVoice}` : "", overrides?.sourceRate ? `语速：${overrides.sourceRate}` : ""].filter(Boolean).join("\n"),
         source_entity_type: overrides?.sourceWorkId ? "work" : overrides?.sourceTemplateId ? "template" : "same_style",
         source_entity_id: overrides?.sourceWorkId || overrides?.sourceTemplateId || "",
         nodeType: "comment",

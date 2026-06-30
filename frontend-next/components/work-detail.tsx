@@ -152,7 +152,15 @@ export function WorkDetail({ workId }: { workId: string }) {
                 模板：{work.template_name || work.template_id}
               </a>
             ) : (
-              <p className="mt-3 text-sm text-muted">模板：未绑定模板</p>
+              <div className="mt-3 rounded-md border border-line px-3 py-2 text-sm text-muted">
+                <p>模板：未绑定模板，可去模板市场查找相似工作流，或直接基于该作品继续同款创作。</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <a className="rounded-md border border-line px-3 py-1 text-xs hover:border-accent" href="/templates">查看模板市场</a>
+                  <button className="rounded-md bg-accent px-3 py-1 text-xs text-white disabled:opacity-60" disabled={!work || creatingSameStyle} onClick={() => void createSameStyleWork()}>
+                    {creatingSameStyle ? "创建中" : "继续同款创作"}
+                  </button>
+                </div>
+              </div>
             )}
             <button className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md bg-accent px-3 py-2 text-sm text-white disabled:opacity-60" disabled={!work || creatingSameStyle} onClick={() => void createSameStyleWork()}>
               <Sparkles size={16} />

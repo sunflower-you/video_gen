@@ -191,6 +191,7 @@ test("Next 前端迁移已拆分组件并提供核心路由", () => {
 
 test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /@xyflow\/react/);
+  assert.match(canvasWorkspace, /href="\/">返回作品广场/);
   assert.match(canvasWorkspace, /ReactFlow/);
   assert.match(canvasWorkspace, /Background/);
   assert.match(canvasWorkspace, /Controls/);
@@ -1342,7 +1343,8 @@ test("Next 创作工作台调用真实项目和生成接口", () => {
   assert.match(createWorkbench, /compose/);
   assert.match(createWorkbench, /href=\{`\/workspace\/\$\{project\.id\}`\}/);
   assert.match(createWorkbench, /window\.location\.href = `\/workspace\/\$\{created\.id\}`/);
-  for (const text of ["创建项目并生成分镜草稿", "复刻模板并生成分镜草稿", "模板复刻项目已继承", "一键创建 Seedance 2.0 画布", "一键创建 TV Show 画布", "一键创建挑战赛画布", "Seedance 2.0 快速体验", "创建 TV Show", "参加创作者挑战赛", "Liblib 快捷创作", "普通创建", "赛题 brief", "图生视频", "主持人口播", "TV Show", "9:16 竖屏短视频", "16:9 横屏短片", "1:1 方形画布", "创建空白项目", "参考图 URL", "批量生成素材", "生成时间线", "合成成片", "任务队列", "积分余额不足", "进入项目工作台"]) {
+  assert.doesNotMatch(createWorkbench, /进入项目工作台/);
+  for (const text of ["创建项目并生成分镜草稿", "复刻模板并生成分镜草稿", "模板复刻项目已继承", "一键创建 Seedance 2.0 画布", "一键创建 TV Show 画布", "一键创建挑战赛画布", "Seedance 2.0 快速体验", "创建 TV Show", "参加创作者挑战赛", "Liblib 快捷创作", "普通创建", "赛题 brief", "图生视频", "主持人口播", "TV Show", "9:16 竖屏短视频", "16:9 横屏短片", "1:1 方形画布", "创建空白项目", "参考图 URL", "批量生成素材", "生成时间线", "合成成片", "任务队列", "积分余额不足", "进入全画幅画布"]) {
     assert.match(createWorkbench, new RegExp(text));
   }
 });
@@ -1372,6 +1374,7 @@ test("Next 独立项目工作台接入项目详情、素材、任务和导出接
   assert.match(projectWorkspace, /updateSubtitleDraft/);
   assert.match(projectWorkspace, /\/api\/comfy\/tasks\/\$\{taskId\}\/sync/);
   assert.match(projectWorkspace, /\/api\/tasks\/\$\{taskId\}\/\$\{action\}/);
+  assert.match(projectWorkspace, /href="\/">返回作品广场/);
   assert.match(templateMarketplace, /window\.location\.href = `\/workspace\/\$\{project\.id\}`/);
   for (const text of ["项目工作台", "项目结构", "角色设定", "保存角色设定", "参考图 URL", "统一风格提示词", "新增分镜", "新增手动分镜", "保存修订", "删除分镜", "分镜草稿", "时间线与字幕", "字幕文本", "字幕样式", "保存字幕修改", "项目任务队列", "项目素材库", "删除素材", "导出字幕", "合成成片", "发布审核", "提交发布审核", "作品已提交发布审核"]) {
     assert.match(projectWorkspace, new RegExp(text));

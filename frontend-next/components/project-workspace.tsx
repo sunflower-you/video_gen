@@ -295,7 +295,7 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
   return (
     <section className="grid gap-4">
       <header className="grid gap-3 rounded-panel border border-line bg-panel p-4">
-        <a className="text-sm text-accent" href="/create">返回创作入口</a>
+        <a className="text-sm text-accent" href="/">返回作品广场</a>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-sm text-muted">{project?.project_type || "项目工作台"} · {project?.aspect_ratio || "9:16"}</p>

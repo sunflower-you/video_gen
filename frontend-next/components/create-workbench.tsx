@@ -395,7 +395,7 @@ export function CreateWorkbench() {
           <p className="text-xs text-muted">若提示积分余额不足，请联系运营充值或切换低成本生成任务。</p>
           {project && (
             <a className="rounded-md border border-line px-3 py-2 text-center text-sm" href={`/workspace/${project.id}`}>
-              进入项目工作台
+              进入全画幅画布
             </a>
           )}
         </div>

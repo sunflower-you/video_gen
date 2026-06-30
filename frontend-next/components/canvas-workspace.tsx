@@ -4565,7 +4565,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     <main className="h-screen overflow-hidden bg-[#0b1020] text-white">
       <header className="absolute left-4 right-4 top-3 z-20 flex items-center justify-between rounded-lg border border-white/10 bg-slate-950/85 px-4 py-3 shadow-2xl backdrop-blur">
         <div>
-          <a className="text-xs text-slate-400 hover:text-white" href="/create">返回创作入口</a>
+          <a className="text-xs text-slate-400 hover:text-white" href="/">返回作品广场</a>
           <h1 className="mt-1 text-lg font-semibold">{project?.title || "全画幅创作画布"}</h1>
         </div>
         <div className="flex items-center gap-2 text-sm">

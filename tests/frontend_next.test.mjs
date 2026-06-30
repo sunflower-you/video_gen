@@ -1457,6 +1457,9 @@ test("Next 独立项目工作台接入项目详情、素材、任务和导出接
   assert.match(projectWorkspace, /\/api\/tasks\/\$\{taskId\}\/\$\{action\}/);
   assert.match(projectWorkspace, /href="\/">返回作品广场/);
   assert.match(projectWorkspace, /暂无生成任务，可新增分镜、合成成片，或进入全画幅画布继续编排节点/);
+  assert.match(projectWorkspace, /const firstShot = project\?\.shots\?\.\[0\]/);
+  assert.match(projectWorkspace, /暂无归档素材，可先生成首个分镜图、新增分镜，或进入全画幅画布继续编排节点/);
+  assert.match(projectWorkspace, /generateShot\(firstShot\.id, "image"\)/);
   assert.match(projectWorkspace, /href=\{`\/workspace\/\$\{projectId\}`\}/);
   assert.match(projectWorkspace, /onClick=\{\(\) => void createManualShot\(\)\}/);
   assert.match(templateMarketplace, /window\.location\.href = `\/workspace\/\$\{project\.id\}`/);

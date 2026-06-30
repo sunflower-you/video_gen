@@ -292,6 +292,8 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
     }
   }
 
+  const firstShot = project?.shots?.[0];
+
   return (
     <section className="grid gap-4">
       <header className="grid gap-3 rounded-panel border border-line bg-panel p-4">
@@ -528,7 +530,16 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
                   </button>
                 </article>
               ))}
-              {!assets.length && <p className="rounded-md border border-line px-3 py-2 text-muted">暂无归档素材</p>}
+              {!assets.length && (
+                <div className="rounded-md border border-line px-3 py-2 text-muted">
+                  <p>暂无归档素材，可先生成首个分镜图、新增分镜，或进入全画幅画布继续编排节点。</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button disabled={busy || !firstShot} className="rounded-md bg-accent px-3 py-1 text-xs text-white disabled:opacity-50" onClick={() => firstShot ? void generateShot(firstShot.id, "image") : undefined}>生成首个分镜图</button>
+                    <button disabled={busy || !project} className="rounded-md border border-line px-3 py-1 text-xs disabled:opacity-50" onClick={() => void createManualShot()}>新增分镜</button>
+                    <a className="rounded-md border border-line px-3 py-1 text-xs hover:border-accent" href={`/workspace/${projectId}`}>进入全画幅画布</a>
+                  </div>
+                </div>
+              )}
             </div>
           </section>
         </aside>

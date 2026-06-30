@@ -3521,7 +3521,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   async function copySelectedNodes() {
     if (!selectedNodes.length) {
-      setStatus("请先框选或点选节点，再复制选区。");
+      setShowOutline(true);
+      setStatus("请先框选或点选节点，再复制选区；已打开节点大纲，可先定位并选择要复用的节点。");
       return;
     }
     const snapshot = { nodes: selectedNodes, edges: selectedSelectionEdges };
@@ -3531,7 +3532,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   async function cutSelectedNodes() {
     if (!selectedNodes.length) {
-      setStatus("请先框选或点选节点，再剪切选区。");
+      setShowOutline(true);
+      setStatus("请先框选或点选节点，再剪切选区；已打开节点大纲，可先定位并选择要移动的节点。");
       return;
     }
     const unlockedNodes = selectedNodes.filter((node) => (node.data as Record<string, unknown>).locked !== true);
@@ -3548,7 +3550,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   async function copySelectedChain() {
     if (!selectedNode) {
-      setStatus("请先选择一个节点，再复制链路。");
+      setShowOutline(true);
+      setStatus("请先选择一个节点，再复制链路；已打开节点大纲，可先定位链路终点节点。");
       return;
     }
     const chainNodes = orderedChainNodes(selectedNode.id, nodes, edges);

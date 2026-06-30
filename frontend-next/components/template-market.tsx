@@ -233,7 +233,17 @@ export function TemplateMarket({
             </div>
           </article>
         ))}
-        {!visibleTemplates.length ? <p className="rounded-md border border-line bg-canvas p-3 text-sm text-muted">当前频道暂无模板，可切换全部模板或刷新模板市场。</p> : null}
+        {!visibleTemplates.length ? (
+          <div className="rounded-md border border-line bg-canvas p-3 text-sm text-muted">
+            <p>当前频道暂无模板，可清空筛选或直接进入当前频道全画幅创作。</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button className="rounded-md border border-line px-3 py-2 hover:border-accent disabled:opacity-50" disabled={!hasActiveTemplateFilter} onClick={clearTemplateFilters}>清空筛选</button>
+              <button className="rounded-md bg-accent px-3 py-2 text-white disabled:opacity-60" disabled={creatingShortcut} onClick={() => void createChannelCanvas()}>
+                {creatingShortcut ? "创建中" : activeChannel === "全部" ? "开始创作" : `创作${activeChannel}`}
+              </button>
+            </div>
+          </div>
+        ) : null}
       </div>
     </section>
   );

@@ -163,6 +163,7 @@ test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
   assert.match(gallery, /category === "TV Show"/);
   assert.match(gallery, /当前频道 \{works\.length\} 个作品/);
   assert.match(gallery, /创作\$\{query\.category\}/);
+  assert.match(gallery, /暂无匹配作品，可清空筛选或直接进入当前频道同款创作画布/);
   assert.match(workQuickStart, /\/create\?quick=creator-challenge/);
   assert.match(workQuickStart, /\/create\?quick=tv-show/);
   assert.match(workQuickStart, /\/create\?quick=seedance2/);
@@ -1263,7 +1264,7 @@ test("Next 模板市场读取真实模板并支持复刻项目", () => {
   assert.match(templates, /已筛选模板关键词：\$\{templateKeyword\.trim\(\)\}/);
   assert.match(templates, /onSubmit=\{submitTemplateSearch\}/);
   assert.match(templates, /当前频道 \{visibleTemplates\.length\} 个模板/);
-  assert.match(templates, /当前频道暂无模板/);
+  assert.match(templates, /当前频道暂无模板，可清空筛选或直接进入当前频道全画幅创作/);
   assert.match(templates, /const \[sharingTemplateId, setSharingTemplateId\]/);
   assert.match(templates, /function templateShareHref\(template: Template\): string/);
   assert.match(templates, /function copyTemplateShareLink/);

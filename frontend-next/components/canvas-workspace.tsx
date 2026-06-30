@@ -2684,11 +2684,13 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const taskIds = new Set(filteredTasks.map((task) => task.id));
     const matchedNodes = nodes.filter((node) => taskIds.has(String((node.data as Record<string, unknown>).task_id || "")));
     if (!filteredTasks.length) {
-      setStatus("当前没有匹配任务，请先调整任务筛选条件。");
+      setShowTasks(true);
+      setStatus("当前没有匹配任务，已打开任务队列；可先清空筛选、同步任务状态或运行画布生成新任务。");
       return;
     }
     if (!matchedNodes.length) {
-      setStatus("当前筛选任务暂未在画布中找到关联节点。");
+      setShowTasks(true);
+      setStatus("当前筛选任务暂未在画布中找到关联节点，已打开任务队列；可同步任务状态或从任务详情重新定位。");
       return;
     }
     selectCanvasNodesByIds(matchedNodes.map((node) => node.id), "当前筛选任务关联节点");
@@ -2699,11 +2701,13 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const taskIds = new Set(tasks.map((task) => task.id));
     const matchedNodes = nodes.filter((node) => taskIds.has(String((node.data as Record<string, unknown>).task_id || "")));
     if (!tasks.length) {
-      setStatus("当前暂无生成任务，无法选中关联节点。");
+      setShowTasks(true);
+      setStatus("当前暂无生成任务，已打开任务队列；可先运行节点、选区或全画布生成任务。");
       return;
     }
     if (!matchedNodes.length) {
-      setStatus("当前任务暂未在画布中找到关联节点。");
+      setShowTasks(true);
+      setStatus("当前任务暂未在画布中找到关联节点，已打开任务队列；可同步任务状态或重新运行对应节点。");
       return;
     }
     selectCanvasNodesByIds(matchedNodes.map((node) => node.id), "全部任务关联节点");

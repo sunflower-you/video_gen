@@ -409,6 +409,10 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /window\.localStorage\.setItem\(`project_graph_/);
   assert.match(canvasWorkspace, /项目素材库/);
   assert.match(canvasWorkspace, /任务队列/);
+  assert.match(canvasWorkspace, /当前没有匹配任务，已打开任务队列；可先清空筛选、同步任务状态或运行画布生成新任务/);
+  assert.match(canvasWorkspace, /当前筛选任务暂未在画布中找到关联节点，已打开任务队列；可同步任务状态或从任务详情重新定位/);
+  assert.match(canvasWorkspace, /当前暂无生成任务，已打开任务队列；可先运行节点、选区或全画布生成任务/);
+  assert.match(canvasWorkspace, /当前任务暂未在画布中找到关联节点，已打开任务队列；可同步任务状态或重新运行对应节点/);
   assert.match(canvasWorkspace, /生成过程追踪/);
   assert.match(canvasWorkspace, /素材筛选/);
   assert.match(canvasWorkspace, /没有匹配素材/);

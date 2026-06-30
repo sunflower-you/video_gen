@@ -36,6 +36,7 @@ export function WorkGallery({
 }) {
   const [keywordDraft, setKeywordDraft] = useState(query.keyword);
   const [creatingWorkId, setCreatingWorkId] = useState("");
+  const [creatingChannel, setCreatingChannel] = useState(false);
   const [actionStatus, setActionStatus] = useState("");
 
   function updateQuery(partial: Partial<WorkQuery>) {
@@ -57,6 +58,19 @@ export function WorkGallery({
       setActionStatus(error instanceof Error ? error.message : "同款画布创建失败，请稍后重试。");
     } finally {
       setCreatingWorkId("");
+    }
+  }
+
+  async function createChannelCanvas() {
+    const href = quickHrefForCategory(query.category);
+    const title = query.category === "全部" ? "作品广场" : query.category;
+    setCreatingChannel(true);
+    setActionStatus(`正在创建${title}全画幅画布...`);
+    try {
+      window.location.href = await createSameStyleProjectFromHref(href, `${title}创作`);
+    } catch (error) {
+      setActionStatus(error instanceof Error ? error.message : "频道画布创建失败，请稍后重试。");
+      setCreatingChannel(false);
     }
   }
 
@@ -85,9 +99,9 @@ export function WorkGallery({
           <strong>{query.category === "全部" ? "全部作品" : query.category}</strong>
           <span className="ml-2 text-muted">当前频道 {works.length} 个作品，可直接进入同款创作画布。</span>
         </div>
-        <a className="rounded-md bg-accent px-3 py-2 text-white" href={quickHrefForCategory(query.category)}>
-          {query.category === "全部" ? "开始创作" : `创作${query.category}`}
-        </a>
+        <button className="rounded-md bg-accent px-3 py-2 text-white disabled:opacity-60" disabled={creatingChannel} onClick={() => void createChannelCanvas()}>
+          {creatingChannel ? "创建中" : query.category === "全部" ? "开始创作" : `创作${query.category}`}
+        </button>
       </section>
       <div className="rounded-md border border-line bg-canvas px-3 py-2 text-sm text-muted">{actionStatus || status}</div>
       <section id="作品广场" className="rounded-panel border border-line bg-panel p-4">

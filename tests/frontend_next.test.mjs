@@ -448,8 +448,10 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /handleAssetFileInput/);
   assert.match(canvasWorkspace, /deleteCanvasAsset/);
   assert.match(canvasWorkspace, /clearAssetFromCanvas/);
+  assert.match(canvasWorkspace, /assetBindingTargetForNode/);
   assert.match(canvasWorkspace, /assetBindingTargetForSelectedNode/);
   assert.match(canvasWorkspace, /applyAssetToSelectedNode/);
+  assert.match(canvasWorkspace, /bindFilteredAssetsToSelectedNodes/);
   assert.match(canvasWorkspace, /\/api\/projects\/\$\{projectId\}\/assets\/upload/);
   assert.match(canvasWorkspace, /deleteJson<DeleteResult>\(`\/api\/projects\/\$\{projectId\}\/assets\/\$\{asset\.id\}`/);
   assert.match(canvasWorkspace, /reference_image_url/);
@@ -464,8 +466,12 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /请先选择要绑定素材的节点/);
   assert.match(canvasWorkspace, /当前素材类型不能绑定到所选节点/);
   assert.match(canvasWorkspace, /已把素材绑定到当前/);
+  assert.match(canvasWorkspace, /请先选择要批量绑定素材的节点/);
+  assert.match(canvasWorkspace, /当前筛选素材和选区节点没有可匹配的绑定关系/);
+  assert.match(canvasWorkspace, /已把 .*个筛选素材按顺序绑定到选区节点/);
   assert.match(canvasWorkspace, /上传本地素材/);
   assert.match(canvasWorkspace, /绑定到当前节点/);
+  assert.match(canvasWorkspace, /绑定选区/);
   assert.match(canvasWorkspace, /删除素材/);
   assert.match(canvasWorkspace, /accept="image\/\*,video\/\*,audio\/\*"/);
   assert.match(canvasWorkspace, /addAllAssetNodes/);

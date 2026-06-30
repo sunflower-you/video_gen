@@ -4715,20 +4715,25 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus("素材已拖入画布。");
   }
 
-  function assetBindingTargetForSelectedNode(asset: Asset) {
-    if (!selectedNode) return null;
+  function assetBindingTargetForNode(asset: Asset, node: Node | null) {
+    if (!node) return null;
+    const nodeType = String((node.data as Record<string, unknown>).nodeType || "");
     if (asset.asset_type === "image") {
-      if (selectedType === "image") return { key: "image_url", label: "图片 URL" };
-      if (selectedType === "image_generation") return { key: "reference_image_url", label: "参考图 URL" };
-      if (selectedType === "video_generation") return { key: "first_frame_url", label: "首帧图片 URL" };
-      if (selectedType === "character") return { key: "reference_image_url", label: "角色参考图 URL" };
+      if (nodeType === "image") return { key: "image_url", label: "图片 URL" };
+      if (nodeType === "image_generation") return { key: "reference_image_url", label: "参考图 URL" };
+      if (nodeType === "video_generation") return { key: "first_frame_url", label: "首帧图片 URL" };
+      if (nodeType === "character") return { key: "reference_image_url", label: "角色参考图 URL" };
     }
-    if (asset.asset_type === "video" && selectedType === "video") return { key: "video_url", label: "视频 URL" };
+    if (asset.asset_type === "video" && nodeType === "video") return { key: "video_url", label: "视频 URL" };
     if (asset.asset_type === "audio") {
-      if (selectedType === "audio") return { key: "audio_url", label: "音频 URL" };
-      if (selectedType === "compose_generation") return { key: "bgm_url", label: "BGM URL" };
+      if (nodeType === "audio") return { key: "audio_url", label: "音频 URL" };
+      if (nodeType === "compose_generation") return { key: "bgm_url", label: "BGM URL" };
     }
     return null;
+  }
+
+  function assetBindingTargetForSelectedNode(asset: Asset) {
+    return assetBindingTargetForNode(asset, selectedNode);
   }
 
   function applyAssetToSelectedNode(asset: Asset) {
@@ -4751,6 +4756,40 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     } : node));
     setShowAssets(false);
     setStatus(`已把素材绑定到当前${nodeLabels[selectedType] || "节点"}的${target.label}。`);
+  }
+
+  function bindFilteredAssetsToSelectedNodes() {
+    if (!filteredAssets.length) {
+      setShowAssets(true);
+      setStatus("当前素材筛选结果为空，已打开素材库；可清空筛选或上传素材后再批量绑定到选区。");
+      return;
+    }
+    if (!selectedNodes.length) {
+      setShowOutline(true);
+      setShowAssets(true);
+      setStatus("请先选择要批量绑定素材的节点；已打开节点大纲，可多选图片、视频、角色、分镜图、镜头视频或合成节点。");
+      return;
+    }
+    const usedAssetIds = new Set<string>();
+    const patches = new Map<string, Record<string, string>>();
+    selectedNodes.forEach((node) => {
+      const asset = filteredAssets.find((item) => !usedAssetIds.has(item.id) && assetBindingTargetForNode(item, node));
+      if (!asset) return;
+      const target = assetBindingTargetForNode(asset, node);
+      if (!target) return;
+      usedAssetIds.add(asset.id);
+      patches.set(node.id, { [target.key]: asset.url });
+    });
+    if (!patches.size) {
+      setShowOutline(true);
+      setShowAssets(true);
+      setStatus("当前筛选素材和选区节点没有可匹配的绑定关系；可调整素材类型筛选，或选择图片、视频、音频、角色、分镜图、镜头视频或合成节点。");
+      return;
+    }
+    rememberGraphHistory();
+    setNodes((items) => items.map((node) => patches.has(node.id) ? { ...node, data: { ...node.data, ...patches.get(node.id) } } : node));
+    setShowAssets(false);
+    setStatus(`已把 ${patches.size} 个筛选素材按顺序绑定到选区节点。`);
   }
 
   function clearAssetFromCanvas(asset: Asset) {
@@ -6379,12 +6418,13 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <Search size={15} className="text-slate-400" />
           <input className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-slate-500" placeholder="搜索素材 URL、工作流、分镜" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
         </label>
-        <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="mt-3 grid grid-cols-3 gap-2">
           <label className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-md border border-emerald-400/40 bg-emerald-500/10 px-3 py-2 text-sm text-white hover:bg-emerald-500/20 ${busy ? "pointer-events-none opacity-50" : ""}`}>
             <Upload size={15} />上传本地素材
             <input className="sr-only" type="file" accept="image/*,video/*,audio/*" multiple onChange={(event) => void handleAssetFileInput(event)} />
           </label>
           <button disabled={!filteredAssets.length} className="inline-flex items-center justify-center gap-2 rounded-md border border-blue-400/40 bg-blue-500/10 px-3 py-2 text-sm text-white hover:bg-blue-500/20 disabled:opacity-50" onClick={addFilteredAssetNodes}><Library size={15} />批量添加 {filteredAssets.length || ""}</button>
+          <button disabled={busy} className="inline-flex items-center justify-center gap-2 rounded-md border border-cyan-300/40 bg-cyan-500/10 px-3 py-2 text-sm text-white hover:bg-cyan-500/20 disabled:opacity-50" onClick={bindFilteredAssetsToSelectedNodes}><SendToBack size={15} />绑定选区</button>
         </div>
         <div className="mt-3 grid gap-2 text-sm">
           {filteredAssets.map((asset) => {

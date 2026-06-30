@@ -433,6 +433,9 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /批量同步/);
   assert.match(canvasWorkspace, /重试失败/);
   assert.match(canvasWorkspace, /取消运行/);
+  assert.match(canvasWorkspace, /暂无生成任务，可先运行全图、追加生成链路或打开节点面板继续搭建/);
+  assert.match(canvasWorkspace, /onClick=\{\(\) => void runCanvasGraph\(\)\}>运行全图/);
+  assert.match(canvasWorkspace, /打开节点面板<\/button>/);
   assert.match(canvasWorkspace, /已批量.*任务/);
   assert.match(canvasWorkspace, /当前筛选结果没有待生成或生成中的任务可取消/);
   assert.match(canvasWorkspace, /没有匹配素材/);

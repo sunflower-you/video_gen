@@ -5756,7 +5756,17 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
               <button disabled={busy} className="rounded border border-red-400/30 px-2 py-1 text-red-100 disabled:opacity-50" onClick={() => void taskAction(task.id, "cancel")}>取消</button>
             </div>
           </article>)}
-          {!tasks.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">暂无生成任务</p>}
+          {!tasks.length && (
+            <div className="rounded-md border border-white/10 px-3 py-2 text-slate-400">
+              <p>暂无生成任务，可先运行全图、追加生成链路或打开节点面板继续搭建。</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button disabled={busy || !nodes.length} className="rounded-md border border-blue-400/40 bg-blue-500/10 px-3 py-1 text-xs text-blue-50 hover:bg-blue-500/20 disabled:opacity-50" onClick={() => void runCanvasGraph()}>运行全图</button>
+                <button disabled={busy} className="rounded-md border border-white/10 px-3 py-1 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPreset("script_to_storyboard")}>追加脚本拆解</button>
+                <button disabled={busy} className="rounded-md border border-white/10 px-3 py-1 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPreset("seedance2_image_video")}>追加 Seedance</button>
+                <button className="rounded-md border border-white/10 px-3 py-1 text-xs text-slate-100 hover:bg-white/10" onClick={() => setShowPalette(true)}>打开节点面板</button>
+              </div>
+            </div>
+          )}
           {!!tasks.length && !filteredTasks.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">没有匹配任务，请调整状态或关键词。</p>}
         </div>
       </aside>}

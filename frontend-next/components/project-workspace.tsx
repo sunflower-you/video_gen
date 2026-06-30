@@ -354,7 +354,15 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
                   </button>
                 </article>
               ))}
-              {!project?.characters?.length && <p className="rounded-md border border-line p-3 text-muted">暂无角色设定</p>}
+              {!project?.characters?.length && (
+                <div className="rounded-md border border-line p-3 text-muted">
+                  <p>暂无角色设定，可进入全画幅画布拆解脚本角色，或先新增分镜继续创作。</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <a className="rounded-md bg-accent px-3 py-1 text-xs text-white" href={`/workspace/${projectId}`}>进入全画幅画布</a>
+                    <button disabled={busy || !project} className="rounded-md border border-line px-3 py-1 text-xs disabled:opacity-50" onClick={() => void createManualShot()}>新增分镜</button>
+                  </div>
+                </div>
+              )}
             </div>
           </section>
         </aside>

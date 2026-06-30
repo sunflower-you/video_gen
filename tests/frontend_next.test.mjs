@@ -1456,6 +1456,7 @@ test("Next 独立项目工作台接入项目详情、素材、任务和导出接
   assert.match(projectWorkspace, /\/api\/comfy\/tasks\/\$\{taskId\}\/sync/);
   assert.match(projectWorkspace, /\/api\/tasks\/\$\{taskId\}\/\$\{action\}/);
   assert.match(projectWorkspace, /href="\/">返回作品广场/);
+  assert.match(projectWorkspace, /暂无角色设定，可进入全画幅画布拆解脚本角色，或先新增分镜继续创作/);
   assert.match(projectWorkspace, /暂无分镜，可新增手动分镜，或进入全画幅画布铺设脚本拆解链路/);
   assert.match(projectWorkspace, /暂无字幕，可先生成时间线、新增分镜，或进入全画幅画布继续编排节点/);
   assert.match(projectWorkspace, /暂无生成任务，可新增分镜、合成成片，或进入全画幅画布继续编排节点/);

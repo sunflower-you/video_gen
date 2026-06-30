@@ -2353,7 +2353,9 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   function fillSelectedFromUpstream() {
     if (!selectedNode) return;
     if (!selectedUpstreamInputs.length) {
-      setStatus("当前节点没有可填充的上游输入。");
+      setShowValidation(true);
+      setShowOutline(true);
+      setStatus("当前节点没有可填充的上游输入，已打开画布自检和节点大纲；可先连接文本、图片、分镜或素材节点作为上游。");
       return;
     }
     const patch = Object.fromEntries(selectedUpstreamInputs.map((item) => [item.key, item.value]));

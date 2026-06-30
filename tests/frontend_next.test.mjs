@@ -739,6 +739,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /素材预览/);
   assert.match(canvasWorkspace, /上游输入/);
   assert.match(canvasWorkspace, /填充参数/);
+  assert.match(canvasWorkspace, /当前节点没有可填充的上游输入，已打开画布自检和节点大纲；可先连接文本、图片、分镜或素材节点作为上游/);
   assert.match(canvasWorkspace, /upstreamInputEntries/);
   assert.match(canvasWorkspace, /fillSelectedFromUpstream/);
   assert.match(canvasWorkspace, /节点快捷菜单/);

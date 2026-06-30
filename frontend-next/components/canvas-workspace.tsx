@@ -1954,7 +1954,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const preset = customWorkflowPresets.find((item) => item.key === presetKey);
     if (!preset) return;
     if (!preset.nodes.length) {
-      setStatus(`自定义预设 ${preset.title} 暂无节点，无法添加到画布。`);
+      setShowPalette(true);
+      setStatus(`自定义预设 ${preset.title} 暂无节点，已打开节点面板；可先添加节点后重新保存，或删除该预设后导入有效 ProjectGraph。`);
       return;
     }
     const timestamp = Date.now();

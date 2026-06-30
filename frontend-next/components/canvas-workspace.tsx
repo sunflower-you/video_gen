@@ -2865,7 +2865,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const type = String(selectedDataForSync.nodeType || "text");
     const patch = nodeBusinessParamPatch(type, selectedDataForSync);
     if (!Object.keys(patch).length) {
-      setStatus("当前节点没有可同步的业务参数。");
+      setShowOutline(true);
+      setStatus("当前节点没有可同步的业务参数，已打开节点大纲；可先选择带提示词、媒体、生成参数或配音参数的源节点。");
       return;
     }
     const targetIds = new Set(nodes
@@ -2874,7 +2875,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       .filter((node) => String((node.data as Record<string, unknown>).nodeType || "text") === type)
       .map((node) => node.id));
     if (!targetIds.size) {
-      setStatus("同分镜下没有其它同类型节点可同步参数。");
+      setShowShots(true);
+      setStatus("同分镜下没有其它同类型节点可同步参数，已打开分镜面板；可先为该分镜追加同类型生成节点。");
       return;
     }
     rememberGraphHistory();
@@ -2892,7 +2894,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const type = String(sourceData.nodeType || "text");
     const patch = nodeBusinessParamPatch(type, sourceData);
     if (!Object.keys(patch).length) {
-      setStatus("当前节点没有可应用到选区的业务参数。");
+      setShowOutline(true);
+      setStatus("当前节点没有可应用到选区的业务参数，已打开节点大纲；可先选择带提示词、媒体、生成参数或配音参数的源节点。");
       return;
     }
     const targetIds = new Set(selectedNodes
@@ -2900,7 +2903,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       .filter((node) => String((node.data as Record<string, unknown>).nodeType || "text") === type)
       .map((node) => node.id));
     if (!targetIds.size) {
-      setStatus("当前选区没有其它同类型节点可应用参数。");
+      setShowOutline(true);
+      setStatus("当前选区没有其它同类型节点可应用参数，已打开节点大纲；可先多选同类型目标节点后重试。");
       return;
     }
     rememberGraphHistory();

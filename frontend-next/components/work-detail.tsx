@@ -143,7 +143,13 @@ export function WorkDetail({ workId }: { workId: string }) {
               <UserRound size={16} />
               查看作者主页
             </a>
-            <p className="mt-3 text-sm text-muted">模板：{work?.template_name || work?.template_id || "未绑定模板"}</p>
+            {work?.template_id ? (
+              <a className="mt-3 block rounded-md border border-line px-3 py-2 text-sm hover:border-accent" href={`/templates?template=${encodeURIComponent(work.template_id)}`}>
+                模板：{work.template_name || work.template_id}
+              </a>
+            ) : (
+              <p className="mt-3 text-sm text-muted">模板：未绑定模板</p>
+            )}
             <button className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md bg-accent px-3 py-2 text-sm text-white disabled:opacity-60" disabled={!work || creatingSameStyle} onClick={() => void createSameStyleWork()}>
               <Sparkles size={16} />
               {creatingSameStyle ? "正在创建同款画布" : "使用该作品同款创作"}

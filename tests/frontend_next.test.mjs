@@ -1454,6 +1454,7 @@ test("Next 作品详情页接入真实作品接口和互动入口", () => {
   assert.match(workDetail, /interaction_type: interactionType/);
   assert.match(workDetail, /target_type: "work"/);
   assert.match(workDetail, /href=\{`\/users\/\$\{work\?\.author_id \|\| "system"\}`\}/);
+  assert.match(workDetail, /href=\{`\/templates\?template=\$\{encodeURIComponent\(work\.template_id\)\}`\}/);
   assert.match(workDetail, /createSameStyleProjectFromHref/);
   assert.match(workDetail, /function createSameStyleWork/);
   assert.match(workDetail, /window\.location\.href = await createSameStyleProjectFromHref/);
@@ -1472,7 +1473,7 @@ test("Next 作品详情页接入真实作品接口和互动入口", () => {
   assert.match(workQuickStart, /sourceScript/);
   assert.match(workQuickStart, /sourceReferenceUrl: item\.cover_url/);
   assert.match(gallery, /href=\{`\/works\/\$\{item\.id\}`\}/);
-  for (const text of ["作品详情", "同款创作", "点赞", "收藏", "分享", "查看作者主页", "作品数据", "成片预览"]) {
+  for (const text of ["作品详情", "同款创作", "点赞", "收藏", "分享", "查看作者主页", "模板：", "未绑定模板", "作品数据", "成片预览"]) {
     assert.match(workDetail, new RegExp(text));
   }
 });

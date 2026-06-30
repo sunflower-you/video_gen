@@ -411,7 +411,15 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
                   </div>
                 </article>
               ))}
-              {!project?.shots?.length && <p className="rounded-md border border-line p-3 text-sm text-muted">暂无分镜，请先在创作入口生成脚本分镜或新增空白项目分镜。</p>}
+              {!project?.shots?.length && (
+                <div className="rounded-md border border-line p-3 text-sm text-muted">
+                  <p>暂无分镜，可新增手动分镜，或进入全画幅画布铺设脚本拆解链路。</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button disabled={busy || !project} className="rounded-md bg-accent px-3 py-1 text-xs text-white disabled:opacity-50" onClick={() => void createManualShot()}>新增手动分镜</button>
+                    <a className="rounded-md border border-line px-3 py-1 text-xs hover:border-accent" href={`/workspace/${projectId}`}>进入全画幅画布</a>
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 

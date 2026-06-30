@@ -99,6 +99,17 @@ export function AuthorProfilePanel({ userId }: { userId: string }) {
     }
   }
 
+  async function createAuthorCanvas() {
+    setCreatingSameStyleId("author:create");
+    setStatus("正在创建作者主页全画幅画布...");
+    try {
+      window.location.href = await createSameStyleProjectFromHref("/create", `${profile.nickname || "作者主页"}创作`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "作者主页画布创建失败，请稍后重试。");
+      setCreatingSameStyleId("");
+    }
+  }
+
   async function copyWorkShareLink(work: AuthorProfile["works"][number]) {
     const shareUrl = `${window.location.origin}/works/${work.id}`;
     setSharingItemId(`work:${work.id}`);
@@ -210,7 +221,17 @@ export function AuthorProfilePanel({ userId }: { userId: string }) {
                 </div>
               </article>
             ))}
-            {!profile.works.length && <p className="rounded-md border border-line px-3 py-2 text-sm text-muted">暂无公开作品</p>}
+            {!profile.works.length && (
+              <div className="rounded-md border border-line px-3 py-2 text-sm text-muted">
+                <p>暂无公开作品，可返回作品广场浏览案例，或直接开始自己的全画幅创作。</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <a className="rounded-md border border-line px-3 py-1 text-xs hover:border-accent" href="/">浏览作品广场</a>
+                  <button className="rounded-md bg-accent px-3 py-1 text-xs text-white disabled:opacity-60" disabled={creatingSameStyleId === "author:create"} onClick={() => void createAuthorCanvas()}>
+                    {creatingSameStyleId === "author:create" ? "创建中" : "开始创作"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </article>
 
@@ -237,7 +258,17 @@ export function AuthorProfilePanel({ userId }: { userId: string }) {
                 </div>
               </article>
             ))}
-            {!profile.templates.length && <p className="rounded-md border border-line px-3 py-2 text-muted">暂无公开模板</p>}
+            {!profile.templates.length && (
+              <div className="rounded-md border border-line px-3 py-2 text-muted">
+                <p>暂无公开模板，可进入模板市场查找同款工作流，或直接创建空白画布。</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <a className="rounded-md border border-line px-3 py-1 text-xs hover:border-accent" href="/templates">查看模板市场</a>
+                  <button className="rounded-md bg-accent px-3 py-1 text-xs text-white disabled:opacity-60" disabled={creatingSameStyleId === "author:create"} onClick={() => void createAuthorCanvas()}>
+                    {creatingSameStyleId === "author:create" ? "创建中" : "开始创作"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           <p className="mt-3 rounded-md border border-line bg-canvas px-3 py-2 text-sm text-muted">{status}</p>
         </aside>

@@ -1541,6 +1541,7 @@ test("Next 作者主页读取真实作者聚合并支持关注", () => {
   assert.match(authorProfile, /createSameStyleProjectFromHref/);
   assert.match(authorProfile, /function createSameStyleWork/);
   assert.match(authorProfile, /function createSameStyleTemplate/);
+  assert.match(authorProfile, /function createAuthorCanvas/);
   assert.match(authorProfile, /const \[sharingItemId, setSharingItemId\]/);
   assert.match(authorProfile, /function copyAuthorShareLink/);
   assert.match(authorProfile, /function copyWorkShareLink/);
@@ -1548,6 +1549,8 @@ test("Next 作者主页读取真实作者聚合并支持关注", () => {
   assert.match(authorProfile, /window\.location\.href = await createSameStyleProjectFromHref/);
   assert.match(authorProfile, /正在创建《\$\{work\.title\}》同款画布/);
   assert.match(authorProfile, /正在创建「\$\{template\.name\}」同款画布/);
+  assert.match(authorProfile, /正在创建作者主页全画幅画布/);
+  assert.match(authorProfile, /createSameStyleProjectFromHref\("\/create", `\$\{profile\.nickname \|\| "作者主页"\}创作`\)/);
   assert.match(authorProfile, /\/users\/\$\{profile\.id\}/);
   assert.match(authorProfile, /\/works\/\$\{work\.id\}/);
   assert.match(authorProfile, /function templateMarketHref\(template: AuthorProfile\["templates"\]\[number\]\)/);
@@ -1571,7 +1574,7 @@ test("Next 作者主页读取真实作者聚合并支持关注", () => {
   assert.match(api, /export type AuthorProfile/);
   assert.match(api, /export function currentUserId/);
   assert.match(api, /export function saveCurrentUser/);
-  for (const text of ["作者主页", "关注作者", "分享主页", "公开作品", "同款创作", "分享作品", "发布模板", "快速同款创作", "分享模板", "暂无公开作品"]) {
+  for (const text of ["作者主页", "关注作者", "分享主页", "公开作品", "同款创作", "分享作品", "发布模板", "快速同款创作", "分享模板", "暂无公开作品", "暂无公开模板", "浏览作品广场", "直接开始自己的全画幅创作", "进入模板市场查找同款工作流", "开始创作"]) {
     assert.match(authorProfile, new RegExp(text));
   }
 });

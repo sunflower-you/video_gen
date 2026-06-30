@@ -2095,15 +2095,18 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     try {
       graph = JSON.parse(text);
     } catch {
-      setStatus("预设 JSON 解析失败，请检查内容格式。");
+      setShowPalette(true);
+      setStatus("预设 JSON 解析失败，已打开节点面板；可先导出当前画布或选区预设作为格式模板。");
       return;
     }
     if (!Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) {
-      setStatus("预设 JSON 需要包含 nodes 和 edges。");
+      setShowPalette(true);
+      setStatus("预设 JSON 需要包含 nodes 和 edges；已打开节点面板，可先导出当前画布或选区预设作为格式模板。");
       return;
     }
     if (!graph.nodes.length) {
-      setStatus("预设 JSON 中没有节点，无法导入为我的预设。");
+      setShowPalette(true);
+      setStatus("预设 JSON 中没有节点，已打开节点面板；可先搭建节点后保存为我的工作流预设。");
       return;
     }
     const preset: CustomWorkflowPreset = {
@@ -3161,15 +3164,18 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     try {
       graph = JSON.parse(text);
     } catch {
-      setStatus("画布版本 JSON 解析失败，请检查内容格式。");
+      setShowGraphVersions(true);
+      setStatus("画布版本 JSON 解析失败，已打开版本历史；可先导出现有版本快照作为格式模板。");
       return;
     }
     if (!Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) {
-      setStatus("画布版本 JSON 需要包含 nodes 和 edges。");
+      setShowGraphVersions(true);
+      setStatus("画布版本 JSON 需要包含 nodes 和 edges；已打开版本历史，可先导出现有版本快照作为格式模板。");
       return;
     }
     if (!graph.nodes.length) {
-      setStatus("画布版本 JSON 中没有节点，无法导入为版本快照。");
+      setShowGraphVersions(true);
+      setStatus("画布版本 JSON 中没有节点，已打开版本历史；可先保存当前有节点的画布版本。");
       return;
     }
     const version: CanvasGraphVersion = {
@@ -4553,19 +4559,22 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     event.target.value = "";
     if (!file) return;
     if (file.type && file.type !== "application/json" && !file.name.toLowerCase().endsWith(".json")) {
-      setStatus("请选择从画布导出的 JSON 文件。");
+      setShowImport(true);
+      setStatus("请选择从画布导出的 JSON 文件；已打开导入工作流面板，可先导出当前画布作为模板。");
       return;
     }
     try {
       const text = await file.text();
       if (!text.trim()) {
-        setStatus("导入文件为空，请选择有效的 ProjectGraph JSON 文件。");
+        setShowImport(true);
+        setStatus("导入文件为空，请选择有效的 ProjectGraph JSON 文件；已打开导入工作流面板，可先导出当前画布作为模板。");
         return;
       }
       setImportText(text);
       setStatus(`已读取导入文件：${file.name}，可选择追加到当前画布或替换当前画布。`);
     } catch {
-      setStatus("导入文件读取失败，请重新选择 JSON 文件。");
+      setShowImport(true);
+      setStatus("导入文件读取失败，已打开导入工作流面板；请重新选择 JSON 文件。");
     }
   }
 

@@ -331,6 +331,9 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /已导出并复制画布版本 ProjectGraph JSON/);
   assert.match(canvasWorkspace, /已导出画布版本 ProjectGraph JSON；浏览器剪贴板不可用，已把内容暂存到本地/);
   assert.match(canvasWorkspace, /剪贴板中没有可导入为画布版本的 ProjectGraph JSON，已打开版本历史；可先保存或导出现有版本快照/);
+  assert.match(canvasWorkspace, /画布版本 JSON 解析失败，已打开版本历史；可先导出现有版本快照作为格式模板/);
+  assert.match(canvasWorkspace, /画布版本 JSON 需要包含 nodes 和 edges；已打开版本历史，可先导出现有版本快照作为格式模板/);
+  assert.match(canvasWorkspace, /画布版本 JSON 中没有节点，已打开版本历史；可先保存当前有节点的画布版本/);
   assert.match(canvasWorkspace, /已导入画布版本快照/);
   assert.match(canvasWorkspace, /已恢复画布版本快照/);
   assert.match(canvasWorkspace, /暂无画布版本快照，可先保存当前版本/);
@@ -874,8 +877,9 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /剪贴板中没有可导入的 ProjectGraph JSON，已打开导入工作流面板；可先选择 JSON 文件、导出当前画布或复制选区/);
   assert.match(canvasWorkspace, /已从剪贴板读取 ProjectGraph JSON/);
   assert.match(canvasWorkspace, /已读取导入文件/);
-  assert.match(canvasWorkspace, /请选择从画布导出的 JSON 文件/);
-  assert.match(canvasWorkspace, /导入文件为空，请选择有效的 ProjectGraph JSON 文件/);
+  assert.match(canvasWorkspace, /请选择从画布导出的 JSON 文件；已打开导入工作流面板，可先导出当前画布作为模板/);
+  assert.match(canvasWorkspace, /导入文件为空，请选择有效的 ProjectGraph JSON 文件；已打开导入工作流面板，可先导出当前画布作为模板/);
+  assert.match(canvasWorkspace, /导入文件读取失败，已打开导入工作流面板；请重新选择 JSON 文件/);
   assert.match(canvasWorkspace, /还没有选中节点或连线，可先添加节点、追加内置工作流、导入 ProjectGraph JSON，或运行画布自检定位需要处理的链路/);
   assert.match(canvasWorkspace, /运行画布自检<\/button>/);
   assert.match(canvasWorkspace, /运行节点/);
@@ -1188,6 +1192,9 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /已导出并复制预设 ProjectGraph JSON/);
   assert.match(canvasWorkspace, /已导出预设 ProjectGraph JSON；浏览器剪贴板不可用，已把内容暂存到本地/);
   assert.match(canvasWorkspace, /剪贴板中没有可导入为预设的 ProjectGraph JSON，已打开节点面板；可先导出当前画布或选区预设作为模板/);
+  assert.match(canvasWorkspace, /预设 JSON 解析失败，已打开节点面板；可先导出当前画布或选区预设作为格式模板/);
+  assert.match(canvasWorkspace, /预设 JSON 需要包含 nodes 和 edges；已打开节点面板，可先导出当前画布或选区预设作为格式模板/);
+  assert.match(canvasWorkspace, /预设 JSON 中没有节点，已打开节点面板；可先搭建节点后保存为我的工作流预设/);
   assert.match(canvasWorkspace, /已导入预设到我的工作流/);
   assert.match(canvasWorkspace, /deleteCustomWorkflowPreset/);
   assert.match(canvasWorkspace, /保存选区为预设/);

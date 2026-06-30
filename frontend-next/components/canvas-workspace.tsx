@@ -2167,7 +2167,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function addAllShotWorkflows() {
     if (!selectedFilteredShots.length) {
-      setStatus("当前筛选结果没有可添加的分镜。");
+      setShowShots(true);
+      setStatus("当前筛选结果没有可添加的分镜，已打开分镜面板；可先清空筛选、选择未铺设分镜或铺设全部分镜链路。");
       return;
     }
     const timestamp = Date.now();
@@ -2184,7 +2185,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function addAllProjectShotWorkflows() {
     if (!shotOptions.length) {
-      setStatus("项目暂无分镜，无法批量添加生成链路。");
+      setShowShots(true);
+      setStatus("项目暂无分镜，已打开分镜面板；可先追加脚本拆解工作流生成分镜，或打开节点面板手动搭建链路。");
       return;
     }
     const timestamp = Date.now();

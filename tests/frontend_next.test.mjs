@@ -694,6 +694,8 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /firstNonEmpty/);
   assert.match(canvasWorkspace, /focusCanvasNode/);
   assert.match(canvasWorkspace, /自检通过/);
+  assert.match(canvasWorkspace, /自检通过，当前画布没有发现阻断性问题，可继续保存、运行或追踪生成任务/);
+  assert.match(canvasWorkspace, /查看事件日志<\/button>/);
   assert.match(canvasWorkspace, /导出工作流/);
   assert.match(canvasWorkspace, /导入工作流/);
   assert.match(canvasWorkspace, /导入工作流 JSON/);

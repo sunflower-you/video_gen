@@ -5129,7 +5129,16 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
               {issue.nodeId && <button className="shrink-0 rounded border border-white/10 px-2 py-1 text-xs text-white" onClick={() => focusCanvasNode(issue.nodeId || "")}>定位</button>}
             </div>
           </article>)}
-          {!graphValidation.issues.length && <p className="rounded-md border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-emerald-100">自检通过，当前画布没有发现阻断性问题。</p>}
+          {!graphValidation.issues.length && <div className="rounded-md border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-emerald-100">
+            <p>自检通过，当前画布没有发现阻断性问题，可继续保存、运行或追踪生成任务。</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button disabled={busy} className="rounded-md border border-emerald-300/40 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-50 hover:bg-emerald-400/20 disabled:opacity-50" onClick={() => void saveGraph()}>保存画布</button>
+              <button disabled={busy || !nodes.length} className="rounded-md border border-white/10 px-3 py-1 text-xs text-emerald-50 hover:bg-white/10 disabled:opacity-50" onClick={() => void runCanvasGraph()}>运行全图</button>
+              <button className="rounded-md border border-white/10 px-3 py-1 text-xs text-emerald-50 hover:bg-white/10" onClick={() => setShowTasks(true)}>打开任务队列</button>
+              <button className="rounded-md border border-white/10 px-3 py-1 text-xs text-emerald-50 hover:bg-white/10" onClick={() => setShowEventLog(true)}>查看事件日志</button>
+              <button className="rounded-md border border-white/10 px-3 py-1 text-xs text-emerald-50 hover:bg-white/10" onClick={() => setShowPalette(true)}>打开节点面板</button>
+            </div>
+          </div>}
         </div>
       </aside>}
 

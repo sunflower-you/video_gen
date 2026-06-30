@@ -3600,7 +3600,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     }
     const unlockedNodes = selectedNodes.filter((node) => (node.data as Record<string, unknown>).locked !== true);
     if (!unlockedNodes.length) {
-      setStatus("选区节点均已锁定，请先解锁再剪切。");
+      setShowOutline(true);
+      setStatus("选区节点均已锁定，请先解锁再剪切；已打开节点大纲，可先定位锁定节点并批量解锁。");
       return;
     }
     const unlockedIds = new Set(unlockedNodes.map((node) => node.id));
@@ -4069,7 +4070,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     }
     const movableIds = new Set(selectedNodes.filter((node) => (node.data as Record<string, unknown>).locked !== true).map((node) => node.id));
     if (!movableIds.size) {
-      setStatus("选区节点均已锁定，请先解锁再移动。");
+      setShowOutline(true);
+      setStatus("选区节点均已锁定，请先解锁再移动；已打开节点大纲，可先定位锁定节点并批量解锁。");
       return;
     }
     rememberGraphHistory();
@@ -4350,7 +4352,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     if (!selectedNodes.length) return;
     const unlockedIds = new Set(selectedNodes.filter((node) => (node.data as Record<string, unknown>).locked !== true).map((node) => node.id));
     if (!unlockedIds.size) {
-      setStatus("选区节点均已锁定，请先解锁再删除。");
+      setShowOutline(true);
+      setStatus("选区节点均已锁定，请先解锁再删除；已打开节点大纲，可先定位锁定节点并批量解锁。");
       return;
     }
     rememberGraphHistory();

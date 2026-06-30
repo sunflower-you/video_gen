@@ -830,7 +830,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /ArrowUp/);
   assert.match(canvasWorkspace, /ArrowDown/);
   assert.match(canvasWorkspace, /请先选择节点，再用方向键微调位置；已打开节点大纲，可先定位要移动的节点/);
-  assert.match(canvasWorkspace, /选区节点均已锁定，请先解锁再移动/);
+  assert.match(canvasWorkspace, /选区节点均已锁定，请先解锁再移动；已打开节点大纲，可先定位锁定节点并批量解锁/);
   assert.match(canvasWorkspace, /已向\$\{direction\}微调选区/);
   assert.match(canvasWorkspace, /setSelectedNodesLayer/);
   assert.match(canvasWorkspace, /nodeLayerValue/);
@@ -1037,7 +1037,8 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /已剪切选区到系统剪贴板/);
   assert.match(canvasWorkspace, /已剪切选区到本地画布剪贴板/);
   assert.match(canvasWorkspace, /请先框选或点选节点，再剪切选区/);
-  assert.match(canvasWorkspace, /选区节点均已锁定，请先解锁再剪切/);
+  assert.match(canvasWorkspace, /选区节点均已锁定，请先解锁再剪切；已打开节点大纲，可先定位锁定节点并批量解锁/);
+  assert.match(canvasWorkspace, /选区节点均已锁定，请先解锁再删除；已打开节点大纲，可先定位锁定节点并批量解锁/);
   assert.match(canvasWorkspace, /deleteSelectedNodes/);
   assert.match(canvasWorkspace, /autoLayoutSelectedNodes/);
   assert.match(canvasWorkspace, /setSelectedNodesDisabled/);

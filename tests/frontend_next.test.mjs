@@ -1011,6 +1011,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /deleteSelectedEdge/);
   assert.match(canvasWorkspace, /runSelectedChain/);
   assert.match(canvasWorkspace, /runSelectedNodes/);
+  assert.match(canvasWorkspace, /节点已禁用，已打开节点大纲并定位当前节点；请先启用节点后再运行/);
   assert.match(canvasWorkspace, /画布中暂未找到要运行的节点，已打开节点大纲；可先重新定位链路终点节点后再运行/);
   assert.match(canvasWorkspace, /运行全图/);
   assert.match(canvasWorkspace, /运行选区/);

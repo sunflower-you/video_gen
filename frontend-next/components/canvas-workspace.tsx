@@ -3262,7 +3262,9 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   async function runSelectedNode() {
     if (!selectedNode) return;
     if (isNodeDisabled(selectedNode)) {
-      setStatus("节点已禁用，请先启用再运行。");
+      setShowOutline(true);
+      focusCanvasNode(selectedNode.id);
+      setStatus("节点已禁用，已打开节点大纲并定位当前节点；请先启用节点后再运行。");
       return;
     }
     if (isCommentNode(selectedNode)) {

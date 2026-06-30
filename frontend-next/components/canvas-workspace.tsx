@@ -5672,7 +5672,17 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <button className="col-span-2 rounded-md border border-white/10 px-3 py-2 text-slate-200 hover:bg-white/10" onClick={reverseSelectedEdge}>反转连线方向</button>
             <button className="col-span-2 rounded-md border border-red-400/30 px-3 py-2 text-red-100 hover:bg-red-500/10" onClick={deleteSelectedEdge}>删除连线</button>
           </div>
-        </div> : <p className="mt-4 rounded-md border border-white/10 bg-white/5 p-3 text-sm text-slate-400">点击画布节点或连线后可编辑参数、运行生成或删除节点。</p>}
+        </div> : <div className="mt-4 rounded-md border border-white/10 bg-white/5 p-3 text-sm text-slate-400">
+          <p>还没有选中节点或连线，可先添加节点、追加内置工作流、导入 ProjectGraph JSON，或运行画布自检定位需要处理的链路。</p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button className="rounded-md border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-left text-xs text-blue-50 hover:bg-blue-500/20" onClick={() => setShowPalette(true)}>打开节点面板</button>
+            <button disabled={busy} className="rounded-md border border-white/10 px-3 py-2 text-left text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPreset("script_to_storyboard")}>追加脚本拆解</button>
+            <button disabled={busy} className="rounded-md border border-white/10 px-3 py-2 text-left text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPreset("seedance2_image_video")}>追加 Seedance</button>
+            <button className="rounded-md border border-white/10 px-3 py-2 text-left text-xs text-slate-100 hover:bg-white/10" onClick={() => setShowImport(true)}>导入工作流 JSON</button>
+            <button disabled={!nodes.length} className="rounded-md border border-amber-400/30 px-3 py-2 text-left text-xs text-amber-100 hover:bg-amber-500/10 disabled:opacity-50" onClick={() => setShowValidation(true)}>运行画布自检</button>
+            <button disabled={!nodes.length} className="rounded-md border border-white/10 px-3 py-2 text-left text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={fitGraphView}>适配全部节点</button>
+          </div>
+        </div>}
       </section>
 
       {showAssets && <aside className="absolute bottom-6 left-24 z-20 max-h-[320px] w-[360px] overflow-auto rounded-lg border border-white/10 bg-slate-950/90 p-4 shadow-2xl backdrop-blur">

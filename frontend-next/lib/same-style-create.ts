@@ -59,6 +59,7 @@ export async function createSameStyleProjectFromHref(href: string, fallbackTitle
   if (sourceScript.trim()) workspaceParams.set("quickScript", sourceScript.trim());
   if (sourceReferenceUrl.trim() && quick === "seedance2") workspaceParams.set("referenceImageUrl", sourceReferenceUrl.trim());
   if (sourceReferenceUrl.trim() && presetKey === "image_to_video") workspaceParams.set("referenceImageUrl", sourceReferenceUrl.trim());
+  if (sourceReferenceUrl.trim() && presetKey === "script_to_storyboard") workspaceParams.set("referenceImageUrl", sourceReferenceUrl.trim());
   sameStyleKeys.forEach((key) => {
     const value = url.searchParams.get(key) || "";
     if (value.trim()) workspaceParams.set(key, value.trim());

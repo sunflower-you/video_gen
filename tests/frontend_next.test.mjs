@@ -1066,6 +1066,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /referenceOverride/);
   assert.match(canvasWorkspace, /quickScriptOverride/);
   assert.match(canvasWorkspace, /image_url: overrides\.referenceImageUrl/);
+  assert.match(canvasWorkspace, /reference_image_url: overrides\.referenceImageUrl/);
   assert.match(canvasWorkspace, /script: overrides\.quickScript/);
   assert.match(canvasWorkspace, /text: overrides\.quickScript/);
   assert.match(canvasWorkspace, /prompt: overrides\.quickScript/);
@@ -1206,6 +1207,7 @@ test("Next 模板市场读取真实模板并支持复刻项目", () => {
   assert.match(sameStyleCreate, /presetMode: "replace"/);
   assert.match(sameStyleCreate, /workspaceParams\.set\("quickScript"/);
   assert.match(sameStyleCreate, /workspaceParams\.set\("referenceImageUrl"/);
+  assert.match(sameStyleCreate, /presetKey === "script_to_storyboard"/);
   assert.match(sameStyleCreate, /template_id: !mode && templateId \? templateId : undefined/);
   assert.match(api, /default_params\?: Record<string, unknown>/);
   assert.match(api, /example_inputs\?: Record<string, unknown>/);

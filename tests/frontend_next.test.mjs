@@ -1234,6 +1234,18 @@ test("Next 模板市场读取真实模板并支持复刻项目", () => {
   assert.match(templates, /const templateChannels/);
   assert.match(templates, /const \[activeChannel, setActiveChannel\]/);
   assert.match(templates, /const \[templateKeyword, setTemplateKeyword\]/);
+  assert.match(templates, /function syncTemplateFiltersFromLocation/);
+  assert.match(templates, /window\.location\.pathname !== "\/templates"/);
+  assert.match(templates, /params\.get\("channel"\) \|\| "全部"/);
+  assert.match(templates, /params\.get\("keyword"\) \|\| ""/);
+  assert.match(templates, /function writeTemplateFilters\(nextChannel: string, nextKeyword: string\)/);
+  assert.match(templates, /params\.set\("channel", nextChannel\)/);
+  assert.match(templates, /params\.set\("keyword", nextKeyword\.trim\(\)\)/);
+  assert.match(templates, /window\.history\.replaceState\(null, "", nextUrl\)/);
+  assert.match(templates, /function updateActiveChannel\(nextChannel: string\)/);
+  assert.match(templates, /function clearTemplateFilters\(\)/);
+  assert.match(templates, /已清空模板筛选/);
+  assert.match(templates, /当前筛选：\{activeTemplateFilterText\}/);
   assert.match(templates, /visibleTemplates/);
   assert.match(templates, /const keyword = templateKeyword\.trim\(\)\.toLowerCase\(\)/);
   assert.match(templates, /const searchText = `\$\{text\} \$\{item\.description\}`\.toLowerCase\(\)/);
@@ -1305,7 +1317,7 @@ test("Next 模板市场读取真实模板并支持复刻项目", () => {
   assert.match(sameStyleCreate, /template_id: !mode && templateId \? templateId : undefined/);
   assert.match(api, /default_params\?: Record<string, unknown>/);
   assert.match(api, /example_inputs\?: Record<string, unknown>/);
-  for (const text of ["复刻项目", "快速同款创作", "分享模板", "分享定位", "搜索模板", "搜索模板、工作流、适用场景", "清空", "复刻项目标题", "目标画幅", "9:16 竖屏短视频", "16:9 横屏短片", "1:1 方形画布", "刷新模板", "模板复刻成功", "模板复刻失败，请稍后重试", "默认参数", "示例输入", "使用次数", "查看封面", "查看成片示例", "全部", "创作者挑战赛", "Seedance 2.0", "TV Show", "创作", "开始创作"]) {
+  for (const text of ["复刻项目", "快速同款创作", "分享模板", "分享定位", "搜索模板", "搜索模板、工作流、适用场景", "清空", "当前筛选", "复刻项目标题", "目标画幅", "9:16 竖屏短视频", "16:9 横屏短片", "1:1 方形画布", "刷新模板", "模板复刻成功", "模板复刻失败，请稍后重试", "默认参数", "示例输入", "使用次数", "查看封面", "查看成片示例", "全部", "创作者挑战赛", "Seedance 2.0", "TV Show", "创作", "开始创作"]) {
     assert.match(`${templateMarketplace}\n${templates}\n${fallbackData}`, new RegExp(text));
   }
 });

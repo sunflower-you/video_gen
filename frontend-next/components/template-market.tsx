@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, X } from "lucide-react";
 import type { Template } from "../lib/api";
 import { createSameStyleProjectFromHref } from "../lib/same-style-create";
 import { quickStartHrefForTemplate } from "../lib/template-quick-start";
@@ -47,11 +47,29 @@ export function TemplateMarket({
   }, [activeChannel, templateKeyword, templates]);
   const activeShortcut = templateChannels.find((item) => item.label === activeChannel) || templateChannels[0];
   const highlightedTemplate = useMemo(() => templates.find((item) => item.id === highlightedTemplateId), [highlightedTemplateId, templates]);
+  const hasActiveTemplateFilter = activeChannel !== "全部" || Boolean(templateKeyword.trim());
+  const activeTemplateFilterText = [
+    activeChannel !== "全部" ? `频道：${activeChannel}` : "",
+    templateKeyword.trim() ? `关键词：${templateKeyword.trim()}` : ""
+  ].filter(Boolean).join(" / ");
+
+  useEffect(() => {
+    function syncTemplateFiltersFromLocation() {
+      if (window.location.pathname !== "/templates") return;
+      const params = new URLSearchParams(window.location.search);
+      setActiveChannel(params.get("channel") || "全部");
+      setTemplateKeyword(params.get("keyword") || "");
+    }
+    syncTemplateFiltersFromLocation();
+    window.addEventListener("popstate", syncTemplateFiltersFromLocation);
+    return () => window.removeEventListener("popstate", syncTemplateFiltersFromLocation);
+  }, []);
 
   useEffect(() => {
     if (!highlightedTemplate) return;
     if (activeChannel !== "全部" && !visibleTemplates.some((item) => item.id === highlightedTemplate.id)) {
       setActiveChannel("全部");
+      writeTemplateFilters("全部", templateKeyword);
     }
     setActionStatus(`已定位分享模板：${highlightedTemplate.name}`);
     const handle = window.setTimeout(() => {
@@ -59,6 +77,22 @@ export function TemplateMarket({
     }, 0);
     return () => window.clearTimeout(handle);
   }, [activeChannel, highlightedTemplate, visibleTemplates]);
+
+  function writeTemplateFilters(nextChannel: string, nextKeyword: string) {
+    if (window.location.pathname !== "/templates") return;
+    const params = new URLSearchParams(window.location.search);
+    if (nextChannel !== "全部") params.set("channel", nextChannel);
+    else params.delete("channel");
+    if (nextKeyword.trim()) params.set("keyword", nextKeyword.trim());
+    else params.delete("keyword");
+    const nextUrl = params.toString() ? `/templates?${params.toString()}` : "/templates";
+    window.history.replaceState(null, "", nextUrl);
+  }
+
+  function updateActiveChannel(nextChannel: string) {
+    setActiveChannel(nextChannel);
+    writeTemplateFilters(nextChannel, templateKeyword);
+  }
 
   async function createSameStyleTemplate(template: Template) {
     const href = quickStartHrefForTemplate(template);
@@ -75,7 +109,15 @@ export function TemplateMarket({
 
   function submitTemplateSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    writeTemplateFilters(activeChannel, templateKeyword);
     setActionStatus(templateKeyword.trim() ? `已筛选模板关键词：${templateKeyword.trim()}` : "已清空模板关键词筛选。");
+  }
+
+  function clearTemplateFilters() {
+    setActiveChannel("全部");
+    setTemplateKeyword("");
+    writeTemplateFilters("全部", "");
+    setActionStatus("已清空模板筛选，正在显示全部模板。");
   }
 
   async function createChannelCanvas() {
@@ -115,14 +157,16 @@ export function TemplateMarket({
       <form className="mt-3 flex gap-2 text-sm" onSubmit={submitTemplateSearch}>
         <input className="h-10 min-w-0 flex-1 rounded-md border border-line px-3 outline-none focus:border-accent" value={templateKeyword} onChange={(event) => setTemplateKeyword(event.target.value)} placeholder="搜索模板、工作流、适用场景" />
         <button className="rounded-md bg-accent px-4 text-white" type="submit">搜索模板</button>
-        {templateKeyword ? <button className="rounded-md border border-line px-3" type="button" onClick={() => setTemplateKeyword("")}>清空</button> : null}
+        <button className="inline-flex items-center gap-1 rounded-md border border-line px-3 disabled:cursor-not-allowed disabled:opacity-50" type="button" disabled={!hasActiveTemplateFilter} onClick={clearTemplateFilters}>
+          <X size={15} />清空
+        </button>
       </form>
       <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
         {templateChannels.map((item) => (
           <button
             key={item.label}
             className={`rounded-md border px-3 py-2 ${activeChannel === item.label ? "border-accent bg-accent text-white" : "border-line text-muted hover:border-accent hover:text-foreground"}`}
-            onClick={() => setActiveChannel(item.label)}
+            onClick={() => updateActiveChannel(item.label)}
           >
             {item.label}
           </button>
@@ -131,6 +175,7 @@ export function TemplateMarket({
           {creatingShortcut ? "创建中" : activeChannel === "全部" ? "开始创作" : `创作${activeChannel}`}
         </button>
         <span className="text-xs text-muted">当前频道 {visibleTemplates.length} 个模板</span>
+        {hasActiveTemplateFilter ? <span className="text-xs text-accent">当前筛选：{activeTemplateFilterText}</span> : null}
       </div>
       {actionStatus ? <div className="mt-3 rounded-md border border-line bg-canvas px-3 py-2 text-sm text-muted">{actionStatus}</div> : null}
       <div className="mt-3 grid gap-2">

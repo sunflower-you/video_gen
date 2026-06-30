@@ -4520,6 +4520,12 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setActiveCommandPaletteIndex(0);
   }
 
+  function resetCommandPaletteSearch() {
+    setCommandQuery("");
+    setActiveCommandPaletteIndex(0);
+    setStatus("已清空命令搜索，可继续查找运行、导入导出、节点面板和快捷创作命令。");
+  }
+
   function runCommandPaletteItem(item = activeCommandPaletteItem) {
     if (!item) {
       setStatus("当前命令面板没有匹配命令，无法执行。");
@@ -4618,7 +4624,15 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
               {item.shortcut && <span className="shrink-0 rounded border border-white/10 px-2 py-1 text-[11px] text-slate-400">{item.shortcut}</span>}
             </button>;
             })}
-            {!filteredCommandPaletteItems.length && <p className="rounded-md border border-white/10 px-3 py-4 text-sm text-slate-400">没有匹配的画布命令，请换一个关键词。</p>}
+            {!filteredCommandPaletteItems.length && <div className="rounded-md border border-white/10 px-3 py-4 text-sm text-slate-400">
+              <p>没有匹配的画布命令，请换一个关键词。</p>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <button className="rounded-md border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-xs text-blue-50 hover:bg-blue-500/20" onClick={resetCommandPaletteSearch}>清空搜索</button>
+                <button className="rounded-md border border-white/10 px-3 py-2 text-xs text-slate-100 hover:bg-white/10" onClick={() => { closeCommandPalette(); setShowPalette(true); }}>打开节点面板</button>
+                <button disabled={busy} className="rounded-md border border-white/10 px-3 py-2 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => { closeCommandPalette(); addWorkflowPreset("script_to_storyboard"); }}>追加脚本拆解</button>
+                <button disabled={busy} className="rounded-md border border-white/10 px-3 py-2 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => { closeCommandPalette(); addWorkflowPreset("seedance2_image_video"); }}>追加 Seedance</button>
+              </div>
+            </div>}
           </div>
         </section>
       </div>}

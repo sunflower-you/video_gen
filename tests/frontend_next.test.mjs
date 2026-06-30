@@ -286,6 +286,10 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /搜索命令、面板、导入导出、运行或视图操作/);
   assert.match(canvasWorkspace, /onKeyDown=\{handleCommandPaletteKeyDown\}/);
   assert.match(canvasWorkspace, /没有匹配的画布命令，请换一个关键词/);
+  assert.match(canvasWorkspace, /resetCommandPaletteSearch/);
+  assert.match(canvasWorkspace, /已清空命令搜索，可继续查找运行、导入导出、节点面板和快捷创作命令/);
+  assert.match(canvasWorkspace, /清空搜索<\/button>/);
+  assert.match(canvasWorkspace, /closeCommandPalette\(\); setShowPalette\(true\)/);
   assert.match(canvasWorkspace, /Ctrl\/⌘ K/);
   assert.match(canvasWorkspace, /迷你地图/);
   assert.match(canvasWorkspace, /释放右下角预览空间/);

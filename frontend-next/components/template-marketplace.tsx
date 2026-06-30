@@ -9,11 +9,22 @@ export function TemplateMarketplace() {
   const [templates, setTemplates] = useState<Template[]>(fallbackTemplates);
   const [status, setStatus] = useState("正在读取模板市场...");
   const [busyTemplateId, setBusyTemplateId] = useState("");
+  const [sharedTemplateId, setSharedTemplateId] = useState("");
   const [projectTitle, setProjectTitle] = useState("模板复刻项目");
   const [aspectRatio, setAspectRatio] = useState("9:16");
 
   useEffect(() => {
     void loadTemplates();
+  }, []);
+
+  useEffect(() => {
+    function syncSharedTemplateId() {
+      const params = new URLSearchParams(window.location.search);
+      setSharedTemplateId(params.get("template") || "");
+    }
+    syncSharedTemplateId();
+    window.addEventListener("popstate", syncSharedTemplateId);
+    return () => window.removeEventListener("popstate", syncSharedTemplateId);
   }, []);
 
   async function loadTemplates() {
@@ -51,7 +62,7 @@ export function TemplateMarketplace() {
 
   return (
     <section className="grid grid-cols-[minmax(0,1fr)_360px] gap-4">
-      <TemplateMarket templates={templates} onUseTemplate={useTemplate} />
+      <TemplateMarket templates={templates} highlightedTemplateId={sharedTemplateId} onUseTemplate={useTemplate} />
       <aside className="rounded-panel border border-line bg-panel p-4">
         <h2 className="font-semibold">模板复刻</h2>
         <div className="mt-3 grid gap-2 text-sm text-muted">

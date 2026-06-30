@@ -1201,6 +1201,11 @@ test("Next 模板市场读取真实模板并支持复刻项目", () => {
   assert.match(templateMarketplace, /project_type: "模板复刻"/);
   assert.match(templateMarketplace, /const \[projectTitle, setProjectTitle\]/);
   assert.match(templateMarketplace, /const \[aspectRatio, setAspectRatio\]/);
+  assert.match(templateMarketplace, /const \[sharedTemplateId, setSharedTemplateId\]/);
+  assert.match(templateMarketplace, /new URLSearchParams\(window\.location\.search\)/);
+  assert.match(templateMarketplace, /params\.get\("template"\)/);
+  assert.match(templateMarketplace, /window\.addEventListener\("popstate", syncSharedTemplateId\)/);
+  assert.match(templateMarketplace, /highlightedTemplateId=\{sharedTemplateId\}/);
   assert.match(templateMarketplace, /const title = projectTitle\.trim\(\) \|\| `\$\{template\.name\} 复刻项目`/);
   assert.match(templateMarketplace, /aspect_ratio: aspectRatio/);
   assert.match(templates, /formatParams/);
@@ -1220,6 +1225,12 @@ test("Next 模板市场读取真实模板并支持复刻项目", () => {
   assert.match(templates, /navigator\.clipboard\?\.writeText/);
   assert.match(templates, /template_share_link_\$\{template\.id\}/);
   assert.match(templates, /已复制「\$\{template\.name\}」模板分享链接/);
+  assert.match(templates, /highlightedTemplateId\?: string/);
+  assert.match(templates, /const highlightedTemplate = useMemo/);
+  assert.match(templates, /已定位分享模板：\$\{highlightedTemplate\.name\}/);
+  assert.match(templates, /setActiveChannel\("全部"\)/);
+  assert.match(templates, /scrollIntoView\(\{ block: "center", behavior: "smooth" \}\)/);
+  assert.match(templates, /id=\{`template-\$\{item\.id\}`\}/);
   assert.match(templates, /const \[creatingShortcut, setCreatingShortcut\]/);
   assert.match(templates, /function createChannelCanvas/);
   assert.match(templates, /window\.location\.href = await createSameStyleProjectFromHref\(activeShortcut\.href/);
@@ -1270,7 +1281,7 @@ test("Next 模板市场读取真实模板并支持复刻项目", () => {
   assert.match(sameStyleCreate, /template_id: !mode && templateId \? templateId : undefined/);
   assert.match(api, /default_params\?: Record<string, unknown>/);
   assert.match(api, /example_inputs\?: Record<string, unknown>/);
-  for (const text of ["复刻项目", "快速同款创作", "分享模板", "复刻项目标题", "目标画幅", "9:16 竖屏短视频", "16:9 横屏短片", "1:1 方形画布", "刷新模板", "模板复刻成功", "模板复刻失败，请稍后重试", "默认参数", "示例输入", "使用次数", "查看封面", "查看成片示例", "全部", "创作者挑战赛", "Seedance 2.0", "TV Show", "创作", "开始创作"]) {
+  for (const text of ["复刻项目", "快速同款创作", "分享模板", "分享定位", "复刻项目标题", "目标画幅", "9:16 竖屏短视频", "16:9 横屏短片", "1:1 方形画布", "刷新模板", "模板复刻成功", "模板复刻失败，请稍后重试", "默认参数", "示例输入", "使用次数", "查看封面", "查看成片示例", "全部", "创作者挑战赛", "Seedance 2.0", "TV Show", "创作", "开始创作"]) {
     assert.match(`${templateMarketplace}\n${templates}\n${fallbackData}`, new RegExp(text));
   }
 });

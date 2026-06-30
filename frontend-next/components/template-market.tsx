@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Sparkles } from "lucide-react";
 import type { Template } from "../lib/api";
 import { createSameStyleProjectFromHref } from "../lib/same-style-create";
@@ -21,7 +21,15 @@ function formatParams(params?: Record<string, unknown>): string {
   return entries.map(([key, value]) => `${key}: ${Array.isArray(value) ? `${value.length} 项` : String(value)}`).join(" / ");
 }
 
-export function TemplateMarket({ templates, onUseTemplate }: { templates: Template[]; onUseTemplate?: (template: Template) => void }) {
+export function TemplateMarket({
+  templates,
+  highlightedTemplateId,
+  onUseTemplate
+}: {
+  templates: Template[];
+  highlightedTemplateId?: string;
+  onUseTemplate?: (template: Template) => void;
+}) {
   const [activeChannel, setActiveChannel] = useState("全部");
   const [creatingTemplateId, setCreatingTemplateId] = useState("");
   const [sharingTemplateId, setSharingTemplateId] = useState("");
@@ -35,6 +43,19 @@ export function TemplateMarket({ templates, onUseTemplate }: { templates: Templa
     });
   }, [activeChannel, templates]);
   const activeShortcut = templateChannels.find((item) => item.label === activeChannel) || templateChannels[0];
+  const highlightedTemplate = useMemo(() => templates.find((item) => item.id === highlightedTemplateId), [highlightedTemplateId, templates]);
+
+  useEffect(() => {
+    if (!highlightedTemplate) return;
+    if (activeChannel !== "全部" && !visibleTemplates.some((item) => item.id === highlightedTemplate.id)) {
+      setActiveChannel("全部");
+    }
+    setActionStatus(`已定位分享模板：${highlightedTemplate.name}`);
+    const handle = window.setTimeout(() => {
+      document.getElementById(`template-${highlightedTemplate.id}`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+    }, 0);
+    return () => window.clearTimeout(handle);
+  }, [activeChannel, highlightedTemplate, visibleTemplates]);
 
   async function createSameStyleTemplate(template: Template) {
     const href = quickStartHrefForTemplate(template);
@@ -101,9 +122,12 @@ export function TemplateMarket({ templates, onUseTemplate }: { templates: Templa
       {actionStatus ? <div className="mt-3 rounded-md border border-line bg-canvas px-3 py-2 text-sm text-muted">{actionStatus}</div> : null}
       <div className="mt-3 grid gap-2">
         {visibleTemplates.map((item) => (
-          <article key={item.id} className="rounded-md border border-line p-3">
+          <article key={item.id} id={`template-${item.id}`} className={`rounded-md border p-3 ${highlightedTemplateId === item.id ? "border-accent bg-blue-50" : "border-line"}`}>
             <div className="flex items-start justify-between gap-3">
-              <strong>{item.name}</strong>
+              <div>
+                <strong>{item.name}</strong>
+                {highlightedTemplateId === item.id ? <span className="ml-2 rounded-sm bg-accent px-2 py-1 text-xs text-white">分享定位</span> : null}
+              </div>
               <div className="flex shrink-0 flex-wrap justify-end gap-2">
                 <button className="rounded-md bg-accent px-3 py-1 text-sm text-white disabled:opacity-60" disabled={creatingTemplateId === item.id} onClick={() => void createSameStyleTemplate(item)}>
                   {creatingTemplateId === item.id ? "创建中" : "快速同款创作"}

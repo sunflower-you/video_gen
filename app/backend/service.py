@@ -2088,9 +2088,9 @@ class PlatformService:
                     image_payload = _compact_payload({
                         "user_id": payload.get("user_id"),
                         "workflow_key": data.get("workflow_key"),
-                        "prompt": data.get("prompt") or _first_non_empty(incoming_data, "prompt", "text", "script", "narration"),
+                        "prompt": data.get("prompt") or _first_non_empty(incoming_data, "prompt", "text", "script", "narration", "character_description"),
                         "negative_prompt": data.get("negative_prompt") or _first_non_empty(incoming_data, "negative_prompt"),
-                        "reference_image_url": data.get("reference_image_url") or _first_non_empty(incoming_data, "image_url", "first_frame_url", "output_url"),
+                        "reference_image_url": data.get("reference_image_url") or _first_non_empty(incoming_data, "reference_image_url", "image_url", "first_frame_url", "output_url"),
                         "model_key": data.get("model_key"),
                         "style_prompt": data.get("style_prompt") or _first_non_empty(incoming_data, "style_prompt"),
                         "width": data.get("width"),
@@ -2103,9 +2103,9 @@ class PlatformService:
                     video_payload = _compact_payload({
                         "user_id": payload.get("user_id"),
                         "workflow_key": data.get("workflow_key"),
-                        "prompt": data.get("prompt") or _first_non_empty(incoming_data, "prompt", "text", "script", "narration"),
+                        "prompt": data.get("prompt") or _first_non_empty(incoming_data, "prompt", "text", "script", "narration", "character_description"),
                         "negative_prompt": data.get("negative_prompt") or _first_non_empty(incoming_data, "negative_prompt"),
-                        "first_frame_url": data.get("first_frame_url") or _first_non_empty(incoming_data, "image_url"),
+                        "first_frame_url": data.get("first_frame_url") or _first_non_empty(incoming_data, "image_url", "first_frame_url", "reference_image_url"),
                         "camera_motion": data.get("camera_motion") or _first_non_empty(incoming_data, "camera_motion"),
                         "motion_strength": data.get("motion_strength"),
                         "duration": data.get("duration"),
@@ -2146,6 +2146,10 @@ class PlatformService:
                 node["status"] = "completed"
                 node["data"] = {**data, "result_summary": "演示节点已完成。"}
                 result_payload = {"node": node, "message": "演示节点已完成。"}
+            elif node_type == "character":
+                node["status"] = "completed"
+                node["data"] = {**data, "result_summary": "角色参考节点已传递。"}
+                result_payload = {"node": node, "message": "角色参考节点仅用于传递角色设定，不会提交生成任务。"}
             else:
                 raise WorkflowValidationError("节点类型无效，不能运行。")
             graph.touch()
@@ -3205,7 +3209,7 @@ def _sanitize_graph_node(value: Any) -> dict[str, Any]:
         raise WorkflowValidationError("画布节点必须是对象。")
     node_id = str(value.get("id", "")).strip() or new_id("node")
     node_type = str(value.get("type", "text")).strip()
-    allowed = {"text", "image", "video", "audio", "script", "image_generation", "video_generation", "tts_generation", "compose_generation", "demo"}
+    allowed = {"text", "image", "video", "audio", "script", "image_generation", "video_generation", "tts_generation", "compose_generation", "demo", "character"}
     if node_type not in allowed:
         raise WorkflowValidationError("节点类型无效。")
     position = value.get("position", {})

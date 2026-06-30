@@ -21,13 +21,14 @@ import {
   type ReactFlowInstance
 } from "@xyflow/react";
 import { AlertTriangle, AlignHorizontalDistributeCenter, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, AlignHorizontalJustifyStart, AlignVerticalDistributeCenter, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, Ban, Boxes, BringToFront, CheckSquare, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, Focus, GitBranch, Image, LayoutGrid, Library, ListTree, Lock, Map as MapIcon, Maximize2, Minimize2, Music, Play, Plus, Redo2, RefreshCcw, RotateCcw, Save, Scissors, Search, SendToBack, Sparkles, Star, StickyNote, Trash2, Undo2, Unlock, Upload, Video, Wand2, XSquare, ZoomIn, ZoomOut } from "lucide-react";
-import { apiFetch, currentUserId, deleteJson, postJson, type Asset, type GenerationTask, type Project, type ProjectGraph, type ProjectGraphNode, type StoryboardShot } from "../lib/api";
+import { apiFetch, currentUserId, deleteJson, postJson, type Asset, type Character, type GenerationTask, type Project, type ProjectGraph, type ProjectGraphNode, type StoryboardShot } from "../lib/api";
 
 const nodeLabels: Record<string, string> = {
   text: "文本节点",
   image: "图片节点",
   video: "视频节点",
   audio: "音频节点",
+  character: "角色节点",
   comment: "画布批注",
   script: "脚本 Beta",
   image_generation: "分镜图生成",
@@ -42,6 +43,7 @@ const nodeColors: Record<string, string> = {
   image: "border-emerald-400 bg-emerald-950/80",
   video: "border-violet-400 bg-violet-950/80",
   audio: "border-amber-400 bg-amber-950/80",
+  character: "border-cyan-300 bg-cyan-950/80",
   comment: "border-yellow-300 bg-yellow-950/85",
   script: "border-pink-400 bg-pink-950/80",
   image_generation: "border-blue-400 bg-blue-950/80",
@@ -202,6 +204,9 @@ function semanticPortsForType(type: string): NodePort[] {
       { id: "input", label: "参考", side: "input", tone: "audio" },
       { id: "output", label: "音频", side: "output", tone: "audio" }
     ],
+    character: [
+      { id: "output", label: "角色", side: "output", tone: "image" }
+    ],
     comment: [],
     script: [
       { id: "input", label: "参考", side: "input", tone: "text" },
@@ -266,8 +271,12 @@ function isCommentNode(node: Node) {
   return String((node.data as Record<string, unknown>).nodeType || "") === "comment";
 }
 
+function isReferenceOnlyNode(node: Node) {
+  return ["character", "comment"].includes(String((node.data as Record<string, unknown>).nodeType || ""));
+}
+
 function isRunnableNode(node: Node) {
-  return !isNodeDisabled(node) && !isCommentNode(node);
+  return !isNodeDisabled(node) && !isReferenceOnlyNode(node);
 }
 
 function activeGraphEdges(edges: Edge[]) {
@@ -309,7 +318,7 @@ function connectionIssueMessage(connection: { source?: string | null; target?: s
 }
 
 function mediaUrlFromData(data: Record<string, unknown>) {
-  return String(data.image_url || data.video_url || data.audio_url || data.first_frame_url || data.output_url || data.result_url || data.final_video_url || "");
+  return String(data.image_url || data.reference_image_url || data.video_url || data.audio_url || data.first_frame_url || data.output_url || data.result_url || data.final_video_url || "");
 }
 
 function mediaKindFromData(data: Record<string, unknown>, fallbackType = "") {
@@ -592,13 +601,17 @@ function upstreamInputEntries(nodeType: string, incoming: Record<string, unknown
   const specs = nodeType === "image_generation"
     ? [
         { key: "shot_id", label: "分镜", keys: ["shot_id"] },
-        { key: "prompt", label: "提示词", keys: ["prompt", "text", "script", "narration"] }
+        { key: "prompt", label: "提示词", keys: ["prompt", "text", "script", "narration", "character_description"] },
+        { key: "reference_image_url", label: "角色参考图", keys: ["reference_image_url", "image_url"] },
+        { key: "style_prompt", label: "角色风格", keys: ["style_prompt"] },
+        { key: "character_name", label: "绑定角色", keys: ["character_name", "name"] }
       ]
     : nodeType === "video_generation"
       ? [
           { key: "shot_id", label: "分镜", keys: ["shot_id"] },
-          { key: "prompt", label: "动作提示词", keys: ["prompt", "text", "script", "narration"] },
-          { key: "first_frame_url", label: "首帧图片", keys: ["image_url", "first_frame_url"] }
+          { key: "prompt", label: "动作提示词", keys: ["prompt", "text", "script", "narration", "character_description"] },
+          { key: "first_frame_url", label: "首帧图片", keys: ["image_url", "first_frame_url", "reference_image_url"] },
+          { key: "character_name", label: "绑定角色", keys: ["character_name", "name"] }
         ]
       : nodeType === "tts_generation"
         ? [{ key: "text", label: "旁白文本", keys: ["narration", "text", "script"] }]
@@ -617,6 +630,18 @@ function upstreamInputEntries(nodeType: string, incoming: Record<string, unknown
     const value = firstNonEmpty(incoming, ...spec.keys);
     return value ? [{ key: spec.key, label: spec.label, value }] : [];
   }) satisfies UpstreamInputEntry[];
+}
+
+function characterNodeData(character: Character) {
+  return {
+    title: `角色：${character.name}`,
+    character_id: character.id,
+    character_name: character.name,
+    character_description: character.description || "",
+    reference_image_url: character.reference_image_url || "",
+    style_prompt: character.style_prompt || "",
+    text: `${character.name}：${character.description || "暂无角色描述"}`
+  };
 }
 
 type GraphValidationIssue = {
@@ -665,7 +690,7 @@ function validateCanvasGraph(nodes: Node[], edges: Edge[]) {
     const title = String(data.title || nodeLabels[type] || node.id);
     const hasIncoming = activeEdges.some((edge) => edge.target === node.id);
     const hasOutgoing = activeEdges.some((edge) => edge.source === node.id);
-    if (type === "comment") continue;
+    if (type === "comment" || type === "character") continue;
     if (data.disabled === true) {
       issues.push({ id: `disabled-${node.id}`, level: "warning", nodeId: node.id, title: "节点已禁用", detail: `${title} 会保留在画布中，但运行链路和全图时会跳过。` });
       continue;
@@ -701,6 +726,7 @@ const addableNodes = [
   { type: "image", label: "图片", category: "素材节点", description: "放入参考图或生成图。", icon: Image },
   { type: "video", label: "视频", category: "素材节点", description: "放入镜头视频或成片。", icon: Video },
   { type: "audio", label: "音频", category: "素材节点", description: "放入配音和音效素材。", icon: Music },
+  { type: "character", label: "角色", category: "素材节点", description: "从项目角色库放入角色设定、参考图和风格提示词。", icon: Library },
   { type: "comment", label: "批注", category: "基础节点", description: "记录制作意图、审核意见和修改点。", icon: StickyNote },
   { type: "script", label: "脚本 Beta", category: "平台生成", description: "分析脚本并生成分镜。", icon: Clapperboard },
   { type: "image_generation", label: "分镜图", category: "平台生成", description: "按分镜生成画面。", icon: Wand2 },
@@ -845,6 +871,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [showAssets, setShowAssets] = useState(false);
   const [showTasks, setShowTasks] = useState(false);
   const [showShots, setShowShots] = useState(false);
+  const [showCharacters, setShowCharacters] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
@@ -865,6 +892,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   const [taskStatusFilter, setTaskStatusFilter] = useState("all");
   const [assetQuery, setAssetQuery] = useState("");
   const [taskQuery, setTaskQuery] = useState("");
+  const [characterQuery, setCharacterQuery] = useState("");
   const [eventLogQuery, setEventLogQuery] = useState("");
   const [shotStatusFilter, setShotStatusFilter] = useState("all");
   const [shotQuery, setShotQuery] = useState("");
@@ -924,6 +952,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   }, [selectedNodes]);
   const selectedGroupTitleValue = selectedGroupTitles.length === 1 ? selectedGroupTitles[0] : "";
   const shotOptions = useMemo(() => project?.shots || [], [project]);
+  const characterOptions = useMemo(() => project?.characters || [], [project]);
   const taskById = useMemo(() => new Map(tasks.map((task) => [task.id, task])), [tasks]);
   const selectedTask = useMemo(() => {
     const taskId = String((selectedNode?.data as Record<string, unknown> | undefined)?.task_id || "");
@@ -986,6 +1015,13 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       return matchesType && (!keyword || text.includes(keyword));
     });
   }, [assetQuery, assetTypeFilter, assets]);
+  const filteredCharacters = useMemo(() => {
+    const keyword = characterQuery.trim().toLowerCase();
+    return characterOptions.filter((character) => {
+      const text = `${character.name} ${character.description || ""} ${character.reference_image_url || ""} ${character.style_prompt || ""}`.toLowerCase();
+      return !keyword || text.includes(keyword);
+    });
+  }, [characterOptions, characterQuery]);
   const filteredTasks = useMemo(() => {
     const keyword = taskQuery.trim().toLowerCase();
     return tasks.filter((task) => {
@@ -1599,6 +1635,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           ? { title: "视频节点", video_url: "" }
           : type === "audio"
             ? { title: "音频节点", audio_url: "" }
+            : type === "character"
+              ? { title: "角色节点", character_name: "主角", character_description: "填写角色设定、参考图和统一风格。", reference_image_url: "", style_prompt: "", text: "主角：填写角色设定、参考图和统一风格。" }
             : type === "comment"
               ? { title: "画布批注", text: "记录制作意图、审核意见或后续修改点。", node_color: "amber" }
               : type === "image_generation"
@@ -1657,6 +1695,41 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const node = addNodeAtPosition(type, { x: 160 + nodes.length * 36, y: 120 + nodes.length * 28 });
     setShowPalette(false);
     setStatus(`已添加${nodeLabels[String(node.data.nodeType)] || "节点"}。`);
+  }
+
+  function addCharacterNode(character: Character) {
+    const node = addNodeAtPosition("character", { x: 160 + nodes.length * 36, y: 120 + nodes.length * 28 }, characterNodeData(character));
+    setShowCharacters(false);
+    setStatus(`已添加角色节点：${String(node.data.character_name || character.name)}，可连接到分镜图或镜头视频节点作为角色参考。`);
+  }
+
+  function applyCharacterToSelectedNode(character: Character) {
+    if (!selectedNode) {
+      setShowOutline(true);
+      setStatus("请先选择分镜图或镜头视频节点，再绑定角色；已打开节点大纲，可先定位生成节点。");
+      return;
+    }
+    if (!["image_generation", "video_generation"].includes(selectedType)) {
+      setShowOutline(true);
+      setStatus("当前节点不支持绑定角色；请先选择分镜图或镜头视频生成节点。");
+      return;
+    }
+    const patch = characterNodeData(character);
+    rememberGraphHistory();
+    setNodes((items) => items.map((node) => node.id === selectedNode.id ? {
+      ...node,
+      data: {
+        ...node.data,
+        character_id: patch.character_id,
+        character_name: patch.character_name,
+        character_description: patch.character_description,
+        reference_image_url: selectedType === "image_generation" ? patch.reference_image_url : (node.data as Record<string, unknown>).reference_image_url,
+        first_frame_url: selectedType === "video_generation" ? patch.reference_image_url : (node.data as Record<string, unknown>).first_frame_url,
+        style_prompt: selectedType === "image_generation" ? patch.style_prompt : (node.data as Record<string, unknown>).style_prompt
+      }
+    } : node));
+    setShowCharacters(false);
+    setStatus(`已把角色 ${character.name} 绑定到当前${nodeLabels[selectedType] || "生成节点"}。`);
   }
 
   function addNodeFromCanvasContext(type: string) {
@@ -3313,11 +3386,11 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const skippedCount = orderedNodes.length - runnableNodes.length;
     if (!runnableNodes.length) {
       setShowOutline(true);
-      setStatus("当前链路没有可运行节点，已跳过禁用节点和批注节点；已打开节点大纲，可先启用链路中的生成节点或选择其它链路。");
+      setStatus("当前链路没有可运行节点，已跳过禁用节点、批注或角色参考节点；已打开节点大纲，可先启用链路中的生成节点或选择其它链路。");
       return;
     }
     setBusy(true);
-    setStatus(`正在运行链路，上游 ${upstream.size} 个，共 ${runnableNodes.length} 个节点${skippedCount ? `，跳过 ${skippedCount} 个禁用节点或批注节点` : ""}...`);
+    setStatus(`正在运行链路，上游 ${upstream.size} 个，共 ${runnableNodes.length} 个节点${skippedCount ? `，跳过 ${skippedCount} 个禁用节点、批注或角色参考节点` : ""}...`);
     try {
       for (const node of runnableNodes) {
         const response = await postJson<{ node?: ProjectGraphNode; task?: GenerationTask; message?: string }>(`/api/projects/${projectId}/graph/nodes/${node.id}/run`, {
@@ -3327,7 +3400,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           setNodes((items) => items.map((item) => item.id === node.id ? toFlowNode(response.node as ProjectGraphNode) : item));
         }
       }
-      setStatus(`链路运行完成：${runnableNodes.length} 个节点已处理${skippedCount ? `，已跳过 ${skippedCount} 个禁用节点或批注节点` : ""}。`);
+      setStatus(`链路运行完成：${runnableNodes.length} 个节点已处理${skippedCount ? `，已跳过 ${skippedCount} 个禁用节点、批注或角色参考节点` : ""}。`);
       await refreshAll();
     } catch (error) {
       setStatus(error instanceof Error ? `链路运行失败：${error.message}` : "链路运行失败。请检查节点参数后重试。");
@@ -3350,12 +3423,12 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const skippedCount = orderedNodes.length - runnableNodes.length;
     if (!runnableNodes.length) {
       setShowOutline(true);
-      setStatus("选区没有可运行节点，已跳过禁用节点和批注节点；已打开节点大纲，可先选择文本、图片、视频、配音或合成生成节点。");
+      setStatus("选区没有可运行节点，已跳过禁用节点、批注或角色参考节点；已打开节点大纲，可先选择文本、图片、视频、配音或合成生成节点。");
       return;
     }
     await saveGraph();
     setBusy(true);
-    setStatus(`正在运行选区：${runnableNodes.length} 个节点${skippedCount ? `，跳过 ${skippedCount} 个禁用节点或批注节点` : ""}...`);
+    setStatus(`正在运行选区：${runnableNodes.length} 个节点${skippedCount ? `，跳过 ${skippedCount} 个禁用节点、批注或角色参考节点` : ""}...`);
     try {
       for (const node of runnableNodes) {
         const response = await postJson<{ node?: ProjectGraphNode; task?: GenerationTask; message?: string }>(`/api/projects/${projectId}/graph/nodes/${node.id}/run`, {
@@ -3365,7 +3438,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           setNodes((items) => items.map((item) => item.id === node.id ? toFlowNode(response.node as ProjectGraphNode) : item));
         }
       }
-      setStatus(`选区运行完成：${runnableNodes.length} 个节点已按依赖顺序处理${skippedCount ? `，已跳过 ${skippedCount} 个禁用节点或批注节点` : ""}。`);
+      setStatus(`选区运行完成：${runnableNodes.length} 个节点已按依赖顺序处理${skippedCount ? `，已跳过 ${skippedCount} 个禁用节点、批注或角色参考节点` : ""}。`);
       await refreshAll();
     } catch (error) {
       setStatus(error instanceof Error ? `选区运行失败：${error.message}` : "选区运行失败。请检查节点参数后重试。");
@@ -3387,12 +3460,12 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     }
     if (!runnableNodes.length) {
       setShowPalette(true);
-      setStatus("画布没有可运行节点，已跳过禁用节点和批注节点；已打开节点面板，可先添加或启用生成节点。");
+      setStatus("画布没有可运行节点，已跳过禁用节点、批注或角色参考节点；已打开节点面板，可先添加或启用生成节点。");
       return;
     }
     await saveGraph();
     setBusy(true);
-    setStatus(`正在运行全画布：${terminals.length || 1} 条终点链路，共 ${runnableNodes.length} 个节点${skippedCount ? `，跳过 ${skippedCount} 个禁用节点或批注节点` : ""}...`);
+    setStatus(`正在运行全画布：${terminals.length || 1} 条终点链路，共 ${runnableNodes.length} 个节点${skippedCount ? `，跳过 ${skippedCount} 个禁用节点、批注或角色参考节点` : ""}...`);
     try {
       for (const node of runnableNodes) {
         const response = await postJson<{ node?: ProjectGraphNode; task?: GenerationTask; message?: string }>(`/api/projects/${projectId}/graph/nodes/${node.id}/run`, {
@@ -3402,7 +3475,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           setNodes((items) => items.map((item) => item.id === node.id ? toFlowNode(response.node as ProjectGraphNode) : item));
         }
       }
-      setStatus(`全画布运行完成：${runnableNodes.length} 个节点已按依赖顺序处理${skippedCount ? `，已跳过 ${skippedCount} 个禁用节点或批注节点` : ""}。`);
+      setStatus(`全画布运行完成：${runnableNodes.length} 个节点已按依赖顺序处理${skippedCount ? `，已跳过 ${skippedCount} 个禁用节点、批注或角色参考节点` : ""}。`);
       await refreshAll();
     } catch (error) {
       setStatus(error instanceof Error ? `全画布运行失败：${error.message}` : "全画布运行失败。请检查节点参数后重试。");
@@ -4675,6 +4748,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     { key: "show-outline", title: "打开节点大纲", description: "搜索、定位和批量选择节点", disabled: !nodes.length, run: () => setShowOutline(true) },
     { key: "show-shots", title: "打开项目分镜面板", description: "按分镜铺设文本、画面、视频、配音和合成链路", run: () => setShowShots(true) },
     { key: "bind-selected-shots", title: "把选中分镜绑定到选区节点", description: "按画布位置把分镜提示词和旁白批量写入选区生成节点", disabled: !selectedShotIds.length || !selectedShotBindingNodes.length, run: bindSelectedShotsToSelectedNodes },
+    { key: "show-characters", title: "打开角色库", description: "把项目角色放入画布并绑定到分镜图或镜头视频节点", run: () => setShowCharacters(true) },
     { key: "show-assets", title: "打开素材库", description: "筛选并拖入项目图片、视频和音频素材", run: () => setShowAssets(true) },
     { key: "add-filtered-assets", title: "批量添加筛选素材到画布", description: "把素材库当前筛选结果按网格铺到画布并选中新素材", disabled: !filteredAssets.length, run: addFilteredAssetNodes },
     { key: "show-tasks", title: "打开任务队列", description: "筛选、定位、同步、重试和取消生成任务", run: () => setShowTasks(true) },
@@ -4801,6 +4875,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <button title="追加 Seedance 2.0 图生视频链路" disabled={busy} className="inline-flex items-center gap-1 rounded-md border border-blue-400/30 bg-blue-500/10 px-2 py-2 text-blue-50 hover:bg-blue-500/20 disabled:opacity-50" onClick={() => addWorkflowPreset("seedance2_image_video")}><Sparkles size={15} />Seedance</button>
           <button title="追加 TV Show 剧集开场链路" disabled={busy} className="inline-flex items-center gap-1 rounded-md border border-white/15 px-2 py-2 text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPreset("tv_show_storyboard")}><Clapperboard size={15} />TV Show</button>
           <button title="追加创作者挑战赛参赛片链路" disabled={busy} className="inline-flex items-center gap-1 rounded-md border border-white/15 px-2 py-2 text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPreset("creator_challenge_entry")}><Star size={15} />挑战赛</button>
+          <button title="打开项目角色库" className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 text-slate-100 hover:bg-white/10" onClick={() => setShowCharacters((value) => !value)}><Library size={16} />角色库</button>
           <button className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 text-slate-100 hover:bg-white/10" onClick={() => { setShowCommandPalette(true); setCommandQuery(""); setActiveCommandPaletteIndex(0); }}><Search size={16} />命令</button>
           <button disabled={busy} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={() => void refreshAll()}><RefreshCcw size={16} />刷新</button>
           <button disabled={busy || !graphPast.length} className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 disabled:opacity-50" onClick={undoGraphChange}><Undo2 size={16} />撤销</button>
@@ -5691,10 +5766,25 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             {nodeMarkerColors.map((item) => <option key={item.value || "default"} value={item.value}>{item.label}</option>)}
           </select></label>
           <label className="grid gap-1"><span className="text-slate-400">节点备注</span><textarea className="min-h-20 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" placeholder="记录节点用途、模型选择或后续修改点。" onFocus={rememberSelectedNodeEdit} value={String(selectedData.note || "")} onChange={(event) => updateSelectedData("note", event.target.value)} /></label>
+          {selectedType === "character" && <section className="grid gap-2 rounded-md border border-cyan-300/20 bg-cyan-500/[0.06] p-3">
+            <p className="text-xs text-cyan-100">角色库参数</p>
+            <label className="grid gap-1"><span className="text-slate-400">角色名称</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.character_name || "")} onChange={(event) => updateSelectedData("character_name", event.target.value)} /></label>
+            <label className="grid gap-1"><span className="text-slate-400">角色描述</span><textarea className="min-h-24 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.character_description || "")} onChange={(event) => updateSelectedData("character_description", event.target.value)} /></label>
+            <label className="grid gap-1"><span className="text-slate-400">角色参考图 URL</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.reference_image_url || "")} onChange={(event) => updateSelectedData("reference_image_url", event.target.value)} /></label>
+            <label className="grid gap-1"><span className="text-slate-400">角色统一风格</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.style_prompt || "")} onChange={(event) => updateSelectedData("style_prompt", event.target.value)} /></label>
+          </section>}
           {selectedType === "comment" && <label className="grid gap-1"><span className="text-slate-400">批注内容</span><textarea className="min-h-32 rounded-md border border-yellow-200/20 bg-yellow-500/10 px-3 py-2 outline-none placeholder:text-yellow-100/50" placeholder="记录制作意图、审核意见或后续修改点。" onFocus={rememberSelectedNodeEdit} value={String(selectedData.text || "")} onChange={(event) => updateSelectedData("text", event.target.value)} /></label>}
           {(selectedType === "text" || selectedType === "demo") && <label className="grid gap-1"><span className="text-slate-400">文本内容</span><textarea className="min-h-28 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.text || "")} onChange={(event) => updateSelectedData("text", event.target.value)} /></label>}
           {selectedType === "script" && <label className="grid gap-1"><span className="text-slate-400">脚本</span><textarea className="min-h-40 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.script || "")} onChange={(event) => updateSelectedData("script", event.target.value)} /></label>}
           {selectedType.includes("generation") && <label className="grid gap-1"><span className="text-slate-400">工作流 Key</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" placeholder="留空使用项目默认工作流，例如 selfhost/image_flux" onFocus={rememberSelectedNodeEdit} value={String(selectedData.workflow_key || "")} onChange={(event) => updateSelectedData("workflow_key", event.target.value)} /></label>}
+          {(selectedType === "image_generation" || selectedType === "video_generation") && <section className="grid gap-2 rounded-md border border-cyan-300/20 bg-cyan-500/[0.05] p-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs text-cyan-100">绑定角色</p>
+              <button className="rounded border border-cyan-300/20 px-2 py-1 text-xs text-cyan-50 hover:bg-cyan-500/10" onClick={() => setShowCharacters(true)}>打开角色库</button>
+            </div>
+            <label className="grid gap-1"><span className="text-slate-400">角色名称</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" placeholder="可从角色库绑定" onFocus={rememberSelectedNodeEdit} value={String(selectedData.character_name || "")} onChange={(event) => updateSelectedData("character_name", event.target.value)} /></label>
+            <label className="grid gap-1"><span className="text-slate-400">角色描述</span><textarea className="min-h-20 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" placeholder="用于保持角色外观、服装和人设一致。" onFocus={rememberSelectedNodeEdit} value={String(selectedData.character_description || "")} onChange={(event) => updateSelectedData("character_description", event.target.value)} /></label>
+          </section>}
           {(selectedType === "image_generation" || selectedType === "video_generation") && <label className="grid gap-1"><span className="text-slate-400">提示词</span><textarea className="min-h-28 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" onFocus={rememberSelectedNodeEdit} value={String(selectedData.prompt || "")} onChange={(event) => updateSelectedData("prompt", event.target.value)} /></label>}
           {(selectedType === "image_generation" || selectedType === "video_generation") && <label className="grid gap-1"><span className="text-slate-400">负面提示词</span><textarea className="min-h-20 rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" placeholder="输入需要规避的画面问题，例如低清、畸形、文字水印。" onFocus={rememberSelectedNodeEdit} value={String(selectedData.negative_prompt || "")} onChange={(event) => updateSelectedData("negative_prompt", event.target.value)} /></label>}
           {selectedType === "image_generation" && <label className="grid gap-1"><span className="text-slate-400">参考图 URL</span><input className="rounded-md border border-white/10 bg-white/5 px-3 py-2 outline-none" placeholder="可填写角色图、风格图或上游图片输出 URL" onFocus={rememberSelectedNodeEdit} value={String(selectedData.reference_image_url || "")} onChange={(event) => updateSelectedData("reference_image_url", event.target.value)} /></label>}
@@ -5897,6 +5987,45 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           </div>
         </div>}
       </section>
+
+      {showCharacters && <aside className="absolute bottom-6 left-24 z-20 max-h-[360px] w-[380px] overflow-auto rounded-lg border border-white/10 bg-slate-950/90 p-4 shadow-2xl backdrop-blur">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs text-slate-400">项目角色库</p>
+            <h2 className="font-semibold">角色一致性参考</h2>
+          </div>
+          <span className="rounded border border-white/10 px-2 py-1 text-xs text-slate-400">{filteredCharacters.length}/{characterOptions.length}</span>
+        </div>
+        <label className="mt-3 flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm">
+          <Search size={16} className="text-slate-400" />
+          <input className="w-full bg-transparent outline-none placeholder:text-slate-500" placeholder="搜索角色名称、描述、参考图或风格" value={characterQuery} onChange={(event) => setCharacterQuery(event.target.value)} />
+        </label>
+        <div className="mt-3 grid gap-2">
+          {filteredCharacters.map((character) => <article key={character.id} className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+            <div className="flex gap-3">
+              {character.reference_image_url ? <img src={character.reference_image_url} alt={character.name} className="h-16 w-16 shrink-0 rounded-md bg-black object-cover" /> : <div className="grid h-16 w-16 shrink-0 place-items-center rounded-md border border-white/10 bg-black/20 text-xs text-slate-400">无参考图</div>}
+              <div className="min-w-0 flex-1">
+                <h3 className="truncate text-sm font-medium text-white">{character.name}</h3>
+                <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-400">{character.description || "暂无角色描述，可在旧项目工作台补充后回到画布使用。"}</p>
+                {character.style_prompt && <p className="mt-1 truncate text-[11px] text-cyan-100">风格：{character.style_prompt}</p>}
+              </div>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button disabled={busy} className="rounded-md border border-white/10 px-3 py-2 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addCharacterNode(character)}>添加角色节点</button>
+              <button disabled={busy || !selectedNode || !["image_generation", "video_generation"].includes(selectedType)} className="rounded-md border border-cyan-300/30 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-50 hover:bg-cyan-500/20 disabled:opacity-50" onClick={() => applyCharacterToSelectedNode(character)}>绑定到当前节点</button>
+            </div>
+          </article>)}
+          {!filteredCharacters.length && <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-4 text-sm text-slate-400">
+            <p>{characterOptions.length ? "没有匹配角色，可清空搜索后继续选择。" : "项目暂无角色，可先追加脚本拆解工作流生成角色，或在项目工作台维护角色设定。"}</p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button className="rounded-md border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-xs text-blue-50 hover:bg-blue-500/20" onClick={() => setCharacterQuery("")}>清空搜索</button>
+              <button disabled={busy} className="rounded-md border border-white/10 px-3 py-2 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPreset("script_to_storyboard")}>追加脚本拆解</button>
+              <button className="rounded-md border border-white/10 px-3 py-2 text-xs text-slate-100 hover:bg-white/10" onClick={() => setShowPalette(true)}>打开节点面板</button>
+              <a className="rounded-md border border-white/10 px-3 py-2 text-xs text-slate-100 hover:bg-white/10" href={`/workspace/${projectId}`}>留在全画幅画布</a>
+            </div>
+          </div>}
+        </div>
+      </aside>}
 
       {showAssets && <aside className="absolute bottom-6 left-24 z-20 max-h-[320px] w-[360px] overflow-auto rounded-lg border border-white/10 bg-slate-950/90 p-4 shadow-2xl backdrop-blur">
         <div className="flex items-start justify-between gap-3">

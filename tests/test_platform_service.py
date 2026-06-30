@@ -2146,6 +2146,52 @@ class PlatformServiceTest(unittest.TestCase):
         self.assertEqual(video_result["task"]["input_params"]["fps"], 24)
         self.assertEqual(video_result["node"]["data"]["shot_id"], shot["id"])
 
+    def test_project_graph_character_nodes_drive_generation_references(self) -> None:
+        service = PlatformService(comfy=FakeComfy())
+        project = service.create_project({"title": "角色节点项目", "owner_id": "author_graph"})
+        shot = service.create_storyboard_shot(
+            project["id"],
+            {"user_id": "author_graph", "narration": "女主抬头看向雨幕", "visual_description": "雨夜街口近景"},
+        )
+        service.save_project_graph(
+            project["id"],
+            {
+                "user_id": "author_graph",
+                "nodes": [
+                    {
+                        "id": "character_1",
+                        "type": "character",
+                        "position": {"x": 10, "y": 20},
+                        "data": {
+                            "character_name": "林夏",
+                            "character_description": "红色雨衣、短发、神情紧张",
+                            "reference_image_url": "/storage/reference/linxia.png",
+                            "style_prompt": "统一悬疑漫剧风格",
+                        },
+                    },
+                    {"id": "image_1", "type": "image_generation", "position": {"x": 260, "y": 20}, "data": {"shot_id": shot["id"]}},
+                    {"id": "video_1", "type": "video_generation", "position": {"x": 510, "y": 20}, "data": {"shot_id": shot["id"]}},
+                ],
+                "edges": [
+                    {"id": "edge_character_image", "source": "character_1", "target": "image_1"},
+                    {"id": "edge_character_video", "source": "character_1", "target": "video_1"},
+                ],
+            },
+        )
+
+        image_result = service.run_project_graph_node(project["id"], "image_1", {"user_id": "author_graph"})
+        self.assertEqual(image_result["task"]["input_params"]["prompt"], "红色雨衣、短发、神情紧张")
+        self.assertEqual(image_result["task"]["input_params"]["reference_image_url"], "/storage/reference/linxia.png")
+        self.assertEqual(image_result["task"]["input_params"]["style_prompt"], "统一悬疑漫剧风格")
+
+        video_result = service.run_project_graph_node(project["id"], "video_1", {"user_id": "author_graph"})
+        self.assertEqual(video_result["task"]["input_params"]["prompt"], "红色雨衣、短发、神情紧张")
+        self.assertEqual(video_result["task"]["input_params"]["first_frame_url"], "/storage/reference/linxia.png")
+
+        character_result = service.run_project_graph_node(project["id"], "character_1", {"user_id": "author_graph"})
+        self.assertEqual(character_result["node"]["status"], "completed")
+        self.assertEqual(character_result["message"], "角色参考节点仅用于传递角色设定，不会提交生成任务。")
+
     def test_project_graph_rejects_non_author_and_unknown_node_type(self) -> None:
         service = PlatformService(comfy=FakeComfy())
         project = service.create_project({"title": "节点权限项目", "owner_id": "author_graph"})

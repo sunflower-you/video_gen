@@ -142,6 +142,11 @@ test("Next 前端迁移已拆分组件并提供核心路由", () => {
   assert.match(shell, /href: "\/create"/);
   assert.match(shell, /quickStartItems/);
   assert.match(shell, /快捷创作/);
+  assert.match(shell, /"use client"/);
+  assert.match(shell, /createSameStyleProjectFromHref/);
+  assert.match(shell, /function createQuickCanvas/);
+  assert.match(shell, /window\.location\.href = await createSameStyleProjectFromHref/);
+  assert.match(shell, /正在创建\$\{title\}全画幅画布/);
   assert.match(shell, /\/create\?quick=creator-challenge/);
   assert.match(shell, /\/create\?quick=seedance2/);
   assert.match(shell, /\/create\?quick=tv-show/);

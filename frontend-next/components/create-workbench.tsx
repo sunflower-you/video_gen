@@ -54,6 +54,8 @@ type SameStyleSource = {
   title: string;
   workId: string;
   templateId: string;
+  script: string;
+  referenceUrl: string;
 };
 
 export function CreateWorkbench() {
@@ -69,7 +71,7 @@ export function CreateWorkbench() {
   const [status, setStatus] = useState("等待创建项目");
   const [busy, setBusy] = useState(false);
   const [activeQuickMode, setActiveQuickMode] = useState("");
-  const [sameStyleSource, setSameStyleSource] = useState<SameStyleSource>({ title: "", workId: "", templateId: "" });
+  const [sameStyleSource, setSameStyleSource] = useState<SameStyleSource>({ title: "", workId: "", templateId: "", script: "", referenceUrl: "" });
 
   useEffect(() => {
     void loadTemplates();
@@ -79,9 +81,11 @@ export function CreateWorkbench() {
     const sourceTitle = params.get("sourceTitle") || "";
     const sourceWorkId = params.get("sourceWorkId") || "";
     const sourceTemplateId = params.get("sourceTemplateId") || "";
+    const sourceScript = params.get("sourceScript") || "";
+    const sourceReferenceUrl = params.get("sourceReferenceUrl") || "";
     const mode = quickStartModes[quick as keyof typeof quickStartModes];
-    if (sourceTitle || sourceWorkId || sourceTemplateId) {
-      setSameStyleSource({ title: sourceTitle, workId: sourceWorkId, templateId: sourceTemplateId });
+    if (sourceTitle || sourceWorkId || sourceTemplateId || sourceScript || sourceReferenceUrl) {
+      setSameStyleSource({ title: sourceTitle, workId: sourceWorkId, templateId: sourceTemplateId, script: sourceScript, referenceUrl: sourceReferenceUrl });
     }
     if (mode) {
       applyQuickMode(quick as QuickModeKey);
@@ -92,6 +96,8 @@ export function CreateWorkbench() {
       setSelectedTemplateId(templateId);
       setStatus("已从模板市场预选模板，可复刻后进入全画幅创作画布。");
     }
+    if (sourceScript.trim()) setScript(sourceScript.trim());
+    if (sourceReferenceUrl.trim()) setReferenceImageUrl(sourceReferenceUrl.trim());
   }, []);
 
   function primaryCreateLabel() {
@@ -128,6 +134,8 @@ export function CreateWorkbench() {
     if (sameStyleSource.title.trim()) params.sourceTitle = sameStyleSource.title.trim();
     if (sameStyleSource.workId.trim()) params.sourceWorkId = sameStyleSource.workId.trim();
     if (sameStyleSource.templateId.trim()) params.sourceTemplateId = sameStyleSource.templateId.trim();
+    if (sameStyleSource.script.trim()) params.sourceScript = sameStyleSource.script.trim();
+    if (sameStyleSource.referenceUrl.trim()) params.sourceReferenceUrl = sameStyleSource.referenceUrl.trim();
     return params;
   }
 
@@ -336,10 +344,11 @@ export function CreateWorkbench() {
               <span className="mt-1 block text-xs text-muted">{item.description}</span>
             </button>
           ))}
-          {(sameStyleSource.title || sameStyleSource.workId || sameStyleSource.templateId) && (
+          {(sameStyleSource.title || sameStyleSource.workId || sameStyleSource.templateId || sameStyleSource.script || sameStyleSource.referenceUrl) && (
             <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900">
               <strong className="block">同款来源：{sameStyleSource.title || sameStyleSource.templateId || sameStyleSource.workId}</strong>
               <span className="mt-1 block text-blue-700">{sameStyleSource.templateId ? `模板 ${sameStyleSource.templateId}` : sameStyleSource.workId ? `作品 ${sameStyleSource.workId}` : "来源信息会带入画布批注"}</span>
+              <span className="mt-1 block text-blue-700">{sameStyleSource.script ? "已继承示例提示词" : "未提供示例提示词"} · {sameStyleSource.referenceUrl ? "已继承参考图" : "未提供参考图"}</span>
             </div>
           )}
         </section>

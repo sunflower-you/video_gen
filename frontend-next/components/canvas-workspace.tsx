@@ -800,6 +800,8 @@ type WorkflowPresetOverrides = {
   sourceTitle?: string;
   sourceWorkId?: string;
   sourceTemplateId?: string;
+  sourceScript?: string;
+  sourceReferenceUrl?: string;
 };
 
 type GraphHistorySnapshot = {
@@ -1132,6 +1134,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const sourceTitle = params.get("sourceTitle") || "";
     const sourceWorkId = params.get("sourceWorkId") || "";
     const sourceTemplateId = params.get("sourceTemplateId") || "";
+    const sourceScript = params.get("sourceScript") || "";
+    const sourceReferenceUrl = params.get("sourceReferenceUrl") || "";
     const presetLinkKey = `${presetMode}:${presetKey}`;
     if (!presetKey || presetLinkKey === linkedPresetHandled) return;
     setLinkedPresetHandled(presetLinkKey);
@@ -1140,7 +1144,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       setStatus("画布预设不存在，请从左侧工作流预设重新选择。");
       return;
     }
-    const overrides = referenceImageUrl.trim() || quickScript.trim() || sourceTitle.trim() || sourceWorkId.trim() || sourceTemplateId.trim() ? { referenceImageUrl: referenceImageUrl.trim(), quickScript: quickScript.trim(), sourceTitle: sourceTitle.trim(), sourceWorkId: sourceWorkId.trim(), sourceTemplateId: sourceTemplateId.trim() } : undefined;
+    const overrides = referenceImageUrl.trim() || quickScript.trim() || sourceTitle.trim() || sourceWorkId.trim() || sourceTemplateId.trim() || sourceScript.trim() || sourceReferenceUrl.trim() ? { referenceImageUrl: referenceImageUrl.trim(), quickScript: quickScript.trim(), sourceTitle: sourceTitle.trim(), sourceWorkId: sourceWorkId.trim(), sourceTemplateId: sourceTemplateId.trim(), sourceScript: sourceScript.trim(), sourceReferenceUrl: sourceReferenceUrl.trim() } : undefined;
     if (presetMode === "replace") replaceCanvasWithWorkflowPreset(preset.key, overrides);
     else addWorkflowPreset(preset.key, { x: 140, y: 140 }, overrides);
     params.delete("preset");
@@ -1150,6 +1154,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     params.delete("sourceTitle");
     params.delete("sourceWorkId");
     params.delete("sourceTemplateId");
+    params.delete("sourceScript");
+    params.delete("sourceReferenceUrl");
     const nextQuery = params.toString();
     window.history.replaceState(null, "", `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`);
   }, [linkedPresetHandled, project]);
@@ -1854,13 +1860,13 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       } satisfies Node;
     });
     const sourceNodeId = `preset-${preset.key}-${timestamp}-source`;
-    const sourceNode = overrides?.sourceTitle || overrides?.sourceWorkId || overrides?.sourceTemplateId ? {
+    const sourceNode = overrides?.sourceTitle || overrides?.sourceWorkId || overrides?.sourceTemplateId || overrides?.sourceScript || overrides?.sourceReferenceUrl ? {
       id: sourceNodeId,
       type: "platform",
       position: { x: baseX, y: baseY - 150 },
       data: {
         title: "同款来源",
-        text: [`来源：${overrides?.sourceTitle || "未命名作品/模板"}`, overrides?.sourceTemplateId ? `模板 ID：${overrides.sourceTemplateId}` : "", overrides?.sourceWorkId ? `作品 ID：${overrides.sourceWorkId}` : ""].filter(Boolean).join("\n"),
+        text: [`来源：${overrides?.sourceTitle || "未命名作品/模板"}`, overrides?.sourceTemplateId ? `模板 ID：${overrides.sourceTemplateId}` : "", overrides?.sourceWorkId ? `作品 ID：${overrides.sourceWorkId}` : "", overrides?.sourceScript ? `示例提示词：${overrides.sourceScript}` : "", overrides?.sourceReferenceUrl ? `参考图：${overrides.sourceReferenceUrl}` : ""].filter(Boolean).join("\n"),
         source_entity_type: overrides?.sourceWorkId ? "work" : overrides?.sourceTemplateId ? "template" : "same_style",
         source_entity_id: overrides?.sourceWorkId || overrides?.sourceTemplateId || "",
         nodeType: "comment",

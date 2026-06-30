@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import hashlib
 import hmac
 import json
@@ -1027,13 +1028,13 @@ class PlatformService:
                 assets.append(payload)
                 seen.add(asset.id)
 
-        project_asset_sources = {f"{project.id}-subtitles"}
+        project_asset_sources = {f"{project.id}-subtitles", f"{project.id}-uploads"}
         for asset in self.repository.assets.values():
             if asset.id in seen or asset.source_task_id not in project_asset_sources:
                 continue
             payload = to_jsonable(asset)
             payload["project_id"] = project.id
-            payload["source_task_type"] = "project"
+            payload["source_task_type"] = "upload" if asset.source_task_id.endswith("-uploads") else "project"
             payload["workflow_key"] = ""
             payload["shot_id"] = ""
             payload["shot_index"] = None
@@ -1042,6 +1043,56 @@ class PlatformService:
             seen.add(asset.id)
 
         return sorted(assets, key=lambda item: item["created_at"], reverse=True)
+
+    def upload_project_asset(self, project_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+        _reject_unknown_payload_fields(payload, {"user_id", "filename", "mime_type", "content_base64", "asset_type"})
+        project = self._project(project_id)
+        self._assert_project_owner(project, payload.get("user_id"))
+        filename = str(payload.get("filename", "")).strip()
+        if not filename:
+            raise WorkflowValidationError("素材文件名不能为空。")
+        content_base64 = str(payload.get("content_base64", "")).strip()
+        if not content_base64:
+            raise WorkflowValidationError("素材文件内容不能为空。")
+        if "," in content_base64 and content_base64.split(",", 1)[0].startswith("data:"):
+            content_base64 = content_base64.split(",", 1)[1]
+        try:
+            content = base64.b64decode(content_base64, validate=True)
+        except (binascii.Error, ValueError) as exc:
+            raise WorkflowValidationError("素材文件内容不是有效的 Base64。") from exc
+        if not content:
+            raise WorkflowValidationError("素材文件内容不能为空。")
+        if len(content) > 50 * 1024 * 1024:
+            raise WorkflowValidationError("单个素材文件不能超过 50MB。")
+        mime_type = str(payload.get("mime_type", "")).strip()
+        asset_type = _asset_type_from_upload(str(payload.get("asset_type", "")), filename, mime_type)
+        suffix = Path(filename).suffix or ".bin"
+        with NamedTemporaryFile("wb", suffix=suffix, delete=False) as temp_file:
+            temp_file.write(content)
+            temp_path = Path(temp_file.name)
+        try:
+            asset = self.storage.archive_file(
+                temp_path,
+                asset_type=asset_type,
+                task_id=f"{project.id}-uploads",
+                created_by=project.owner_id,
+            )
+        finally:
+            temp_path.unlink(missing_ok=True)
+        if mime_type:
+            asset.mime_type = mime_type
+        self.repository.assets[asset.id] = asset
+        project.current_step = "assets"
+        project.touch()
+        self._persist()
+        payload_out = to_jsonable(asset)
+        payload_out["project_id"] = project.id
+        payload_out["source_task_type"] = "upload"
+        payload_out["workflow_key"] = ""
+        payload_out["shot_id"] = ""
+        payload_out["shot_index"] = None
+        payload_out["shot_narration"] = ""
+        return payload_out
 
     def list_project_tasks(
         self,
@@ -2971,7 +3022,7 @@ class PlatformService:
             for task in self.repository.tasks.values()
             if task.project_id == project.id or (task.shot_id is not None and task.shot_id in project.shot_ids)
         }
-        if asset.source_task_id in valid_task_ids or asset.source_task_id == f"{project.id}-subtitles":
+        if asset.source_task_id in valid_task_ids or asset.source_task_id in {f"{project.id}-subtitles", f"{project.id}-uploads"}:
             return asset
         raise NotFoundError(f"项目中未找到素材：{asset_id}")
 
@@ -3346,6 +3397,23 @@ def _graph_incoming_node_data(graph: ProjectGraph, node_id: str) -> list[dict[st
         if isinstance(node.get("data"), dict)
     }
     return [data_by_id[source_id] for source_id in source_ids if isinstance(data_by_id.get(source_id), dict)]
+
+
+def _asset_type_from_upload(value: str, filename: str, mime_type: str) -> AssetType:
+    explicit = value.strip().lower()
+    if explicit:
+        try:
+            return AssetType(explicit)
+        except ValueError as exc:
+            raise WorkflowValidationError("素材类型无效。") from exc
+    text = f"{mime_type} {filename}".lower()
+    if "video" in text or re.search(r"\.(mp4|mov|webm|m4v)$", filename, re.IGNORECASE):
+        return AssetType.VIDEO
+    if "audio" in text or re.search(r"\.(mp3|wav|m4a|aac|ogg)$", filename, re.IGNORECASE):
+        return AssetType.AUDIO
+    if "image" in text or re.search(r"\.(png|jpe?g|webp|gif)$", filename, re.IGNORECASE):
+        return AssetType.IMAGE
+    return AssetType.OTHER
 
 
 def _first_non_empty(items: list[dict[str, Any]], *keys: str) -> Any:

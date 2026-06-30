@@ -695,6 +695,14 @@ def create_app(
         except PlatformError as exc:
             raise _http_error(exc) from exc
 
+    @app.post("/api/projects/{project_id}/assets/upload")
+    def upload_project_asset(project_id: str, payload: dict[str, Any], request: Request) -> dict[str, Any]:
+        try:
+            payload = _payload_with_session_user(payload, request, expected_session_secret)
+            return service.upload_project_asset(project_id, payload)
+        except PlatformError as exc:
+            raise _http_error(exc) from exc
+
     @app.get("/api/projects/{project_id}/tasks")
     def list_project_tasks(project_id: str, request: Request, user_id: str | None = None, status: str | None = None) -> list[dict[str, Any]]:
         try:

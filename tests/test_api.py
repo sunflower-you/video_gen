@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import hashlib
 import hmac
 import unittest
@@ -917,6 +918,27 @@ class ApiTest(unittest.TestCase):
         shot_id = analysis.json()["shots"][0]["id"]
         character_id = analysis.json()["characters"][0]["id"]
 
+        uploaded_asset = self.client.post(
+            f"/api/projects/{project_id}/assets/upload",
+            json={
+                "filename": "api-role.png",
+                "mime_type": "image/png",
+                "content_base64": base64.b64encode(b"api image bytes").decode("ascii"),
+                "user_id": "author_api",
+            },
+        )
+        self.assertEqual(uploaded_asset.status_code, 200)
+        self.assertEqual(uploaded_asset.json()["source_task_type"], "upload")
+        project_assets = self.client.get(f"/api/projects/{project_id}/assets", params={"user_id": "author_api"})
+        self.assertEqual(project_assets.status_code, 200)
+        self.assertTrue(any(item["id"] == uploaded_asset.json()["id"] for item in project_assets.json()))
+        invalid_upload = self.client.post(
+            f"/api/projects/{project_id}/assets/upload",
+            json={"filename": "empty.png", "content_base64": "", "user_id": "author_api"},
+        )
+        self.assertEqual(invalid_upload.status_code, 400)
+        self.assertIn("素材文件内容不能为空", invalid_upload.json()["detail"])
+
         character_create = self.client.post(
             f"/api/projects/{project_id}/characters",
             json={
@@ -1158,14 +1180,16 @@ class ApiTest(unittest.TestCase):
             final_asset = self.service.archive_output(compose.json()["id"], final_source, "30")
             assets = self.client.get(f"/api/projects/{project_id}/assets", params={"user_id": "author_api"})
             self.assertEqual(assets.status_code, 200)
-            self.assertEqual(len(assets.json()), 4)
+            self.assertEqual(len(assets.json()), 5)
             self.assertEqual({item["asset_type"] for item in assets.json()}, {"image", "audio", "video", "subtitle"})
+            self.assertIn("upload", {item["source_task_type"] for item in assets.json()})
+            self.assertIn(uploaded_asset.json()["id"], {item["id"] for item in assets.json()})
             self.assertIn(shot_id, {item["shot_id"] for item in assets.json()})
             project_detail = self.client.get(f"/api/projects/{project_id}", params={"user_id": "author_api"}).json()
             self.assertEqual(project_detail["final_video_url"], final_asset["url"])
             self.assertEqual(len(project_detail["timeline"]), 2)
             self.assertEqual(len(project_detail["subtitles"]), 2)
-            image_asset = next(item for item in assets.json() if item["asset_type"] == "image")
+            image_asset = next(item for item in assets.json() if item["asset_type"] == "image" and item["source_task_type"] != "upload")
             deleted = self.client.request(
                 "DELETE",
                 f"/api/projects/{project_id}/assets/{image_asset['id']}",
@@ -1174,7 +1198,7 @@ class ApiTest(unittest.TestCase):
             self.assertEqual(deleted.status_code, 200)
             self.assertTrue(deleted.json()["deleted"])
             after_delete = self.client.get(f"/api/projects/{project_id}/assets", params={"user_id": "author_api"})
-            self.assertEqual(len(after_delete.json()), 3)
+            self.assertEqual(len(after_delete.json()), 4)
             self.assertNotIn(image_asset["id"], {item["id"] for item in after_delete.json()})
 
     def test_storage_route_serves_archived_files_safely(self) -> None:

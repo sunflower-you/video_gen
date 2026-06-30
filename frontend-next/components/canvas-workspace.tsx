@@ -2093,12 +2093,53 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已拖入${nodeLabels[String(node.data.nodeType)] || "素材"}。`);
   }
 
+  function readFileAsDataUrl(file: File) {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("素材文件读取失败，请重新选择文件。"));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function uploadProjectAssetFile(file: File) {
+    const contentBase64 = await readFileAsDataUrl(file);
+    const uploaded = await postJson<Asset>(`/api/projects/${projectId}/assets/upload`, {
+      user_id: currentUserId(),
+      filename: file.name,
+      mime_type: file.type || "",
+      content_base64: contentBase64
+    });
+    setAssets((items) => [uploaded, ...items.filter((asset) => asset.id !== uploaded.id)]);
+    return uploaded;
+  }
+
+  async function handleAssetFileInput(event: ReactChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files || []);
+    event.target.value = "";
+    if (!files.length) return;
+    setBusy(true);
+    setShowAssets(true);
+    setStatus(`正在上传 ${files.length} 个本地素材...`);
+    try {
+      const uploaded = [];
+      for (const file of files) {
+        uploaded.push(await uploadProjectAssetFile(file));
+      }
+      setStatus(`已上传 ${uploaded.length} 个本地素材到项目素材库，可继续拖入画布或批量添加。`);
+    } catch (error) {
+      setStatus(error instanceof Error ? `素材上传失败：${error.message}` : "素材上传失败，请检查文件后重试。");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function handleCanvasDragOver(event: ReactDragEvent) {
     event.preventDefault();
     event.dataTransfer.dropEffect = "copy";
   }
 
-  function handleCanvasDrop(event: ReactDragEvent) {
+  async function handleCanvasDrop(event: ReactDragEvent) {
     event.preventDefault();
     const position = flowPositionFromEvent(event);
     const draggedNodeType = event.dataTransfer.getData(paletteNodeDragType);
@@ -2110,8 +2151,18 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     }
     const file = event.dataTransfer.files?.[0];
     if (file) {
-      const type = inferAssetNodeType(file.name, file.type);
-      addDroppedAssetNode(type, URL.createObjectURL(file), position, file.name);
+      setBusy(true);
+      setStatus(`正在上传并拖入素材：${file.name}...`);
+      try {
+        const uploaded = await uploadProjectAssetFile(file);
+        const type = uploaded.asset_type === "video" ? "video" : uploaded.asset_type === "audio" ? "audio" : inferAssetNodeType(file.name, file.type);
+        addDroppedAssetNode(type, uploaded.url, position, file.name);
+        setStatus(`已上传并拖入素材：${file.name}，刷新后仍会保留项目素材 URL。`);
+      } catch (error) {
+        setStatus(error instanceof Error ? `素材上传失败：${error.message}` : "素材上传失败，请检查文件后重试。");
+      } finally {
+        setBusy(false);
+      }
       return;
     }
     const url = event.dataTransfer.getData("text/uri-list") || event.dataTransfer.getData("text/plain");
@@ -6246,7 +6297,13 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <Search size={15} className="text-slate-400" />
           <input className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-slate-500" placeholder="搜索素材 URL、工作流、分镜" value={assetQuery} onChange={(event) => setAssetQuery(event.target.value)} />
         </label>
-        <button disabled={!filteredAssets.length} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border border-blue-400/40 bg-blue-500/10 px-3 py-2 text-sm text-white hover:bg-blue-500/20 disabled:opacity-50" onClick={addFilteredAssetNodes}><Library size={15} />批量添加筛选素材 {filteredAssets.length || ""}</button>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <label className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-md border border-emerald-400/40 bg-emerald-500/10 px-3 py-2 text-sm text-white hover:bg-emerald-500/20 ${busy ? "pointer-events-none opacity-50" : ""}`}>
+            <Upload size={15} />上传本地素材
+            <input className="sr-only" type="file" accept="image/*,video/*,audio/*" multiple onChange={(event) => void handleAssetFileInput(event)} />
+          </label>
+          <button disabled={!filteredAssets.length} className="inline-flex items-center justify-center gap-2 rounded-md border border-blue-400/40 bg-blue-500/10 px-3 py-2 text-sm text-white hover:bg-blue-500/20 disabled:opacity-50" onClick={addFilteredAssetNodes}><Library size={15} />批量添加 {filteredAssets.length || ""}</button>
+        </div>
         <div className="mt-3 grid gap-2 text-sm">
           {filteredAssets.map((asset) => {
             const type = asset.asset_type === "video" ? "video" : asset.asset_type === "audio" ? "audio" : "image";
@@ -6269,6 +6326,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <div className="rounded-md border border-white/10 px-3 py-2 text-slate-400">
               <p>暂无素材，可先追加生成链路或打开任务队列运行节点。</p>
               <div className="mt-3 flex flex-wrap gap-2">
+                <label className={`cursor-pointer rounded-md border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-50 hover:bg-emerald-500/20 ${busy ? "pointer-events-none opacity-50" : ""}`}>
+                  上传本地素材
+                  <input className="sr-only" type="file" accept="image/*,video/*,audio/*" multiple onChange={(event) => void handleAssetFileInput(event)} />
+                </label>
                 <button disabled={busy} className="rounded-md border border-blue-400/40 bg-blue-500/10 px-3 py-1 text-xs text-blue-50 hover:bg-blue-500/20 disabled:opacity-50" onClick={() => addWorkflowPreset("script_to_storyboard")}>追加脚本拆解</button>
                 <button disabled={busy} className="rounded-md border border-white/10 px-3 py-1 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPreset("seedance2_image_video")}>追加 Seedance</button>
                 <button className="rounded-md border border-white/10 px-3 py-1 text-xs text-slate-100 hover:bg-white/10" onClick={() => setShowTasks(true)}>打开任务队列</button>

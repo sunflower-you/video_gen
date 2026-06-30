@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import hashlib
 import hmac
 import json
@@ -867,6 +868,39 @@ class PlatformServiceTest(unittest.TestCase):
             self.assertEqual(assets[0]["source_task_type"], "image")
             self.assertEqual(assets[0]["shot_index"], 1)
             self.assertIn("推开车站大门", assets[0]["shot_narration"])
+
+    def test_upload_project_asset_adds_persistent_project_asset(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            service = self.make_service(storage_root=str(Path(temp_dir) / "storage"))
+            project = service.create_project({"title": "上传素材项目", "owner_id": "author_001"})
+            uploaded = service.upload_project_asset(
+                project["id"],
+                {
+                    "user_id": "author_001",
+                    "filename": "role.png",
+                    "mime_type": "image/png",
+                    "content_base64": base64.b64encode(b"fake image bytes").decode("ascii"),
+                },
+            )
+            assets = service.list_project_assets(project["id"], user_id="author_001", require_owner=True)
+            self.assertEqual(uploaded["asset_type"], AssetType.IMAGE.value)
+            self.assertEqual(uploaded["source_task_type"], "upload")
+            self.assertTrue(uploaded["url"].startswith("/storage/assets/"))
+            self.assertTrue(Path(uploaded["local_path"]).exists())
+            self.assertEqual(assets[0]["id"], uploaded["id"])
+            self.assertEqual(assets[0]["source_task_type"], "upload")
+
+            deleted = service.delete_project_asset(project["id"], uploaded["id"], {"user_id": "author_001"})
+            self.assertTrue(deleted["deleted"])
+            self.assertFalse(Path(uploaded["local_path"]).exists())
+            self.assertEqual(service.list_project_assets(project["id"], user_id="author_001", require_owner=True), [])
+
+            with self.assertRaisesRegex(WorkflowValidationError, "素材文件内容不能为空"):
+                service.upload_project_asset(project["id"], {"user_id": "author_001", "filename": "empty.png", "content_base64": ""})
+            with self.assertRaisesRegex(WorkflowValidationError, "请求参数未在业务接口中声明"):
+                service.upload_project_asset(project["id"], {"user_id": "author_001", "filename": "role.png", "content_base64": "Zm9v", "node_graph": {}})
+            with self.assertRaisesRegex(WorkflowValidationError, "非作者"):
+                service.upload_project_asset(project["id"], {"user_id": "viewer_001", "filename": "role.png", "content_base64": "Zm9v"})
 
     def test_delete_project_asset_removes_file_and_references(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -3715,7 +3715,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function autoLayoutSelectedNodes() {
     if (selectedNodes.length <= 1) {
-      setStatus("请先框选多个节点，再整理选区。");
+      setShowOutline(true);
+      setStatus("请先框选多个节点，再整理选区；已打开节点大纲，可先定位并多选要整理的节点。");
       return;
     }
     const selectedEdges = edges.filter((edge) => selectedNodeIds.has(edge.source) && selectedNodeIds.has(edge.target));
@@ -3728,7 +3729,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function arrangeSelectedNodesAsGrid() {
     if (selectedNodes.length <= 1) {
-      setStatus("请先框选多个节点，再网格排列选区。");
+      setShowOutline(true);
+      setStatus("请先框选多个节点，再网格排列选区；已打开节点大纲，可先定位并多选要对比的节点。");
       return;
     }
     const ordered = [...selectedNodes].sort((first, second) => first.position.y - second.position.y || first.position.x - second.position.x);
@@ -3751,7 +3753,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function connectSelectedNodesInOrder() {
     if (selectedNodes.length <= 1) {
-      setStatus("请先框选多个节点，再串联选区。");
+      setShowOutline(true);
+      setStatus("请先框选多个节点，再串联选区；已打开节点大纲，可先定位并多选要串联的节点。");
       return;
     }
     const ordered = [...selectedNodes].sort((first, second) => first.position.x - second.position.x || first.position.y - second.position.y);
@@ -3780,7 +3783,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function collectSelectedNodesToCompose() {
     if (!selectedNodes.length) {
-      setStatus("请先框选或点选节点，再汇聚到合成节点。");
+      setShowOutline(true);
+      setStatus("请先框选或点选节点，再汇聚到合成节点；已打开节点大纲，可先定位要合成的素材或生成节点。");
       return;
     }
     const selectedIds = new Set(selectedNodes.map((node) => node.id));
@@ -3816,7 +3820,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function connectSelectedNodesToExistingCompose() {
     if (!selectedNodes.length) {
-      setStatus("请先框选素材节点和一个合成节点，再接入已有合成。");
+      setShowOutline(true);
+      setStatus("请先框选素材节点和一个合成节点，再接入已有合成；已打开节点大纲，可先定位合成节点和素材节点。");
       return;
     }
     const selectedComposeNodes = selectedNodes.filter((node) => String((node.data as Record<string, unknown>).nodeType || "") === "compose_generation");
@@ -3859,7 +3864,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function expandSelectedNodesToVideoGeneration() {
     if (!selectedNodes.length) {
-      setStatus("请先框选或点选节点，再生成视频链。");
+      setShowOutline(true);
+      setStatus("请先框选或点选节点，再生成视频链；已打开节点大纲，可先定位文本、图片或分镜图节点。");
       return;
     }
     const selectedIds = new Set(selectedNodes.map((node) => node.id));
@@ -3911,7 +3917,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function expandSelectedNodesToTtsGeneration() {
     if (!selectedNodes.length) {
-      setStatus("请先框选或点选节点，再生成配音链。");
+      setShowOutline(true);
+      setStatus("请先框选或点选节点，再生成配音链；已打开节点大纲，可先定位文本、脚本或分镜节点。");
       return;
     }
     const selectedIds = new Set(selectedNodes.map((node) => node.id));
@@ -3958,7 +3965,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function alignSelectedNodes(mode: "left" | "centerX" | "right" | "top" | "centerY" | "bottom" | "horizontal" | "vertical") {
     if (selectedNodes.length <= 1) {
-      setStatus("请先框选多个节点，再对齐或分布选区。");
+      setShowOutline(true);
+      setStatus("请先框选多个节点，再对齐或分布选区；已打开节点大纲，可先定位并多选要排版的节点。");
       return;
     }
     const sortedByX = [...selectedNodes].sort((a, b) => a.position.x - b.position.x);
@@ -4004,7 +4012,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function nudgeSelectedNodes(deltaX: number, deltaY: number) {
     if (!selectedNodes.length) {
-      setStatus("请先选择节点，再用方向键微调位置。");
+      setShowOutline(true);
+      setStatus("请先选择节点，再用方向键微调位置；已打开节点大纲，可先定位要移动的节点。");
       return;
     }
     const movableIds = new Set(selectedNodes.filter((node) => (node.data as Record<string, unknown>).locked !== true).map((node) => node.id));
@@ -4027,7 +4036,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function setSelectedNodesLayer(mode: "front" | "back") {
     if (!selectedNodes.length) {
-      setStatus("请先选择节点，再调整层级。");
+      setShowOutline(true);
+      setStatus("请先选择节点，再调整层级；已打开节点大纲，可先定位要置顶或置底的节点。");
       return;
     }
     const layerValues = nodes.map(nodeLayerValue);

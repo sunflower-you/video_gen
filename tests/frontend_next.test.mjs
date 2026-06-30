@@ -550,6 +550,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /请先选择分镜图、视频、配音或合成生成节点，再生成变体；已打开节点大纲，可先筛选并选择生成节点/);
   assert.match(canvasWorkspace, /选区网格排列/);
   assert.match(canvasWorkspace, /网格排列选区/);
+  assert.match(canvasWorkspace, /请先框选多个节点，再网格排列选区；已打开节点大纲，可先定位并多选要对比的节点/);
   assert.match(canvasWorkspace, /已把选区按 .*列网格排列/);
   assert.match(canvasWorkspace, /选区分镜图随机 seed/);
   assert.match(canvasWorkspace, /清空选区生成结果/);
@@ -792,7 +793,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /ArrowRight/);
   assert.match(canvasWorkspace, /ArrowUp/);
   assert.match(canvasWorkspace, /ArrowDown/);
-  assert.match(canvasWorkspace, /请先选择节点，再用方向键微调位置/);
+  assert.match(canvasWorkspace, /请先选择节点，再用方向键微调位置；已打开节点大纲，可先定位要移动的节点/);
   assert.match(canvasWorkspace, /选区节点均已锁定，请先解锁再移动/);
   assert.match(canvasWorkspace, /已向\$\{direction\}微调选区/);
   assert.match(canvasWorkspace, /setSelectedNodesLayer/);
@@ -801,9 +802,10 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /zIndex/);
   assert.match(canvasWorkspace, /BringToFront/);
   assert.match(canvasWorkspace, /SendToBack/);
-  assert.match(canvasWorkspace, /请先选择节点，再调整层级/);
+  assert.match(canvasWorkspace, /请先选择节点，再调整层级；已打开节点大纲，可先定位要置顶或置底的节点/);
   assert.match(canvasWorkspace, /已\$\{mode === "front" \? "置顶" : "置底"\}选区/);
   assert.match(canvasWorkspace, /对齐与分布/);
+  assert.match(canvasWorkspace, /请先框选多个节点，再对齐或分布选区；已打开节点大纲，可先定位并多选要排版的节点/);
   assert.match(canvasWorkspace, /左对齐选区/);
   assert.match(canvasWorkspace, /水平居中对齐选区/);
   assert.match(canvasWorkspace, /右对齐选区/);
@@ -896,8 +898,10 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /置顶选区/);
   assert.match(canvasWorkspace, /置底选区/);
   assert.match(canvasWorkspace, /整理选区/);
+  assert.match(canvasWorkspace, /请先框选多个节点，再整理选区；已打开节点大纲，可先定位并多选要整理的节点/);
   assert.match(canvasWorkspace, /connectSelectedNodesInOrder/);
   assert.match(canvasWorkspace, /串联选区/);
+  assert.match(canvasWorkspace, /请先框选多个节点，再串联选区；已打开节点大纲，可先定位并多选要串联的节点/);
   assert.match(canvasWorkspace, /已按从左到右顺序串联选区/);
   assert.match(canvasWorkspace, /禁用选区/);
   assert.match(canvasWorkspace, /锁定选区/);
@@ -993,14 +997,17 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /expandSelectedNodesToVideoGeneration/);
   assert.match(canvasWorkspace, /选区生成视频链/);
   assert.match(canvasWorkspace, /生成视频链/);
+  assert.match(canvasWorkspace, /请先框选或点选节点，再生成视频链；已打开节点大纲，可先定位文本、图片或分镜图节点/);
   assert.match(canvasWorkspace, /已为选区末端创建/);
   assert.match(canvasWorkspace, /expandSelectedNodesToTtsGeneration/);
   assert.match(canvasWorkspace, /选区生成配音链/);
   assert.match(canvasWorkspace, /生成配音链/);
+  assert.match(canvasWorkspace, /请先框选或点选节点，再生成配音链；已打开节点大纲，可先定位文本、脚本或分镜节点/);
   assert.match(canvasWorkspace, /旁白配音节点/);
   assert.match(canvasWorkspace, /collectSelectedNodesToCompose/);
   assert.match(canvasWorkspace, /选区汇聚到合成节点/);
   assert.match(canvasWorkspace, /汇聚到合成节点/);
+  assert.match(canvasWorkspace, /请先框选或点选节点，再汇聚到合成节点；已打开节点大纲，可先定位要合成的素材或生成节点/);
   assert.match(canvasWorkspace, /composeTargetHandleForNode/);
   assert.match(canvasWorkspace, /视频合成输入/);
   assert.match(canvasWorkspace, /配音合成输入/);
@@ -1008,6 +1015,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /connectSelectedNodesToExistingCompose/);
   assert.match(canvasWorkspace, /选区接入已有合成节点/);
   assert.match(canvasWorkspace, /接入已有合成/);
+  assert.match(canvasWorkspace, /请先框选素材节点和一个合成节点，再接入已有合成；已打开节点大纲，可先定位合成节点和素材节点/);
   assert.match(canvasWorkspace, /已将选区末端 .*接入已有合成节点/);
   assert.match(canvasWorkspace, /nodeParameterPresets/);
   assert.match(canvasWorkspace, /applySelectedNodesParameterPreset/);

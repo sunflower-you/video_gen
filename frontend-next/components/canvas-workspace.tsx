@@ -4954,7 +4954,15 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
               <button className="rounded border border-red-400/30 px-2 py-1 text-xs text-red-100" onClick={() => deleteCustomWorkflowPreset(preset.key)}>删除预设</button>
             </div>
           </article>)}
-          {!customWorkflowPresets.length && <p className="rounded border border-white/10 px-2 py-2 text-xs text-slate-400">暂无自定义预设，可先搭建画布后保存。</p>}
+          {!customWorkflowPresets.length && <div className="rounded border border-white/10 px-2 py-2 text-xs text-slate-400">
+            <p>暂无自定义预设，可先搭建画布后保存。</p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button disabled={!nodes.length} className="rounded-md border border-blue-400/30 bg-blue-500/10 px-2 py-1.5 text-left text-blue-50 hover:bg-blue-500/20 disabled:opacity-50" onClick={saveCurrentWorkflowAsPreset}>保存当前画布</button>
+              <button disabled={!selectedNodes.length} className="rounded-md border border-white/10 px-2 py-1.5 text-left text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={saveSelectedWorkflowAsPreset}>保存选区预设</button>
+              <button className="rounded-md border border-white/10 px-2 py-1.5 text-left text-slate-100 hover:bg-white/10" onClick={() => void importCustomWorkflowPresetFromClipboard()}>导入预设 JSON</button>
+              <button disabled={busy} className="rounded-md border border-white/10 px-2 py-1.5 text-left text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPreset("seedance2_image_video")}>追加 Seedance</button>
+            </div>
+          </div>}
         </section>
         <div className="mt-4 grid gap-4">
           {["平台生成", "素材节点", "基础节点"].map((category) => {

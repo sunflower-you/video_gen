@@ -1099,6 +1099,10 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /importCustomWorkflowPresetFromClipboard/);
   assert.match(canvasWorkspace, /导出预设/);
   assert.match(canvasWorkspace, /从剪贴板导入预设/);
+  assert.match(canvasWorkspace, /暂无自定义预设，可先搭建画布后保存/);
+  assert.match(canvasWorkspace, /保存当前画布<\/button>/);
+  assert.match(canvasWorkspace, /保存选区预设<\/button>/);
+  assert.match(canvasWorkspace, /导入预设 JSON<\/button>/);
   assert.match(canvasWorkspace, /已导出并复制预设 ProjectGraph JSON/);
   assert.match(canvasWorkspace, /已导出预设 ProjectGraph JSON；浏览器剪贴板不可用，已把内容暂存到本地/);
   assert.match(canvasWorkspace, /剪贴板中没有可导入为预设的 ProjectGraph JSON/);

@@ -4501,11 +4501,13 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     try {
       graph = JSON.parse(importText);
     } catch {
-      setStatus("工作流 JSON 解析失败，请检查内容格式。");
+      setShowImport(true);
+      setStatus("工作流 JSON 解析失败，已打开导入工作流面板；可先选择 JSON 文件、导出当前画布，或复制标准 ProjectGraph JSON 后重试。");
       return;
     }
     if (!Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) {
-      setStatus("工作流 JSON 需要包含 nodes 和 edges。");
+      setShowImport(true);
+      setStatus("工作流 JSON 需要包含 nodes 和 edges，已打开导入工作流面板；可先导出当前画布作为格式模板。");
       return;
     }
     const timestamp = Date.now();

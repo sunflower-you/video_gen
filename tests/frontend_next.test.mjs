@@ -107,6 +107,10 @@ test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
   assert.match(workspace, /apiFetch\(`\/api\/projects\?owner_id=/);
   assert.match(workspace, /postJson<Project>\("\/api\/projects"/);
   assert.match(workspace, /owner_id: currentUserId\(\)/);
+  assert.match(workspace, /function createScriptCanvas/);
+  assert.match(workspace, /project_type: "脚本成片"/);
+  assert.match(workspace, /preset: "script_to_storyboard"/);
+  assert.match(workspace, /quickScript: title/);
   assert.match(workspace, /createSameStyleProjectFromHref/);
   assert.match(workspace, /function createQuickProject/);
   assert.match(workspace, /window\.location\.href = await createSameStyleProjectFromHref/);

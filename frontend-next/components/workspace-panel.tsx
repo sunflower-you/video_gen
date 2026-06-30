@@ -48,6 +48,27 @@ export function WorkspacePanel() {
     }
   }
 
+  async function createScriptCanvas() {
+    setBusy(true);
+    setStatus("正在创建脚本成片全画幅画布...");
+    try {
+      const project = await postJson<Project>("/api/projects", {
+        title,
+        project_type: "脚本成片",
+        owner_id: currentUserId()
+      });
+      const params = new URLSearchParams({
+        preset: "script_to_storyboard",
+        presetMode: "replace",
+        quickScript: title
+      });
+      window.location.href = `/workspace/${project.id}?${params.toString()}`;
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "脚本成片画布创建失败，请稍后重试。");
+      setBusy(false);
+    }
+  }
+
   async function createQuickProject(href: string, label: string) {
     setBusy(true);
     setStatus(`正在创建${label}全画幅画布...`);
@@ -65,7 +86,7 @@ export function WorkspacePanel() {
       <div className="mt-4 grid gap-3">
         <input className="rounded-md border border-line px-3 py-2" value={title} onChange={(event) => setTitle(event.target.value)} />
         <div className="flex flex-wrap gap-2">
-          <a className="rounded-md bg-accent px-4 py-2 text-sm text-white" href="/create">脚本成片</a>
+          <button disabled={busy} className="rounded-md bg-accent px-4 py-2 text-sm text-white disabled:opacity-50" onClick={() => void createScriptCanvas()}>脚本成片</button>
           <button disabled={busy} className="rounded-md border border-line px-4 py-2 text-sm disabled:opacity-50" onClick={() => void createQuickProject("/create?quick=creator-challenge", "挑战赛")}>挑战赛</button>
           <button disabled={busy} className="rounded-md border border-line px-4 py-2 text-sm disabled:opacity-50" onClick={() => void createQuickProject("/create?quick=seedance2", "Seedance 2.0")}>Seedance 2.0</button>
           <button disabled={busy} className="rounded-md border border-line px-4 py-2 text-sm disabled:opacity-50" onClick={() => void createQuickProject("/create?quick=tv-show", "TV Show")}>TV Show</button>

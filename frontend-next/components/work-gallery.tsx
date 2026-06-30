@@ -4,6 +4,7 @@ import { LayoutGrid } from "lucide-react";
 import { FormEvent, useState } from "react";
 import type { Work } from "../lib/api";
 import { categories } from "../lib/fallback-data";
+import { createSameStyleProjectFromHref } from "../lib/same-style-create";
 import { quickStartHrefForWork } from "../lib/work-quick-start";
 import type { WorkQuery } from "./platform-dashboard";
 import { PanelTitle } from "./panel-title";
@@ -34,6 +35,8 @@ export function WorkGallery({
   onQueryChange: (query: WorkQuery) => void;
 }) {
   const [keywordDraft, setKeywordDraft] = useState(query.keyword);
+  const [creatingWorkId, setCreatingWorkId] = useState("");
+  const [actionStatus, setActionStatus] = useState("");
 
   function updateQuery(partial: Partial<WorkQuery>) {
     onQueryChange({ ...query, ...partial });
@@ -42,6 +45,19 @@ export function WorkGallery({
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     updateQuery({ keyword: keywordDraft });
+  }
+
+  async function createSameStyleWork(item: Work) {
+    const href = quickStartHrefForWork(item);
+    setCreatingWorkId(item.id);
+    setActionStatus(`正在创建《${item.title}》同款画布...`);
+    try {
+      window.location.href = await createSameStyleProjectFromHref(href, `${item.title} 同款创作`);
+    } catch (error) {
+      setActionStatus(error instanceof Error ? error.message : "同款画布创建失败，请稍后重试。");
+    } finally {
+      setCreatingWorkId("");
+    }
   }
 
   return (
@@ -73,7 +89,7 @@ export function WorkGallery({
           {query.category === "全部" ? "开始创作" : `创作${query.category}`}
         </a>
       </section>
-      <div className="rounded-md border border-line bg-canvas px-3 py-2 text-sm text-muted">{status}</div>
+      <div className="rounded-md border border-line bg-canvas px-3 py-2 text-sm text-muted">{actionStatus || status}</div>
       <section id="作品广场" className="rounded-panel border border-line bg-panel p-4">
         <PanelTitle icon={<LayoutGrid size={18} />} title="作品广场" extra="已发布作品、模板复刻和成片案例" />
         <div className="mt-4 grid grid-cols-3 gap-3">
@@ -99,7 +115,9 @@ export function WorkGallery({
               </div>
               <small className="block text-muted">{item.view_count || 0} 浏览 · {item.like_count || 0} 点赞 · {item.favorite_count || 0} 收藏</small>
               <div className="mt-3 flex gap-2 text-sm">
-                <a className="rounded-md bg-accent px-3 py-2 text-white" href={quickStartHrefForWork(item)}>同款创作</a>
+                <button className="rounded-md bg-accent px-3 py-2 text-white disabled:opacity-60" disabled={creatingWorkId === item.id} onClick={() => void createSameStyleWork(item)}>
+                  {creatingWorkId === item.id ? "创建中" : "同款创作"}
+                </button>
                 <a className="rounded-md border border-line px-3 py-2 hover:border-accent" href={`/works/${item.id}`}>查看详情</a>
               </div>
             </article>

@@ -36,6 +36,7 @@ const api = await readFile(new URL("../frontend-next/lib/api.ts", import.meta.ur
 const fallbackData = await readFile(new URL("../frontend-next/lib/fallback-data.ts", import.meta.url), "utf8");
 const templateQuickStart = await readFile(new URL("../frontend-next/lib/template-quick-start.ts", import.meta.url), "utf8");
 const workQuickStart = await readFile(new URL("../frontend-next/lib/work-quick-start.ts", import.meta.url), "utf8");
+const sameStyleCreate = await readFile(new URL("../frontend-next/lib/same-style-create.ts", import.meta.url), "utf8");
 const tailwind = await readFile(new URL("../frontend-next/tailwind.config.ts", import.meta.url), "utf8");
 const accountPage = await readFile(new URL("../frontend-next/app/account/page.tsx", import.meta.url), "utf8");
 const oauthCallbackPage = await readFile(new URL("../frontend-next/app/account/oauth/callback/page.tsx", import.meta.url), "utf8");
@@ -110,6 +111,10 @@ test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
   assert.match(gallery, /item\.template_name/);
   assert.match(gallery, /item\.tags/);
   assert.match(gallery, /quickStartHrefForWork/);
+  assert.match(gallery, /createSameStyleProjectFromHref/);
+  assert.match(gallery, /function createSameStyleWork/);
+  assert.match(gallery, /window\.location\.href = await createSameStyleProjectFromHref/);
+  assert.match(gallery, /正在创建《\$\{item\.title\}》同款画布/);
   assert.match(gallery, /function quickHrefForCategory/);
   assert.match(gallery, /category === "创作者挑战赛"/);
   assert.match(gallery, /category === "Seedance 2\.0"/);
@@ -1159,7 +1164,11 @@ test("Next 模板市场读取真实模板并支持复刻项目", () => {
   assert.match(templates, /visibleTemplates/);
   assert.match(templates, /当前频道 \{visibleTemplates\.length\} 个模板/);
   assert.match(templates, /当前频道暂无模板/);
-  assert.match(templates, /quickStartHrefForTemplate\(item\)/);
+  assert.match(templates, /quickStartHrefForTemplate\(template\)/);
+  assert.match(templates, /createSameStyleProjectFromHref/);
+  assert.match(templates, /function createSameStyleTemplate/);
+  assert.match(templates, /window\.location\.href = await createSameStyleProjectFromHref/);
+  assert.match(templates, /正在创建「\$\{template\.name\}」同款画布/);
   assert.match(templateQuickStart, /function quickStartHrefForTemplate/);
   assert.match(fallbackData, /quick\/creator_challenge_entry/);
   assert.match(fallbackData, /创作者挑战赛参赛片/);
@@ -1180,6 +1189,13 @@ test("Next 模板市场读取真实模板并支持复刻项目", () => {
   assert.match(templateQuickStart, /sourceTemplateId/);
   assert.match(templateQuickStart, /sourceScript/);
   assert.match(templateQuickStart, /sourceReferenceUrl/);
+  assert.match(sameStyleCreate, /export async function createSameStyleProjectFromHref/);
+  assert.match(sameStyleCreate, /quickCreateModes/);
+  assert.match(sameStyleCreate, /postJson<Project>\("\/api\/projects"/);
+  assert.match(sameStyleCreate, /presetMode: "replace"/);
+  assert.match(sameStyleCreate, /workspaceParams\.set\("quickScript"/);
+  assert.match(sameStyleCreate, /workspaceParams\.set\("referenceImageUrl"/);
+  assert.match(sameStyleCreate, /template_id: !mode && templateId \? templateId : undefined/);
   assert.match(api, /default_params\?: Record<string, unknown>/);
   assert.match(api, /example_inputs\?: Record<string, unknown>/);
   for (const text of ["复刻项目", "快速同款创作", "复刻项目标题", "目标画幅", "9:16 竖屏短视频", "16:9 横屏短片", "1:1 方形画布", "刷新模板", "模板复刻成功", "模板复刻失败，请稍后重试", "默认参数", "示例输入", "使用次数", "查看封面", "查看成片示例", "全部", "创作者挑战赛", "Seedance 2.0", "TV Show", "创作", "开始创作"]) {

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Sparkles } from "lucide-react";
 import type { Template } from "../lib/api";
+import { createSameStyleProjectFromHref } from "../lib/same-style-create";
 import { quickStartHrefForTemplate } from "../lib/template-quick-start";
 import { PanelTitle } from "./panel-title";
 
@@ -22,6 +23,8 @@ function formatParams(params?: Record<string, unknown>): string {
 
 export function TemplateMarket({ templates, onUseTemplate }: { templates: Template[]; onUseTemplate?: (template: Template) => void }) {
   const [activeChannel, setActiveChannel] = useState("全部");
+  const [creatingTemplateId, setCreatingTemplateId] = useState("");
+  const [actionStatus, setActionStatus] = useState("");
   const visibleTemplates = useMemo(() => {
     if (activeChannel === "全部") return templates;
     return templates.filter((item) => {
@@ -30,6 +33,19 @@ export function TemplateMarket({ templates, onUseTemplate }: { templates: Templa
     });
   }, [activeChannel, templates]);
   const activeShortcut = templateChannels.find((item) => item.label === activeChannel) || templateChannels[0];
+
+  async function createSameStyleTemplate(template: Template) {
+    const href = quickStartHrefForTemplate(template);
+    setCreatingTemplateId(template.id);
+    setActionStatus(`正在创建「${template.name}」同款画布...`);
+    try {
+      window.location.href = await createSameStyleProjectFromHref(href, `${template.name} 同款创作`);
+    } catch (error) {
+      setActionStatus(error instanceof Error ? error.message : "同款画布创建失败，请稍后重试。");
+    } finally {
+      setCreatingTemplateId("");
+    }
+  }
 
   return (
     <section id="模板市场" className="rounded-panel border border-line bg-panel p-4">
@@ -49,15 +65,16 @@ export function TemplateMarket({ templates, onUseTemplate }: { templates: Templa
         </a>
         <span className="text-xs text-muted">当前频道 {visibleTemplates.length} 个模板</span>
       </div>
+      {actionStatus ? <div className="mt-3 rounded-md border border-line bg-canvas px-3 py-2 text-sm text-muted">{actionStatus}</div> : null}
       <div className="mt-3 grid gap-2">
         {visibleTemplates.map((item) => (
           <article key={item.id} className="rounded-md border border-line p-3">
             <div className="flex items-start justify-between gap-3">
               <strong>{item.name}</strong>
               <div className="flex shrink-0 flex-wrap justify-end gap-2">
-                <a className="rounded-md bg-accent px-3 py-1 text-sm text-white" href={quickStartHrefForTemplate(item)}>
-                  快速同款创作
-                </a>
+                <button className="rounded-md bg-accent px-3 py-1 text-sm text-white disabled:opacity-60" disabled={creatingTemplateId === item.id} onClick={() => void createSameStyleTemplate(item)}>
+                  {creatingTemplateId === item.id ? "创建中" : "快速同款创作"}
+                </button>
                 {onUseTemplate ? (
                   <button className="rounded-md border border-line px-3 py-1 text-sm" onClick={() => onUseTemplate(item)}>
                     复刻项目

@@ -195,6 +195,9 @@ export function TemplateMarket({
               <div>
                 <a className="font-semibold hover:text-accent" href={templateShareHref(item)}>{item.name}</a>
                 {highlightedTemplateId === item.id ? <span className="ml-2 rounded-sm bg-accent px-2 py-1 text-xs text-white">分享定位</span> : null}
+                <button className="mt-1 block rounded-sm bg-canvas px-2 py-1 text-xs text-muted hover:text-accent" onClick={() => updateActiveChannel(item.category || "全部")}>
+                  {item.category || "全部"}
+                </button>
               </div>
               <div className="flex shrink-0 flex-wrap justify-end gap-2">
                 <button className="rounded-md bg-accent px-3 py-1 text-sm text-white disabled:opacity-60" disabled={creatingTemplateId === item.id} onClick={() => void createSameStyleTemplate(item)}>

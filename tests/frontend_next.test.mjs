@@ -1279,6 +1279,7 @@ test("Next 模板市场读取真实模板并支持复刻项目", () => {
   assert.match(templates, /scrollIntoView\(\{ block: "center", behavior: "smooth" \}\)/);
   assert.match(templates, /id=\{`template-\$\{item\.id\}`\}/);
   assert.match(templates, /href=\{templateShareHref\(item\)\}/);
+  assert.match(templates, /onClick=\{\(\) => updateActiveChannel\(item\.category \|\| "全部"\)\}/);
   assert.match(templates, /const \[creatingShortcut, setCreatingShortcut\]/);
   assert.match(templates, /function createChannelCanvas/);
   assert.match(templates, /window\.location\.href = await createSameStyleProjectFromHref\(activeShortcut\.href/);

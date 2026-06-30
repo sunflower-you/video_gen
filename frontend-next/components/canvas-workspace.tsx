@@ -3644,7 +3644,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       }
     }
     if (!cached?.nodes?.length) {
-      setStatus("暂无可粘贴的链路。");
+      setShowImport(true);
+      setStatus("暂无可粘贴的链路，已打开导入工作流面板；可先复制选区/链路、粘贴 ProjectGraph JSON，或追加内置工作流预设。");
       return;
     }
     const timestamp = Date.now();

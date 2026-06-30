@@ -1024,6 +1024,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /已复制选区到系统剪贴板/);
   assert.match(canvasWorkspace, /已复制选区到本地画布剪贴板/);
   assert.match(canvasWorkspace, /已复制链路到系统剪贴板/);
+  assert.match(canvasWorkspace, /暂无可粘贴的链路，已打开导入工作流面板；可先复制选区\/链路、粘贴 ProjectGraph JSON，或追加内置工作流预设/);
   assert.match(canvasWorkspace, /已粘贴链路到当前视图中心/);
   assert.match(canvasWorkspace, /已粘贴链路到画布右键位置/);
   assert.match(canvasWorkspace, /CanvasEventLogEntry/);

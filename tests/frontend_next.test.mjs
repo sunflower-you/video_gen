@@ -1163,9 +1163,9 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /moveActivePaletteNode/);
   assert.match(canvasWorkspace, /ArrowDown/);
   assert.match(canvasWorkspace, /ArrowUp/);
-  assert.match(canvasWorkspace, /当前节点面板没有匹配节点，无法切换/);
+  assert.match(canvasWorkspace, /当前节点面板没有匹配节点，已保持节点面板打开；可先清空筛选、切换分类或换关键词/);
   assert.match(canvasWorkspace, /已定位节点面板项/);
-  assert.match(canvasWorkspace, /当前节点面板没有匹配节点，无法快速添加/);
+  assert.match(canvasWorkspace, /当前节点面板没有匹配节点，已保持节点面板打开；可先清空筛选、切换分类或换关键词后再快速添加/);
   assert.match(canvasWorkspace, /已关闭节点面板/);
   assert.match(canvasWorkspace, /onKeyDown=\{handlePaletteSearchKeyDown\}/);
   assert.match(canvasWorkspace, /paletteCategoryFilter/);

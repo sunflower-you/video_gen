@@ -1689,7 +1689,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   function addFirstFilteredPaletteNode() {
     const nodeType = activePaletteNode?.type;
     if (!nodeType) {
-      setStatus("当前节点面板没有匹配节点，无法快速添加。");
+      setShowPalette(true);
+      setStatus("当前节点面板没有匹配节点，已保持节点面板打开；可先清空筛选、切换分类或换关键词后再快速添加。");
       return;
     }
     addNode(nodeType);
@@ -1698,7 +1699,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function moveActivePaletteNode(delta: number) {
     if (!filteredAddableNodes.length) {
-      setStatus("当前节点面板没有匹配节点，无法切换。");
+      setShowPalette(true);
+      setStatus("当前节点面板没有匹配节点，已保持节点面板打开；可先清空筛选、切换分类或换关键词。");
       return;
     }
     setActivePaletteNodeIndex((index) => {

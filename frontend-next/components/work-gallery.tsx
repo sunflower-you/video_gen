@@ -167,6 +167,9 @@ export function WorkGallery({
               <a className="mt-1 block text-xs text-muted hover:text-accent" href={`/users/${item.author_id || "system"}`}>
                 作者：{item.author_id || "平台作者"}
               </a>
+              <a className="mt-1 inline-flex rounded-sm bg-canvas px-2 py-1 text-xs text-muted hover:text-accent" href={`/?category=${encodeURIComponent(item.category)}`}>
+                {item.category}
+              </a>
               {templateHrefForWork(item) ? (
                 <a className="block text-xs text-muted hover:text-accent" href={templateHrefForWork(item)}>
                   模板：{item.template_name || item.template_id}

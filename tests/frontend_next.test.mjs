@@ -140,6 +140,7 @@ test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
   assert.match(gallery, /已清空作品筛选/);
   assert.match(gallery, /当前筛选：\{activeFilterText\}/);
   assert.match(gallery, /href=\{`\/users\/\$\{item\.author_id \|\| "system"\}`\}/);
+  assert.match(gallery, /href=\{`\/\?category=\$\{encodeURIComponent\(item\.category\)\}`\}/);
   assert.match(gallery, /function templateHrefForWork\(item: Work\)/);
   assert.match(gallery, /\/templates\?template=\$\{encodeURIComponent\(item\.template_id\)\}/);
   assert.match(gallery, /href=\{`\/\?keyword=\$\{encodeURIComponent\(tag\)\}`\}/);

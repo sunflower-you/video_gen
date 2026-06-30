@@ -446,12 +446,18 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /readFileAsDataUrl/);
   assert.match(canvasWorkspace, /uploadProjectAssetFile/);
   assert.match(canvasWorkspace, /handleAssetFileInput/);
+  assert.match(canvasWorkspace, /deleteCanvasAsset/);
+  assert.match(canvasWorkspace, /clearAssetFromCanvas/);
   assert.match(canvasWorkspace, /\/api\/projects\/\$\{projectId\}\/assets\/upload/);
+  assert.match(canvasWorkspace, /deleteJson<DeleteResult>\(`\/api\/projects\/\$\{projectId\}\/assets\/\$\{asset\.id\}`/);
   assert.match(canvasWorkspace, /正在上传并拖入素材/);
   assert.match(canvasWorkspace, /已上传并拖入素材/);
   assert.match(canvasWorkspace, /刷新后仍会保留项目素材 URL/);
   assert.match(canvasWorkspace, /素材上传失败/);
+  assert.match(canvasWorkspace, /已删除素材，并清理画布中使用该素材的节点、连线和媒体参数/);
+  assert.match(canvasWorkspace, /素材删除失败/);
   assert.match(canvasWorkspace, /上传本地素材/);
+  assert.match(canvasWorkspace, /删除素材/);
   assert.match(canvasWorkspace, /accept="image\/\*,video\/\*,audio\/\*"/);
   assert.match(canvasWorkspace, /addAllAssetNodes/);
   assert.match(canvasWorkspace, /resetAssetFilters/);

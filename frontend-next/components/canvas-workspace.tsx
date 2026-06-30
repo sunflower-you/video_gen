@@ -4715,6 +4715,50 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus("素材已拖入画布。");
   }
 
+  function clearAssetFromCanvas(asset: Asset) {
+    const assetUrl = String(asset.url || "");
+    const mediaKeys = ["image_url", "video_url", "audio_url", "reference_image_url", "first_frame_url", "output_url", "result_url", "final_video_url"];
+    const removedNodeIds = new Set(nodes.filter((node) => {
+      const data = node.data as Record<string, unknown>;
+      return node.id === `asset-${asset.id}` || Boolean(assetUrl) && mediaKeys.some((key) => String(data[key] || "") === assetUrl && ["image", "video", "audio"].includes(String(data.nodeType || "")));
+    }).map((node) => node.id));
+    rememberGraphHistory();
+    setNodes((items) => items.filter((node) => !removedNodeIds.has(node.id)).map((node) => {
+      const data = node.data as Record<string, unknown>;
+      const nextData = { ...data };
+      let changed = false;
+      mediaKeys.forEach((key) => {
+        if (assetUrl && String(nextData[key] || "") === assetUrl) {
+          delete nextData[key];
+          changed = true;
+        }
+      });
+      return changed ? { ...node, data: nextData } : node;
+    }));
+    setEdges((items) => items.filter((edge) => !removedNodeIds.has(edge.source) && !removedNodeIds.has(edge.target)));
+    setSelectedNodeId((value) => removedNodeIds.has(value) ? "" : value);
+    setSelectedEdgeId((value) => {
+      const selectedEdge = edges.find((edge) => edge.id === value);
+      return selectedEdge && (removedNodeIds.has(selectedEdge.source) || removedNodeIds.has(selectedEdge.target)) ? "" : value;
+    });
+  }
+
+  async function deleteCanvasAsset(asset: Asset) {
+    setBusy(true);
+    setStatus("正在删除素材...");
+    try {
+      await deleteJson<DeleteResult>(`/api/projects/${projectId}/assets/${asset.id}`, { user_id: currentUserId() });
+      clearAssetFromCanvas(asset);
+      setAssets((items) => items.filter((item) => item.id !== asset.id));
+      setStatus("已删除素材，并清理画布中使用该素材的节点、连线和媒体参数。");
+    } catch (error) {
+      setShowAssets(true);
+      setStatus(error instanceof Error ? `素材删除失败：${error.message}` : "素材删除失败，已保留素材库面板，可稍后重试。");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function addFilteredAssetNodes() {
     if (!filteredAssets.length) {
       setShowAssets(true);
@@ -6309,18 +6353,22 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             const type = asset.asset_type === "video" ? "video" : asset.asset_type === "audio" ? "audio" : "image";
             const dataKey = type === "video" ? "video_url" : type === "audio" ? "audio_url" : "image_url";
             const previewData = { nodeType: type, [dataKey]: asset.url };
-            return <button key={asset.id} className="rounded-md border border-white/10 px-3 py-2 text-left text-slate-300 hover:bg-white/10" onClick={() => addAssetNode(asset)}>
+            return <article key={asset.id} className="rounded-md border border-white/10 px-3 py-2 text-left text-slate-300 hover:bg-white/10">
               <div className="flex gap-3">
                 <div className="h-16 w-20 shrink-0 overflow-hidden rounded border border-white/10 bg-black/30">
                   <MediaPreview data={previewData} title={`素材 ${asset.asset_type}`} compact />
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <span className="block text-white">{asset.asset_type} · {asset.shot_index ? `分镜 ${asset.shot_index}` : "项目素材"}</span>
                   <span className="mt-1 block truncate text-xs text-slate-400">{asset.workflow_key || asset.source_task_type || asset.id}</span>
                   <span className="mt-1 block truncate text-xs text-slate-500">{asset.url || asset.id}</span>
                 </div>
               </div>
-            </button>;
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button disabled={busy} className="inline-flex items-center gap-1 rounded-md border border-blue-400/30 bg-blue-500/10 px-2 py-1 text-xs text-blue-50 hover:bg-blue-500/20 disabled:opacity-50" onClick={() => addAssetNode(asset)}><Plus size={13} />添加到画布</button>
+                <button disabled={busy} className="inline-flex items-center gap-1 rounded-md border border-red-400/30 bg-red-500/10 px-2 py-1 text-xs text-red-50 hover:bg-red-500/20 disabled:opacity-50" onClick={() => void deleteCanvasAsset(asset)}><Trash2 size={13} />删除素材</button>
+              </div>
+            </article>;
           })}
           {!assets.length && (
             <div className="rounded-md border border-white/10 px-3 py-2 text-slate-400">

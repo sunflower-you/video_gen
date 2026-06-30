@@ -182,6 +182,8 @@ test("Next 前端迁移已拆分组件并提供核心路由", () => {
   assert.match(accountPage, /账号令牌/);
   assert.match(`${reviewPage}\n${adminReviewPanel}`, /审核队列/);
   assert.match(reviewPage, /AdminReviewPanel/);
+  assert.match(review, /latestProject \? `\/workspace\/\$\{latestProject\.id\}` : "\/"/);
+  assert.doesNotMatch(review, /: "\/create"/);
   assert.match(fallbackData, /短片剧集/);
   assert.match(fallbackData, /十五秒反转挑战/);
   assert.match(fallbackData, /创作者挑战赛/);

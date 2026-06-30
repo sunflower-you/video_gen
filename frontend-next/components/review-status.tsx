@@ -27,7 +27,7 @@ export function ReviewStatus({ health }: { health: Health | null }) {
     }
   }
 
-  const workspaceHref = latestProject ? `/workspace/${latestProject.id}` : "/create";
+  const workspaceHref = latestProject ? `/workspace/${latestProject.id}` : "/";
 
   return (
     <>

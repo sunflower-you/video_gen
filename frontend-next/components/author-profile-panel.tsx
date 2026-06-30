@@ -190,7 +190,10 @@ export function AuthorProfilePanel({ userId }: { userId: string }) {
               <article key={work.id} className="rounded-md border border-line px-3 py-2 text-sm hover:border-accent">
                 <a className="block" href={`/works/${work.id}`}>
                   <strong className="block">{work.title}</strong>
-                  <span className="text-muted">{work.category} · {work.view_count || 0} 浏览 · {work.like_count || 0} 点赞</span>
+                  <span className="text-muted">{work.view_count || 0} 浏览 · {work.like_count || 0} 点赞</span>
+                </a>
+                <a className="mt-1 inline-flex rounded-sm bg-canvas px-2 py-1 text-xs text-muted hover:text-accent" href={`/?category=${encodeURIComponent(work.category)}`}>
+                  {work.category}
                 </a>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <button className="rounded-md bg-accent px-3 py-1 text-xs text-white disabled:opacity-60" disabled={creatingSameStyleId === `work:${work.id}`} onClick={() => void createSameStyleWork(work)}>

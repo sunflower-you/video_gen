@@ -1535,6 +1535,7 @@ test("Next 作者主页读取真实作者聚合并支持关注", () => {
   assert.match(authorProfile, /target_type: "author"/);
   assert.match(authorProfile, /interaction_type: "follow"/);
   assert.match(authorProfile, /href=\{`\/works\/\$\{work\.id\}`\}/);
+  assert.match(authorProfile, /href=\{`\/\?category=\$\{encodeURIComponent\(work\.category\)\}`\}/);
   assert.match(authorProfile, /createSameStyleProjectFromHref/);
   assert.match(authorProfile, /function createSameStyleWork/);
   assert.match(authorProfile, /function createSameStyleTemplate/);

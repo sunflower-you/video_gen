@@ -4734,11 +4734,13 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function runCommandPaletteItem(item = activeCommandPaletteItem) {
     if (!item) {
-      setStatus("当前命令面板没有匹配命令，无法执行。");
+      setShowCommandPalette(true);
+      setStatus("当前命令面板没有匹配命令，已保持命令面板打开；可先清空搜索、换关键词或打开节点面板继续创作。");
       return;
     }
     if (item.disabled) {
-      setStatus(`当前命令不可执行：${item.title}。`);
+      setShowCommandPalette(true);
+      setStatus(`当前命令不可执行：${item.title}；请先满足命令条件，或换一个可执行命令。`);
       return;
     }
     closeCommandPalette();
@@ -4747,7 +4749,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function moveActiveCommandPaletteItem(delta: number) {
     if (!filteredCommandPaletteItems.length) {
-      setStatus("当前命令面板没有匹配命令，无法切换。");
+      setShowCommandPalette(true);
+      setStatus("当前命令面板没有匹配命令，已保持命令面板打开；可先清空搜索或换一个关键词。");
       return;
     }
     setActiveCommandPaletteIndex((index) => {

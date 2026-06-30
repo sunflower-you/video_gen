@@ -438,7 +438,18 @@ export function CreateWorkbench() {
                 {task.task_type} · {task.status} · 积分 {task.credit_cost || 0}
               </div>
             ))}
-            {!tasks.length && <div className="rounded-md border border-line px-3 py-2 text-muted">暂无生成任务</div>}
+            {!tasks.length && (
+              <div className="rounded-md border border-line px-3 py-2 text-muted">
+                <p>{project ? "暂无生成任务，可先批量生成素材或生成时间线。" : "暂无生成任务，请先创建项目并进入全画幅画布。"}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button disabled={busy} className="rounded-md bg-accent px-3 py-1 text-xs text-white disabled:opacity-50" onClick={() => void createPrimaryProject()}>
+                    {project ? "创建新项目" : "创建项目"}
+                  </button>
+                  <button disabled={!project || busy} className="rounded-md border border-line px-3 py-1 text-xs disabled:opacity-50" onClick={batchGenerate}>批量生成素材</button>
+                  <button disabled={!project || busy} className="rounded-md border border-line px-3 py-1 text-xs disabled:opacity-50" onClick={buildTimeline}>生成时间线</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>

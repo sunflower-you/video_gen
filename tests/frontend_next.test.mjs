@@ -1421,6 +1421,9 @@ test("Next 创作工作台调用真实项目和生成接口", () => {
   assert.match(createWorkbench, /compose/);
   assert.match(createWorkbench, /href=\{`\/workspace\/\$\{project\.id\}`\}/);
   assert.match(createWorkbench, /window\.location\.href = `\/workspace\/\$\{created\.id\}`/);
+  assert.match(createWorkbench, /暂无生成任务，可先批量生成素材或生成时间线/);
+  assert.match(createWorkbench, /暂无生成任务，请先创建项目并进入全画幅画布/);
+  assert.match(createWorkbench, /onClick=\{\(\) => void createPrimaryProject\(\)\}/);
   assert.doesNotMatch(createWorkbench, /进入项目工作台/);
   for (const text of ["创建项目并生成分镜草稿", "复刻模板并生成分镜草稿", "模板复刻项目已继承", "一键创建 Seedance 2.0 画布", "一键创建 TV Show 画布", "一键创建挑战赛画布", "Seedance 2.0 快速体验", "创建 TV Show", "参加创作者挑战赛", "Liblib 快捷创作", "普通创建", "赛题 brief", "图生视频", "主持人口播", "TV Show", "9:16 竖屏短视频", "16:9 横屏短片", "1:1 方形画布", "创建空白项目", "参考图 URL", "批量生成素材", "生成时间线", "合成成片", "任务队列", "积分余额不足", "进入全画幅画布"]) {
     assert.match(createWorkbench, new RegExp(text));

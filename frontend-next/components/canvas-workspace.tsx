@@ -4715,6 +4715,44 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus("素材已拖入画布。");
   }
 
+  function assetBindingTargetForSelectedNode(asset: Asset) {
+    if (!selectedNode) return null;
+    if (asset.asset_type === "image") {
+      if (selectedType === "image") return { key: "image_url", label: "图片 URL" };
+      if (selectedType === "image_generation") return { key: "reference_image_url", label: "参考图 URL" };
+      if (selectedType === "video_generation") return { key: "first_frame_url", label: "首帧图片 URL" };
+      if (selectedType === "character") return { key: "reference_image_url", label: "角色参考图 URL" };
+    }
+    if (asset.asset_type === "video" && selectedType === "video") return { key: "video_url", label: "视频 URL" };
+    if (asset.asset_type === "audio") {
+      if (selectedType === "audio") return { key: "audio_url", label: "音频 URL" };
+      if (selectedType === "compose_generation") return { key: "bgm_url", label: "BGM URL" };
+    }
+    return null;
+  }
+
+  function applyAssetToSelectedNode(asset: Asset) {
+    if (!selectedNode) {
+      setShowOutline(true);
+      setShowAssets(true);
+      setStatus("请先选择要绑定素材的节点；已打开节点大纲，可先定位图片、视频、角色或合成节点。");
+      return;
+    }
+    const target = assetBindingTargetForSelectedNode(asset);
+    if (!target) {
+      setShowAssets(true);
+      setStatus("当前素材类型不能绑定到所选节点；可改为添加到画布，或选择图片、视频、音频、角色、分镜图、镜头视频或合成节点。");
+      return;
+    }
+    rememberGraphHistory();
+    setNodes((items) => items.map((node) => node.id === selectedNode.id ? {
+      ...node,
+      data: { ...node.data, [target.key]: asset.url }
+    } : node));
+    setShowAssets(false);
+    setStatus(`已把素材绑定到当前${nodeLabels[selectedType] || "节点"}的${target.label}。`);
+  }
+
   function clearAssetFromCanvas(asset: Asset) {
     const assetUrl = String(asset.url || "");
     const mediaKeys = ["image_url", "video_url", "audio_url", "reference_image_url", "first_frame_url", "output_url", "result_url", "final_video_url"];
@@ -6353,6 +6391,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             const type = asset.asset_type === "video" ? "video" : asset.asset_type === "audio" ? "audio" : "image";
             const dataKey = type === "video" ? "video_url" : type === "audio" ? "audio_url" : "image_url";
             const previewData = { nodeType: type, [dataKey]: asset.url };
+            const bindingTarget = assetBindingTargetForSelectedNode(asset);
             return <article key={asset.id} className="rounded-md border border-white/10 px-3 py-2 text-left text-slate-300 hover:bg-white/10">
               <div className="flex gap-3">
                 <div className="h-16 w-20 shrink-0 overflow-hidden rounded border border-white/10 bg-black/30">
@@ -6366,6 +6405,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
               </div>
               <div className="mt-2 flex flex-wrap gap-2">
                 <button disabled={busy} className="inline-flex items-center gap-1 rounded-md border border-blue-400/30 bg-blue-500/10 px-2 py-1 text-xs text-blue-50 hover:bg-blue-500/20 disabled:opacity-50" onClick={() => addAssetNode(asset)}><Plus size={13} />添加到画布</button>
+                <button disabled={busy} className="inline-flex items-center gap-1 rounded-md border border-cyan-300/30 bg-cyan-500/10 px-2 py-1 text-xs text-cyan-50 hover:bg-cyan-500/20 disabled:opacity-50" title={bindingTarget ? `绑定为${bindingTarget.label}` : selectedNode ? "当前节点不支持绑定此素材" : "先选择要绑定素材的节点"} onClick={() => applyAssetToSelectedNode(asset)}><SendToBack size={13} />绑定到当前节点</button>
                 <button disabled={busy} className="inline-flex items-center gap-1 rounded-md border border-red-400/30 bg-red-500/10 px-2 py-1 text-xs text-red-50 hover:bg-red-500/20 disabled:opacity-50" onClick={() => void deleteCanvasAsset(asset)}><Trash2 size={13} />删除素材</button>
               </div>
             </article>;

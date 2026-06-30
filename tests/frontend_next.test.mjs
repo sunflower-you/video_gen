@@ -1456,6 +1456,9 @@ test("Next 独立项目工作台接入项目详情、素材、任务和导出接
   assert.match(projectWorkspace, /\/api\/comfy\/tasks\/\$\{taskId\}\/sync/);
   assert.match(projectWorkspace, /\/api\/tasks\/\$\{taskId\}\/\$\{action\}/);
   assert.match(projectWorkspace, /href="\/">返回作品广场/);
+  assert.match(projectWorkspace, /暂无生成任务，可新增分镜、合成成片，或进入全画幅画布继续编排节点/);
+  assert.match(projectWorkspace, /href=\{`\/workspace\/\$\{projectId\}`\}/);
+  assert.match(projectWorkspace, /onClick=\{\(\) => void createManualShot\(\)\}/);
   assert.match(templateMarketplace, /window\.location\.href = `\/workspace\/\$\{project\.id\}`/);
   for (const text of ["项目工作台", "项目结构", "角色设定", "保存角色设定", "参考图 URL", "统一风格提示词", "新增分镜", "新增手动分镜", "保存修订", "删除分镜", "分镜草稿", "时间线与字幕", "字幕文本", "字幕样式", "保存字幕修改", "项目任务队列", "项目素材库", "删除素材", "导出字幕", "合成成片", "发布审核", "提交发布审核", "作品已提交发布审核"]) {
     assert.match(projectWorkspace, new RegExp(text));

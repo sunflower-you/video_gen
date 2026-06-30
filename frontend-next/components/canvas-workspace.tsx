@@ -4278,6 +4278,31 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已批量添加 ${createdNodes.length} 个筛选素材到画布。`);
   }
 
+  function addAllAssetNodes() {
+    if (!assets.length) {
+      setStatus("项目素材库暂无素材，无法批量添加到画布。");
+      return;
+    }
+    const existingIds = new Set(nodes.map((node) => node.id));
+    const createdNodes = assets.map((asset, index) => assetNodeSpec(asset, index)).filter((node) => !existingIds.has(node.id));
+    if (!createdNodes.length) {
+      setStatus("项目素材都已在画布中，无需重复添加。");
+      return;
+    }
+    rememberGraphHistory();
+    setNodes((items) => [...items.map((node) => ({ ...node, selected: false })), ...createdNodes.map((node) => ({ ...node, selected: true }))]);
+    setSelectedNodeId(createdNodes[0]?.id || "");
+    setSelectedEdgeId("");
+    setShowAssets(false);
+    setStatus(`已批量添加 ${createdNodes.length} 个项目素材到画布。`);
+  }
+
+  function resetAssetFilters() {
+    setAssetTypeFilter("all");
+    setAssetQuery("");
+    setStatus("已清空素材筛选，可继续浏览和拖入项目素材。");
+  }
+
   function downloadJsonFile(text: string, filename: string) {
     const blob = new Blob([text], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -5733,7 +5758,15 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
               </div>
             </div>
           )}
-          {!!assets.length && !filteredAssets.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">没有匹配素材，请调整类型或关键词。</p>}
+          {!!assets.length && !filteredAssets.length && <div className="rounded-md border border-white/10 px-3 py-2 text-slate-400">
+            <p>没有匹配素材，可清空筛选、批量添加全部素材，或打开任务队列继续生成新素材。</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button className="rounded-md border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs text-blue-50 hover:bg-blue-500/20" onClick={resetAssetFilters}>清空素材筛选</button>
+              <button className="rounded-md border border-white/10 px-3 py-1 text-xs text-slate-100 hover:bg-white/10" onClick={addAllAssetNodes}>添加全部素材</button>
+              <button className="rounded-md border border-white/10 px-3 py-1 text-xs text-slate-100 hover:bg-white/10" onClick={() => setShowTasks(true)}>打开任务队列</button>
+              <button disabled={busy} className="rounded-md border border-white/10 px-3 py-1 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPreset("seedance2_image_video")}>追加 Seedance</button>
+            </div>
+          </div>}
         </div>
       </aside>}
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Sparkles } from "lucide-react";
 import type { Template } from "../lib/api";
 import { createSameStyleProjectFromHref } from "../lib/same-style-create";
@@ -31,17 +31,20 @@ export function TemplateMarket({
   onUseTemplate?: (template: Template) => void;
 }) {
   const [activeChannel, setActiveChannel] = useState("全部");
+  const [templateKeyword, setTemplateKeyword] = useState("");
   const [creatingTemplateId, setCreatingTemplateId] = useState("");
   const [sharingTemplateId, setSharingTemplateId] = useState("");
   const [creatingShortcut, setCreatingShortcut] = useState(false);
   const [actionStatus, setActionStatus] = useState("");
   const visibleTemplates = useMemo(() => {
-    if (activeChannel === "全部") return templates;
+    const keyword = templateKeyword.trim().toLowerCase();
     return templates.filter((item) => {
       const text = `${item.category} ${item.name} ${item.workflow_key} ${(item.applicable_scenarios || []).join(" ")}`;
-      return text.includes(activeChannel) || (activeChannel === "创作者挑战赛" && text.includes("挑战赛"));
+      const matchesChannel = activeChannel === "全部" || text.includes(activeChannel) || (activeChannel === "创作者挑战赛" && text.includes("挑战赛"));
+      const searchText = `${text} ${item.description}`.toLowerCase();
+      return matchesChannel && (!keyword || searchText.includes(keyword));
     });
-  }, [activeChannel, templates]);
+  }, [activeChannel, templateKeyword, templates]);
   const activeShortcut = templateChannels.find((item) => item.label === activeChannel) || templateChannels[0];
   const highlightedTemplate = useMemo(() => templates.find((item) => item.id === highlightedTemplateId), [highlightedTemplateId, templates]);
 
@@ -68,6 +71,11 @@ export function TemplateMarket({
     } finally {
       setCreatingTemplateId("");
     }
+  }
+
+  function submitTemplateSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setActionStatus(templateKeyword.trim() ? `已筛选模板关键词：${templateKeyword.trim()}` : "已清空模板关键词筛选。");
   }
 
   async function createChannelCanvas() {
@@ -104,6 +112,11 @@ export function TemplateMarket({
   return (
     <section id="模板市场" className="rounded-panel border border-line bg-panel p-4">
       <PanelTitle icon={<Sparkles size={18} />} title="模板市场" extra="可复用工作流" />
+      <form className="mt-3 flex gap-2 text-sm" onSubmit={submitTemplateSearch}>
+        <input className="h-10 min-w-0 flex-1 rounded-md border border-line px-3 outline-none focus:border-accent" value={templateKeyword} onChange={(event) => setTemplateKeyword(event.target.value)} placeholder="搜索模板、工作流、适用场景" />
+        <button className="rounded-md bg-accent px-4 text-white" type="submit">搜索模板</button>
+        {templateKeyword ? <button className="rounded-md border border-line px-3" type="button" onClick={() => setTemplateKeyword("")}>清空</button> : null}
+      </form>
       <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
         {templateChannels.map((item) => (
           <button

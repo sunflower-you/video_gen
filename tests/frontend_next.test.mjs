@@ -228,6 +228,13 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /Background/);
   assert.match(canvasWorkspace, /Controls/);
   assert.match(canvasWorkspace, /MiniMap/);
+  assert.match(canvasWorkspace, /空白全画幅画布/);
+  assert.match(canvasWorkspace, /选择一个起点开始添加和修改节点/);
+  assert.match(canvasWorkspace, /Seedance 图生视频/);
+  assert.match(canvasWorkspace, /脚本拆解分镜/);
+  assert.match(canvasWorkspace, /打开节点面板/);
+  assert.match(canvasWorkspace, /添加文本节点/);
+  assert.match(canvasWorkspace, /导入工作流 JSON/);
   assert.match(canvasWorkspace, /Handle/);
   assert.match(canvasWorkspace, /Position\.Left/);
   assert.match(canvasWorkspace, /Position\.Right/);

@@ -5022,6 +5022,23 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         {showMiniMap && <MiniMap className="!bottom-6 !right-6 !rounded-lg !border !border-white/10 !bg-slate-950/90" nodeColor="#2563eb" />}
       </ReactFlow>
 
+      {!nodes.length && <section className="absolute left-1/2 top-1/2 z-10 w-[min(520px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-white/10 bg-slate-950/88 p-5 text-slate-200 shadow-2xl backdrop-blur">
+        <p className="text-xs text-slate-400">空白全画幅画布</p>
+        <h2 className="mt-1 text-lg font-semibold text-white">选择一个起点开始添加和修改节点</h2>
+        <p className="mt-2 text-sm leading-6 text-slate-400">可直接铺设 Liblib 同款链路，也可以打开节点面板逐个添加文本、图片、视频、配音和合成节点。</p>
+        <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+          <button disabled={busy} className="rounded-md border border-blue-400/40 bg-blue-500/10 px-3 py-2 text-left text-blue-50 hover:bg-blue-500/20 disabled:opacity-50" onClick={() => replaceCanvasWithWorkflowPreset("seedance2_image_video")}>Seedance 图生视频</button>
+          <button disabled={busy} className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPreset("script_to_storyboard")}>脚本拆解分镜</button>
+          <button disabled={busy} className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => replaceCanvasWithWorkflowPreset("tv_show_storyboard")}>TV Show 开场</button>
+          <button disabled={busy} className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => replaceCanvasWithWorkflowPreset("creator_challenge_entry")}>挑战赛参赛片</button>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2 text-xs">
+          <button className="rounded-md border border-white/10 px-3 py-2 text-slate-100 hover:bg-white/10" onClick={() => setShowPalette(true)}>打开节点面板</button>
+          <button className="rounded-md border border-white/10 px-3 py-2 text-slate-100 hover:bg-white/10" onClick={() => addNode("text")}>添加文本节点</button>
+          <button className="rounded-md border border-white/10 px-3 py-2 text-slate-100 hover:bg-white/10" onClick={() => setShowImport(true)}>导入工作流 JSON</button>
+        </div>
+      </section>}
+
       {canvasContextMenu && <div
         className="fixed z-40 max-h-[min(620px,calc(100vh-32px))] w-72 overflow-y-auto rounded-lg border border-white/10 bg-slate-950/95 p-2 text-sm text-slate-200 shadow-2xl backdrop-blur"
         style={{ left: canvasContextMenu.x, top: canvasContextMenu.y }}

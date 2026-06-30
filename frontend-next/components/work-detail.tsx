@@ -137,7 +137,17 @@ export function WorkDetail({ workId }: { workId: string }) {
               <div className="rounded-md bg-canvas p-3"><dt className="text-muted">收藏</dt><dd className="mt-1 font-semibold">{work?.favorite_count || 0}</dd></div>
             </dl>
             <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
-              {tags.length ? tags.map((tag) => <a key={tag} className="rounded-md border border-line px-2 py-1 hover:border-accent hover:text-accent" href={`/?keyword=${encodeURIComponent(tag)}`}>{tag}</a>) : <span>暂无标签</span>}
+              {tags.length ? tags.map((tag) => <a key={tag} className="rounded-md border border-line px-2 py-1 hover:border-accent hover:text-accent" href={`/?keyword=${encodeURIComponent(tag)}`}>{tag}</a>) : (
+                <div className="w-full rounded-md border border-line px-3 py-2">
+                  <p>暂无标签，可浏览同类作品，或直接基于该作品继续同款创作。</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <a className="rounded-md border border-line px-3 py-1 hover:border-accent" href={`/?category=${encodeURIComponent(work?.category || "全部")}`}>浏览同类作品</a>
+                    <button className="rounded-md bg-accent px-3 py-1 text-white disabled:opacity-60" disabled={!work || creatingSameStyle} onClick={() => void createSameStyleWork()}>
+                      {creatingSameStyle ? "创建中" : "同款创作"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 

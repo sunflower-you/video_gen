@@ -547,7 +547,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /生成选区节点变体/);
   assert.match(canvasWorkspace, /生成变体/);
   assert.match(canvasWorkspace, /已生成 .*个生成节点变体/);
-  assert.match(canvasWorkspace, /请先选择分镜图、视频、配音或合成生成节点，再生成变体/);
+  assert.match(canvasWorkspace, /请先选择分镜图、视频、配音或合成生成节点，再生成变体；已打开节点大纲，可先筛选并选择生成节点/);
   assert.match(canvasWorkspace, /选区网格排列/);
   assert.match(canvasWorkspace, /网格排列选区/);
   assert.match(canvasWorkspace, /已把选区按 .*列网格排列/);
@@ -555,10 +555,10 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /清空选区生成结果/);
   assert.match(canvasWorkspace, /清空生成结果/);
   assert.match(canvasWorkspace, /已清空 .*个生成节点的任务、输出和错误状态/);
-  assert.match(canvasWorkspace, /请先选择分镜图、视频、配音或合成生成节点，再清空生成结果/);
+  assert.match(canvasWorkspace, /请先选择分镜图、视频、配音或合成生成节点，再清空生成结果；已打开节点大纲，可先选择要重跑的生成节点/);
   assert.match(canvasWorkspace, /随机 seed 重跑/);
   assert.match(canvasWorkspace, /已为 .*个分镜图生成节点随机 seed/);
-  assert.match(canvasWorkspace, /请先选择分镜图生成节点，再批量随机 seed/);
+  assert.match(canvasWorkspace, /请先选择分镜图生成节点，再批量随机 seed；已打开节点大纲，可先定位分镜图节点/);
   assert.match(canvasWorkspace, /已清空分镜选择/);
   assert.match(canvasWorkspace, /全部链路/);
   assert.match(canvasWorkspace, /未铺设/);
@@ -995,6 +995,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /nodeParameterPresets/);
   assert.match(canvasWorkspace, /applySelectedNodesParameterPreset/);
   assert.match(canvasWorkspace, /选区批量参数预设/);
+  assert.match(canvasWorkspace, /请先框选或点选生成节点，再批量应用参数预设；已打开节点大纲，可先定位分镜图、视频、配音或合成节点/);
   assert.match(canvasWorkspace, /image-liblib-comic/);
   assert.match(canvasWorkspace, /Liblib 漫剧同款/);
   assert.match(canvasWorkspace, /image-tv-show-studio/);

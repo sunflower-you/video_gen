@@ -2288,7 +2288,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function applySelectedNodesParameterPreset(preset: NodeParameterPreset) {
     if (!selectedNodes.length) {
-      setStatus("请先框选或点选生成节点，再批量应用参数预设。");
+      setShowOutline(true);
+      setStatus("请先框选或点选生成节点，再批量应用参数预设；已打开节点大纲，可先定位分镜图、视频、配音或合成节点。");
       return;
     }
     const targetIds = new Set(selectedNodes.filter((node) => preset.nodeTypes.includes(String((node.data as Record<string, unknown>).nodeType || ""))).map((node) => node.id));
@@ -3435,7 +3436,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function createSelectedNodeVariants() {
     if (!selectedVariantNodes.length) {
-      setStatus("请先选择分镜图、视频、配音或合成生成节点，再生成变体。");
+      setShowOutline(true);
+      setStatus("请先选择分镜图、视频、配音或合成生成节点，再生成变体；已打开节点大纲，可先筛选并选择生成节点。");
       return;
     }
     const timestamp = Date.now();
@@ -4053,7 +4055,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function randomizeSelectedImageSeeds() {
     if (!selectedImageGenerationNodes.length) {
-      setStatus("请先选择分镜图生成节点，再批量随机 seed。");
+      setShowOutline(true);
+      setStatus("请先选择分镜图生成节点，再批量随机 seed；已打开节点大纲，可先定位分镜图节点。");
       return;
     }
     const timestamp = Date.now();
@@ -4081,7 +4084,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function clearSelectedGenerationOutputs() {
     if (!selectedGenerationNodes.length) {
-      setStatus("请先选择分镜图、视频、配音或合成生成节点，再清空生成结果。");
+      setShowOutline(true);
+      setStatus("请先选择分镜图、视频、配音或合成生成节点，再清空生成结果；已打开节点大纲，可先选择要重跑的生成节点。");
       return;
     }
     const generationNodeIds = new Set(selectedGenerationNodes.map((node) => node.id));

@@ -5598,7 +5598,16 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
               </div>
             </button>;
           })}
-          {!assets.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">暂无素材，可先运行生成节点。</p>}
+          {!assets.length && (
+            <div className="rounded-md border border-white/10 px-3 py-2 text-slate-400">
+              <p>暂无素材，可先追加生成链路或打开任务队列运行节点。</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button disabled={busy} className="rounded-md border border-blue-400/40 bg-blue-500/10 px-3 py-1 text-xs text-blue-50 hover:bg-blue-500/20 disabled:opacity-50" onClick={() => addWorkflowPreset("script_to_storyboard")}>追加脚本拆解</button>
+                <button disabled={busy} className="rounded-md border border-white/10 px-3 py-1 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPreset("seedance2_image_video")}>追加 Seedance</button>
+                <button className="rounded-md border border-white/10 px-3 py-1 text-xs text-slate-100 hover:bg-white/10" onClick={() => setShowTasks(true)}>打开任务队列</button>
+              </div>
+            </div>
+          )}
           {!!assets.length && !filteredAssets.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">没有匹配素材，请调整类型或关键词。</p>}
         </div>
       </aside>}

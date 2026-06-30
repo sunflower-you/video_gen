@@ -406,6 +406,9 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /assetQuery/);
   assert.match(canvasWorkspace, /taskQuery/);
   assert.match(canvasWorkspace, /filteredAssets/);
+  assert.match(canvasWorkspace, /暂无素材，可先追加生成链路或打开任务队列运行节点/);
+  assert.match(canvasWorkspace, /addWorkflowPreset\("script_to_storyboard"\)/);
+  assert.match(canvasWorkspace, /setShowTasks\(true\)/);
   assert.match(canvasWorkspace, /assetNodeSpec/);
   assert.match(canvasWorkspace, /addFilteredAssetNodes/);
   assert.match(canvasWorkspace, /filteredTasks/);

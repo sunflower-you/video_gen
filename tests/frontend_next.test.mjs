@@ -627,6 +627,10 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /当前下游链路/);
   assert.match(canvasWorkspace, /可继续整理、打组、复制或运行链路/);
   assert.match(canvasWorkspace, /没有匹配的大纲节点/);
+  assert.match(canvasWorkspace, /resetOutlineFilters/);
+  assert.match(canvasWorkspace, /已清空节点大纲筛选，可继续按依赖顺序查看和定位节点/);
+  assert.match(canvasWorkspace, /清空大纲筛选<\/button>/);
+  assert.match(canvasWorkspace, /关闭问题筛选<\/button>/);
   assert.match(canvasWorkspace, /添加分镜链路/);
   assert.match(canvasWorkspace, /添加当前分镜链路/);
   assert.match(canvasWorkspace, /addShotWorkflow/);

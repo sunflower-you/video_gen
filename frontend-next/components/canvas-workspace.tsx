@@ -1738,6 +1738,12 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus("已清空节点面板筛选，可继续添加文本、图片、视频、配音和生成节点。");
   }
 
+  function resetOutlineFilters() {
+    setOutlineQuery("");
+    setOutlineIssuesOnly(false);
+    setStatus("已清空节点大纲筛选，可继续按依赖顺序查看和定位节点。");
+  }
+
   function addConnectedNodeFromSelected(type: string) {
     if (!selectedNode) return;
     const selectedType = String((selectedNode.data as Record<string, unknown>).nodeType || "text");
@@ -4789,8 +4795,22 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
               </div>
             </article>;
           })}
-          {!nodes.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">暂无节点，请先添加节点或工作流预设。</p>}
-          {!!nodes.length && !filteredGraphOutlineNodes.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">没有匹配的大纲节点，请调整搜索或关闭问题筛选。</p>}
+          {!nodes.length && <div className="rounded-md border border-white/10 px-3 py-2 text-slate-400">
+            <p>暂无节点，请先添加节点或工作流预设。</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button className="rounded-md border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs text-blue-50 hover:bg-blue-500/20" onClick={() => setShowPalette(true)}>打开节点面板</button>
+              <button disabled={busy} className="rounded-md border border-white/10 px-3 py-1 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPreset("script_to_storyboard")}>追加脚本拆解</button>
+              <button disabled={busy} className="rounded-md border border-white/10 px-3 py-1 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPreset("seedance2_image_video")}>追加 Seedance</button>
+            </div>
+          </div>}
+          {!!nodes.length && !filteredGraphOutlineNodes.length && <div className="rounded-md border border-white/10 px-3 py-2 text-slate-400">
+            <p>没有匹配的大纲节点，请调整搜索或关闭问题筛选。</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button className="rounded-md border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs text-blue-50 hover:bg-blue-500/20" onClick={resetOutlineFilters}>清空大纲筛选</button>
+              <button disabled={!outlineIssuesOnly} className="rounded-md border border-white/10 px-3 py-1 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => setOutlineIssuesOnly(false)}>关闭问题筛选</button>
+              <button disabled={!outlineIssueNodeIds.size} className="rounded-md border border-amber-400/30 px-3 py-1 text-xs text-amber-100 hover:bg-amber-500/10 disabled:opacity-50" onClick={selectIssueOutlineNodes}>选中问题节点</button>
+            </div>
+          </div>}
         </div>
       </aside>}
 

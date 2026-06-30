@@ -3292,7 +3292,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const runnableNodes = orderedNodes.filter(isRunnableNode);
     const skippedCount = orderedNodes.length - runnableNodes.length;
     if (!runnableNodes.length) {
-      setStatus("当前链路没有可运行节点，已跳过禁用节点和批注节点。");
+      setShowOutline(true);
+      setStatus("当前链路没有可运行节点，已跳过禁用节点和批注节点；已打开节点大纲，可先启用链路中的生成节点或选择其它链路。");
       return;
     }
     setBusy(true);
@@ -3328,7 +3329,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const runnableNodes = orderedNodes.filter(isRunnableNode);
     const skippedCount = orderedNodes.length - runnableNodes.length;
     if (!runnableNodes.length) {
-      setStatus("选区没有可运行节点，已跳过禁用节点和批注节点。");
+      setShowOutline(true);
+      setStatus("选区没有可运行节点，已跳过禁用节点和批注节点；已打开节点大纲，可先选择文本、图片、视频、配音或合成生成节点。");
       return;
     }
     await saveGraph();
@@ -3364,7 +3366,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       return;
     }
     if (!runnableNodes.length) {
-      setStatus("画布没有可运行节点，已跳过禁用节点和批注节点。");
+      setShowPalette(true);
+      setStatus("画布没有可运行节点，已跳过禁用节点和批注节点；已打开节点面板，可先添加或启用生成节点。");
       return;
     }
     await saveGraph();

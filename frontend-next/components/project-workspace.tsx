@@ -443,7 +443,16 @@ export function ProjectWorkspace({ projectId }: { projectId: string }) {
                   </button>
                 </div>
               ))}
-              {!project?.subtitles?.length && <p className="rounded-md border border-line px-3 py-2 text-muted">暂无字幕，生成时间线后会自动创建字幕草稿。</p>}
+              {!project?.subtitles?.length && (
+                <div className="rounded-md border border-line px-3 py-2 text-muted">
+                  <p>暂无字幕，可先生成时间线、新增分镜，或进入全画幅画布继续编排节点。</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button disabled={busy || !project} className="rounded-md bg-accent px-3 py-1 text-xs text-white disabled:opacity-50" onClick={() => void buildTimeline()}>生成时间线</button>
+                    <button disabled={busy || !project} className="rounded-md border border-line px-3 py-1 text-xs disabled:opacity-50" onClick={() => void createManualShot()}>新增分镜</button>
+                    <a className="rounded-md border border-line px-3 py-1 text-xs hover:border-accent" href={`/workspace/${projectId}`}>进入全画幅画布</a>
+                  </div>
+                </div>
+              )}
             </div>
           </section>
         </main>

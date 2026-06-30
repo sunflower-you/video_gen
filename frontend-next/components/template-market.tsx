@@ -24,6 +24,7 @@ function formatParams(params?: Record<string, unknown>): string {
 export function TemplateMarket({ templates, onUseTemplate }: { templates: Template[]; onUseTemplate?: (template: Template) => void }) {
   const [activeChannel, setActiveChannel] = useState("全部");
   const [creatingTemplateId, setCreatingTemplateId] = useState("");
+  const [sharingTemplateId, setSharingTemplateId] = useState("");
   const [creatingShortcut, setCreatingShortcut] = useState(false);
   const [actionStatus, setActionStatus] = useState("");
   const visibleTemplates = useMemo(() => {
@@ -60,6 +61,25 @@ export function TemplateMarket({ templates, onUseTemplate }: { templates: Templa
     }
   }
 
+  async function copyTemplateShareLink(template: Template) {
+    const shareUrl = `${window.location.origin}/templates?template=${encodeURIComponent(template.id)}`;
+    setSharingTemplateId(template.id);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        setActionStatus(`已复制「${template.name}」模板分享链接。`);
+      } else {
+        window.localStorage.setItem(`template_share_link_${template.id}`, shareUrl);
+        setActionStatus(`浏览器剪贴板不可用，已暂存「${template.name}」模板分享链接。`);
+      }
+    } catch {
+      window.localStorage.setItem(`template_share_link_${template.id}`, shareUrl);
+      setActionStatus(`模板分享链接复制失败，已暂存到本地：${shareUrl}`);
+    } finally {
+      setSharingTemplateId("");
+    }
+  }
+
   return (
     <section id="模板市场" className="rounded-panel border border-line bg-panel p-4">
       <PanelTitle icon={<Sparkles size={18} />} title="模板市场" extra="可复用工作流" />
@@ -93,6 +113,9 @@ export function TemplateMarket({ templates, onUseTemplate }: { templates: Templa
                     复刻项目
                   </button>
                 ) : null}
+                <button className="rounded-md border border-line px-3 py-1 text-sm disabled:opacity-60" disabled={sharingTemplateId === item.id} onClick={() => void copyTemplateShareLink(item)}>
+                  {sharingTemplateId === item.id ? "复制中" : "分享模板"}
+                </button>
               </div>
             </div>
             <p className="mt-1 text-sm text-muted">{item.description}</p>

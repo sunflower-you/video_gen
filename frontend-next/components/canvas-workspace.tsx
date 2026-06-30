@@ -2996,7 +2996,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function fitGraphView() {
     if (!nodes.length) {
-      setStatus("画布暂无节点，无法适配视图。");
+      setShowPalette(true);
+      setStatus("画布暂无节点，无法适配视图；已打开节点面板，可先添加节点或追加工作流预设。");
       return;
     }
     void flowInstance?.fitView({ padding: 0.18, duration: 420, maxZoom: 1.15 });
@@ -3005,7 +3006,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function fitSelectedNodeView() {
     if (!selectedNodes.length) {
-      setStatus("请先选择一个或多个节点，再适配选区视图。");
+      setShowOutline(true);
+      setStatus("请先选择一个或多个节点，再适配选区视图；已打开节点大纲，可先定位并选择要查看的节点。");
       return;
     }
     void flowInstance?.fitView({ nodes: selectedNodes.map((node) => ({ id: node.id })), padding: 0.22, duration: 420, maxZoom: 1.2 });
@@ -3087,7 +3089,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function saveCurrentGraphVersion() {
     if (!nodes.length) {
-      setStatus("画布暂无节点，无法保存版本快照。");
+      setShowPalette(true);
+      setStatus("画布暂无节点，无法保存版本快照；已打开节点面板，可先添加节点或导入工作流。");
       return;
     }
     const title = graphVersionTitle.trim() || `${project?.title || "画布"} 版本 ${graphVersions.length + 1}`;
@@ -3294,7 +3297,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   async function runSelectedNodes() {
     if (!selectedNodes.length) {
-      setStatus("请先框选或点选节点，再运行选区。");
+      setShowOutline(true);
+      setStatus("请先框选或点选节点，再运行选区；已打开节点大纲，可先定位并选择要运行的节点。");
       return;
     }
     const selectedIds = new Set(selectedNodes.map((node) => node.id));
@@ -3335,7 +3339,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const runnableNodes = orderedNodes.filter(isRunnableNode);
     const skippedCount = orderedNodes.length - runnableNodes.length;
     if (!orderedNodes.length) {
-      setStatus("画布暂无可运行节点，请先添加节点或工作流。");
+      setShowPalette(true);
+      setStatus("画布暂无可运行节点，已打开节点面板；请先添加节点或工作流。");
       return;
     }
     if (!runnableNodes.length) {
@@ -3365,7 +3370,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function autoLayoutGraph() {
     if (!nodes.length) {
-      setStatus("画布暂无节点可整理。");
+      setShowPalette(true);
+      setStatus("画布暂无节点可整理，已打开节点面板；请先添加节点、追加工作流或导入 ProjectGraph。");
       return;
     }
     rememberGraphHistory();

@@ -341,6 +341,9 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /已保存画布视图书签/);
   assert.match(canvasWorkspace, /已恢复画布视图书签/);
   assert.match(canvasWorkspace, /已适配选区视图/);
+  assert.match(canvasWorkspace, /画布暂无节点，无法适配视图；已打开节点面板，可先添加节点或追加工作流预设/);
+  assert.match(canvasWorkspace, /请先选择一个或多个节点，再适配选区视图；已打开节点大纲，可先定位并选择要查看的节点/);
+  assert.match(canvasWorkspace, /画布暂无节点，无法保存版本快照；已打开节点面板，可先添加节点或导入工作流/);
   assert.match(canvasWorkspace, /selectAllCanvasNodes/);
   assert.match(canvasWorkspace, /invertCanvasSelection/);
   assert.match(canvasWorkspace, /clearCanvasSelection/);
@@ -983,9 +986,12 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /runSelectedNodes/);
   assert.match(canvasWorkspace, /运行全图/);
   assert.match(canvasWorkspace, /运行选区/);
+  assert.match(canvasWorkspace, /请先框选或点选节点，再运行选区；已打开节点大纲，可先定位并选择要运行的节点/);
+  assert.match(canvasWorkspace, /画布暂无可运行节点，已打开节点面板；请先添加节点或工作流/);
   assert.match(canvasWorkspace, /正在运行选区/);
   assert.match(canvasWorkspace, /选区运行完成/);
   assert.match(canvasWorkspace, /整理画布/);
+  assert.match(canvasWorkspace, /画布暂无节点可整理，已打开节点面板；请先添加节点、追加工作流或导入 ProjectGraph/);
   assert.match(canvasWorkspace, /terminalNodeIds/);
   assert.match(canvasWorkspace, /orderedGraphNodes/);
   assert.match(canvasWorkspace, /layoutGraphNodes/);

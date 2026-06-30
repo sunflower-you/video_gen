@@ -9,7 +9,6 @@ export function TemplateMarketplace() {
   const [templates, setTemplates] = useState<Template[]>(fallbackTemplates);
   const [status, setStatus] = useState("正在读取模板市场...");
   const [busyTemplateId, setBusyTemplateId] = useState("");
-  const [createdProjectId, setCreatedProjectId] = useState("");
   const [projectTitle, setProjectTitle] = useState("模板复刻项目");
   const [aspectRatio, setAspectRatio] = useState("9:16");
 
@@ -42,11 +41,10 @@ export function TemplateMarketplace() {
         owner_id: currentUserId(),
         template_id: template.id
       });
-      setCreatedProjectId(project.id);
-      setStatus(`模板复刻成功，项目已创建：${project.title}`);
+      setStatus(`模板复刻成功，正在进入全画幅画布：${project.title}`);
+      window.location.href = `/workspace/${project.id}`;
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "模板复刻失败，请稍后重试。");
-    } finally {
       setBusyTemplateId("");
     }
   }
@@ -58,7 +56,7 @@ export function TemplateMarketplace() {
         <h2 className="font-semibold">模板复刻</h2>
         <div className="mt-3 grid gap-2 text-sm text-muted">
           <div className="rounded-md border border-line p-3">读取 workflow key、参数 schema 和默认参数。</div>
-          <div className="rounded-md border border-line p-3">创建项目后进入创作工作台继续编辑。</div>
+          <div className="rounded-md border border-line p-3">创建项目后直接进入全画幅画布继续编辑。</div>
           <div className="rounded-md border border-line p-3">模板使用次数会被记录用于运营统计。</div>
         </div>
         <div className="mt-4 rounded-md border border-line bg-canvas p-3 text-sm text-muted">
@@ -82,11 +80,6 @@ export function TemplateMarketplace() {
           <button className="rounded-md border border-line px-3 py-2 text-sm" onClick={loadTemplates}>
             刷新模板
           </button>
-          {createdProjectId && (
-            <a className="rounded-md border border-line px-3 py-2 text-sm" href={`/workspace/${createdProjectId}`}>
-              进入复刻项目
-            </a>
-          )}
         </div>
       </aside>
     </section>

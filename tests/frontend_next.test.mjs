@@ -1179,7 +1179,8 @@ test("Next 模板市场读取真实模板并支持复刻项目", () => {
   assert.match(templateMarketplace, /postJson<Project>\("\/api\/projects"/);
   assert.match(templateMarketplace, /TemplateMarket/);
   assert.match(templateMarketplace, /fallbackTemplates/);
-  assert.match(templateMarketplace, /href=\{`\/workspace\/\$\{createdProjectId\}`\}/);
+  assert.match(templateMarketplace, /window\.location\.href = `\/workspace\/\$\{project\.id\}`/);
+  assert.match(templateMarketplace, /正在进入全画幅画布/);
   assert.match(templateMarketplace, /currentUserId/);
   assert.match(templateMarketplace, /owner_id: currentUserId\(\)/);
   assert.match(templateMarketplace, /template_id: template\.id/);
@@ -1362,7 +1363,7 @@ test("Next 独立项目工作台接入项目详情、素材、任务和导出接
   assert.match(projectWorkspace, /updateSubtitleDraft/);
   assert.match(projectWorkspace, /\/api\/comfy\/tasks\/\$\{taskId\}\/sync/);
   assert.match(projectWorkspace, /\/api\/tasks\/\$\{taskId\}\/\$\{action\}/);
-  assert.match(templateMarketplace, /href=\{`\/workspace\/\$\{createdProjectId\}`\}/);
+  assert.match(templateMarketplace, /window\.location\.href = `\/workspace\/\$\{project\.id\}`/);
   for (const text of ["项目工作台", "项目结构", "角色设定", "保存角色设定", "参考图 URL", "统一风格提示词", "新增分镜", "新增手动分镜", "保存修订", "删除分镜", "分镜草稿", "时间线与字幕", "字幕文本", "字幕样式", "保存字幕修改", "项目任务队列", "项目素材库", "删除素材", "导出字幕", "合成成片", "发布审核", "提交发布审核", "作品已提交发布审核"]) {
     assert.match(projectWorkspace, new RegExp(text));
   }

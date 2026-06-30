@@ -1234,6 +1234,8 @@ test("Next 模板市场读取真实模板并支持复刻项目", () => {
   assert.match(templates, /item\.usage_count/);
   assert.match(templates, /item\.cover_url/);
   assert.match(templates, /item\.sample_video_url/);
+  assert.match(templates, /target="_blank"/);
+  assert.match(templates, /rel="noreferrer"/);
   assert.match(templates, /const templateChannels/);
   assert.match(templates, /const \[activeChannel, setActiveChannel\]/);
   assert.match(templates, /const \[templateKeyword, setTemplateKeyword\]/);

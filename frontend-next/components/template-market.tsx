@@ -225,8 +225,8 @@ export function TemplateMarket({
               <div><dt className="inline text-foreground">使用次数：</dt><dd className="inline">{item.usage_count || 0}</dd></div>
             </dl>
             <div className="mt-2 flex flex-wrap gap-2 text-xs">
-              {item.cover_url ? <a className="text-accent" href={item.cover_url}>查看封面</a> : null}
-              {item.sample_video_url ? <a className="text-accent" href={item.sample_video_url}>查看成片示例</a> : null}
+              {item.cover_url ? <a className="text-accent" href={item.cover_url} target="_blank" rel="noreferrer">查看封面</a> : null}
+              {item.sample_video_url ? <a className="text-accent" href={item.sample_video_url} target="_blank" rel="noreferrer">查看成片示例</a> : null}
             </div>
           </article>
         ))}

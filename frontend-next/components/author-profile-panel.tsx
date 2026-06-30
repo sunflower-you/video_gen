@@ -58,6 +58,25 @@ export function AuthorProfilePanel({ userId }: { userId: string }) {
     }
   }
 
+  async function copyAuthorShareLink() {
+    const shareUrl = `${window.location.origin}/users/${profile.id}`;
+    setSharingItemId(`author:${profile.id}`);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        setStatus(`已复制「${profile.nickname}」主页链接。`);
+      } else {
+        window.localStorage.setItem(`author_share_link_${profile.id}`, shareUrl);
+        setStatus(`浏览器剪贴板不可用，已暂存「${profile.nickname}」主页链接。`);
+      }
+    } catch {
+      window.localStorage.setItem(`author_share_link_${profile.id}`, shareUrl);
+      setStatus(`作者主页链接复制失败，已暂存到本地：${shareUrl}`);
+    } finally {
+      setSharingItemId("");
+    }
+  }
+
   async function createSameStyleWork(work: AuthorProfile["works"][number]) {
     setCreatingSameStyleId(`work:${work.id}`);
     setStatus(`正在创建《${work.title}》同款画布...`);
@@ -132,10 +151,15 @@ export function AuthorProfilePanel({ userId }: { userId: string }) {
               <p className="mt-1 text-sm text-muted">{profile.bio || "暂无作者简介"}</p>
             </div>
           </div>
-          <button className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-white" onClick={() => void followAuthor()}>
-            <UserPlus size={16} />
-            关注作者
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-white" onClick={() => void followAuthor()}>
+              <UserPlus size={16} />
+              关注作者
+            </button>
+            <button className="rounded-md border border-line px-4 py-2 text-sm disabled:opacity-60" disabled={sharingItemId === `author:${profile.id}`} onClick={() => void copyAuthorShareLink()}>
+              {sharingItemId === `author:${profile.id}` ? "复制中" : "分享主页"}
+            </button>
+          </div>
         </div>
       </header>
 

@@ -2400,6 +2400,64 @@ class PlatformServiceTest(unittest.TestCase):
         with self.assertRaisesRegex(WorkflowValidationError, "非作者"):
             service.create_character(project["id"], {"user_id": "viewer_001", "name": "越权"})
 
+    def test_delete_character_cleans_project_references(self) -> None:
+        service = self.make_service()
+        project = service.create_project({"title": "角色删除项目", "owner_id": "author_001"})
+        character = service.create_character(
+            project["id"],
+            {"user_id": "author_001", "name": "林夏", "description": "红色雨衣", "reference_image_url": "/storage/reference/linxia.png", "style_prompt": "悬疑漫剧"},
+        )
+        shot = service.create_storyboard_shot(
+            project["id"],
+            {"user_id": "author_001", "narration": "林夏回头", "visual_description": "雨夜车站", "characters": ["林夏"]},
+        )
+        service.save_project_graph(
+            project["id"],
+            {
+                "user_id": "author_001",
+                "nodes": [
+                    {"id": "character_1", "type": "character", "position": {"x": 0, "y": 0}, "data": {"character_id": character["id"], "character_name": "林夏"}},
+                    {
+                        "id": "image_1",
+                        "type": "image_generation",
+                        "position": {"x": 240, "y": 0},
+                        "data": {"shot_id": shot["id"], "character_id": character["id"], "character_name": "林夏", "reference_image_url": "/storage/reference/linxia.png", "style_prompt": "悬疑漫剧"},
+                    },
+                    {
+                        "id": "video_1",
+                        "type": "video_generation",
+                        "position": {"x": 480, "y": 0},
+                        "data": {"shot_id": shot["id"], "character_id": character["id"], "character_name": "林夏", "first_frame_url": "/storage/reference/linxia.png"},
+                    },
+                ],
+                "edges": [
+                    {"id": "edge_character_image", "source": "character_1", "target": "image_1"},
+                    {"id": "edge_character_video", "source": "character_1", "target": "video_1"},
+                ],
+            },
+        )
+
+        deleted = service.delete_character(project["id"], character["id"], {"user_id": "author_001"})
+        detail = service.get_project(project["id"])
+        graph = service.get_project_graph(project["id"], user_id="author_001", require_owner=True)
+        self.assertTrue(deleted["deleted"])
+        self.assertEqual(detail["characters"], [])
+        self.assertEqual(detail["shots"][0]["characters"], [])
+        self.assertEqual([node["id"] for node in graph["nodes"]], ["image_1", "video_1"])
+        self.assertEqual(graph["edges"], [])
+        image_data = graph["nodes"][0]["data"]
+        video_data = graph["nodes"][1]["data"]
+        self.assertNotIn("character_id", image_data)
+        self.assertNotIn("reference_image_url", image_data)
+        self.assertNotIn("style_prompt", image_data)
+        self.assertNotIn("character_id", video_data)
+        self.assertNotIn("first_frame_url", video_data)
+
+        with self.assertRaisesRegex(WorkflowValidationError, "请求参数未在业务接口中声明"):
+            service.delete_character(project["id"], character["id"], {"user_id": "author_001", "node_graph": {}})
+        with self.assertRaisesRegex(WorkflowValidationError, "非作者"):
+            service.delete_character(project["id"], character["id"], {"user_id": "viewer_001"})
+
     def test_generate_shot_image_uses_storyboard_prompt(self) -> None:
         service = self.make_service()
         project = service.create_project({"title": "分镜图项目", "owner_id": "author_001"})

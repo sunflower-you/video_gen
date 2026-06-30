@@ -935,6 +935,13 @@ class ApiTest(unittest.TestCase):
         )
         self.assertEqual(invalid_character_create.status_code, 400)
         self.assertIn("角色名称不能为空", invalid_character_create.json()["detail"])
+        character_delete = self.client.request(
+            "DELETE",
+            f"/api/projects/{project_id}/characters/{character_create.json()['id']}",
+            json={"user_id": "author_api"},
+        )
+        self.assertEqual(character_delete.status_code, 200)
+        self.assertTrue(character_delete.json()["deleted"])
 
         character_update = self.client.patch(
             f"/api/projects/{project_id}/characters/{character_id}",

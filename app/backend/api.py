@@ -729,6 +729,16 @@ def create_app(
         except PlatformError as exc:
             raise _http_error(exc) from exc
 
+    @app.delete("/api/projects/{project_id}/characters/{character_id}")
+    def delete_character(project_id: str, character_id: str, request: Request, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        try:
+            payload = _payload_with_session_user(payload, request, expected_session_secret)
+            return service.delete_character(project_id, character_id, payload or {})
+        except NotFoundError as exc:
+            raise HTTPException(status_code=404, detail=exc.message) from exc
+        except PlatformError as exc:
+            raise _http_error(exc) from exc
+
     @app.patch("/api/projects/{project_id}/shots/{shot_id}")
     def update_storyboard_shot(project_id: str, shot_id: str, payload: dict[str, Any], request: Request) -> dict[str, Any]:
         try:

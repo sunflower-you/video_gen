@@ -1289,6 +1289,64 @@ class PlatformService:
         self._persist()
         return to_jsonable(character)
 
+    def delete_character(self, project_id: str, character_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+        project = self._project(project_id)
+        self._assert_project_owner(project, payload.get("user_id"))
+        _reject_unknown_payload_fields(payload, {"user_id"})
+        if character_id not in project.character_ids:
+            raise NotFoundError(f"项目中未找到角色：{character_id}")
+        character = self.repository.characters.get(character_id)
+        character_name = character.name if character is not None else ""
+        project.character_ids = [item for item in project.character_ids if item != character_id]
+        self.repository.characters.pop(character_id, None)
+        for shot_id in project.shot_ids:
+            shot = self.repository.shots.get(shot_id)
+            if shot is None:
+                continue
+            next_characters = [item for item in shot.characters if item != character_name]
+            if next_characters != shot.characters:
+                shot.characters = next_characters
+                shot.touch()
+        for graph in self.repository.project_graphs.values():
+            if graph.project_id != project.id:
+                continue
+            removed_node_ids = {
+                str(node.get("id"))
+                for node in graph.nodes
+                if str((node.get("data") or {}).get("character_id", "")) == character_id
+                and str(node.get("type", "")) == "character"
+            }
+            graph.nodes = [
+                self._clear_graph_character_reference(node, character_id)
+                for node in graph.nodes
+                if str(node.get("id")) not in removed_node_ids
+            ]
+            graph.edges = [
+                edge
+                for edge in graph.edges
+                if edge.get("source") not in removed_node_ids and edge.get("target") not in removed_node_ids
+            ]
+            graph.touch()
+        project.current_step = "storyboard"
+        project.touch()
+        self._persist()
+        return {"id": character_id, "deleted": True, "message": "角色已删除，相关分镜和画布引用已清理。"}
+
+    def _clear_graph_character_reference(self, node: dict[str, Any], character_id: str) -> dict[str, Any]:
+        data = node.get("data")
+        if not isinstance(data, dict) or str(data.get("character_id", "")) != character_id:
+            return node
+        next_data = dict(data)
+        for key in ("character_id", "character_name", "character_description"):
+            next_data.pop(key, None)
+        node_type = str(node.get("type", ""))
+        if node_type == "image_generation":
+            next_data.pop("reference_image_url", None)
+            next_data.pop("style_prompt", None)
+        if node_type == "video_generation":
+            next_data.pop("first_frame_url", None)
+        return {**node, "data": next_data}
+
     def create_storyboard_shot(self, project_id: str, payload: dict[str, Any]) -> dict[str, Any]:
         project = self._project(project_id)
         self._assert_project_owner(project, payload.get("user_id"))

@@ -1136,11 +1136,16 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /editCharacterDraft/);
   assert.match(canvasWorkspace, /createCanvasCharacter/);
   assert.match(canvasWorkspace, /saveCanvasCharacter/);
+  assert.match(canvasWorkspace, /deleteCanvasCharacter/);
+  assert.match(canvasWorkspace, /clearCharacterFromCanvas/);
   assert.match(canvasWorkspace, /syncCharacterIntoCanvasNodes/);
   assert.match(canvasWorkspace, /postJson<Character>\(`\/api\/projects\/\$\{projectId\}\/characters`/);
   assert.match(canvasWorkspace, /patchJson<Character>\(`\/api\/projects\/\$\{projectId\}\/characters\/\$\{editingCharacterId\}`/);
+  assert.match(canvasWorkspace, /deleteJson<DeleteResult>\(`\/api\/projects\/\$\{projectId\}\/characters\/\$\{character\.id\}`/);
   assert.match(canvasWorkspace, /角色名称不能为空；已保留角色库面板/);
   assert.match(canvasWorkspace, /角色 .* 已保存，并同步到已绑定的画布节点/);
+  assert.match(canvasWorkspace, /角色 .* 已删除，相关分镜和画布引用已清理/);
+  assert.match(canvasWorkspace, /角色删除失败/);
   assert.match(canvasWorkspace, /characterNodeData/);
   assert.match(canvasWorkspace, /addCharacterNode/);
   assert.match(canvasWorkspace, /applyCharacterToSelectedNode/);
@@ -1149,6 +1154,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /创建角色/);
   assert.match(canvasWorkspace, /保存修改/);
   assert.match(canvasWorkspace, /编辑角色/);
+  assert.match(canvasWorkspace, /删除角色并清理引用/);
   assert.match(canvasWorkspace, /绑定到当前节点/);
   assert.match(canvasWorkspace, /角色库参数/);
   assert.match(canvasWorkspace, /绑定角色/);

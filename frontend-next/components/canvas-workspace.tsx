@@ -21,7 +21,7 @@ import {
   type ReactFlowInstance
 } from "@xyflow/react";
 import { AlertTriangle, AlignHorizontalDistributeCenter, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, AlignHorizontalJustifyStart, AlignVerticalDistributeCenter, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, Ban, Boxes, BringToFront, CheckSquare, Clapperboard, ClipboardCopy, ClipboardPaste, Copy, Download, FileText, Focus, GitBranch, Image, LayoutGrid, Library, ListTree, Lock, Map as MapIcon, Maximize2, Minimize2, Music, Play, Plus, Redo2, RefreshCcw, RotateCcw, Save, Scissors, Search, SendToBack, Sparkles, Star, StickyNote, Trash2, Undo2, Unlock, Upload, Video, Wand2, XSquare, ZoomIn, ZoomOut } from "lucide-react";
-import { apiFetch, currentUserId, deleteJson, patchJson, postJson, type Asset, type Character, type GenerationTask, type Project, type ProjectGraph, type ProjectGraphNode, type StoryboardShot } from "../lib/api";
+import { apiFetch, currentUserId, deleteJson, patchJson, postJson, type Asset, type Character, type DeleteResult, type GenerationTask, type Project, type ProjectGraph, type ProjectGraphNode, type StoryboardShot } from "../lib/api";
 
 const nodeLabels: Record<string, string> = {
   text: "文本节点",
@@ -1739,6 +1739,41 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     }));
   }
 
+  function clearCharacterFromCanvas(characterId: string, characterName: string) {
+    const removedNodeIds = new Set(nodes.filter((node) => {
+      const data = node.data as Record<string, unknown>;
+      return String(data.character_id || "") === characterId && String(data.nodeType || "") === "character";
+    }).map((node) => node.id));
+    rememberGraphHistory();
+    setNodes((items) => items.filter((node) => !removedNodeIds.has(node.id)).map((node) => {
+      const data = node.data as Record<string, unknown>;
+      if (String(data.character_id || "") !== characterId) return node;
+      const nextData = { ...data };
+      delete nextData.character_id;
+      delete nextData.character_name;
+      delete nextData.character_description;
+      if (String(data.nodeType || "") === "image_generation") {
+        delete nextData.reference_image_url;
+        delete nextData.style_prompt;
+      }
+      if (String(data.nodeType || "") === "video_generation") {
+        delete nextData.first_frame_url;
+      }
+      return { ...node, data: nextData };
+    }));
+    setEdges((items) => items.filter((edge) => !removedNodeIds.has(edge.source) && !removedNodeIds.has(edge.target)));
+    setSelectedNodeId((value) => removedNodeIds.has(value) ? "" : value);
+    setProject((item) => item ? {
+      ...item,
+      characters: (item.characters || []).filter((character) => character.id !== characterId),
+      shots: (item.shots || []).map((shot) => ({
+        ...shot,
+        characters: (shot.characters || []).filter((name) => name !== characterName)
+      })),
+      current_step: "storyboard"
+    } : item);
+  }
+
   async function createCanvasCharacter() {
     const name = characterDraft.name.trim();
     if (!name) {
@@ -1810,6 +1845,25 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     } catch (error) {
       setShowCharacters(true);
       setStatus(error instanceof Error ? `角色保存失败：${error.message}` : "角色保存失败，请检查角色设定后重试。");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deleteCanvasCharacter(character: Character) {
+    setBusy(true);
+    setStatus(`正在删除角色 ${character.name}...`);
+    try {
+      await deleteJson<DeleteResult>(`/api/projects/${projectId}/characters/${character.id}`, { user_id: currentUserId() });
+      clearCharacterFromCanvas(character.id, character.name);
+      if (editingCharacterId === character.id) {
+        setEditingCharacterId("");
+        setCharacterDraft(emptyCharacterDraft);
+      }
+      setStatus(`角色 ${character.name} 已删除，相关分镜和画布引用已清理。`);
+    } catch (error) {
+      setShowCharacters(true);
+      setStatus(error instanceof Error ? `角色删除失败：${error.message}` : "角色删除失败，已保留角色库面板，可稍后重试。");
     } finally {
       setBusy(false);
     }
@@ -6158,6 +6212,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
               <button disabled={busy || editingCharacterId !== character.id} className="rounded-md border border-cyan-300/30 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-50 hover:bg-cyan-500/20 disabled:opacity-50" onClick={() => void saveCanvasCharacter()}>保存修改</button>
               <button disabled={busy} className="rounded-md border border-white/10 px-3 py-2 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addCharacterNode(character)}>添加角色节点</button>
               <button disabled={busy || !selectedNode || !["image_generation", "video_generation"].includes(selectedType)} className="rounded-md border border-cyan-300/30 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-50 hover:bg-cyan-500/20 disabled:opacity-50" onClick={() => applyCharacterToSelectedNode(character)}>绑定到当前节点</button>
+              <button disabled={busy} className="col-span-2 rounded-md border border-red-400/30 px-3 py-2 text-xs text-red-100 hover:bg-red-500/10 disabled:opacity-50" onClick={() => void deleteCanvasCharacter(character)}>删除角色并清理引用</button>
             </div>
           </article>)}
           {!filteredCharacters.length && <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-4 text-sm text-slate-400">

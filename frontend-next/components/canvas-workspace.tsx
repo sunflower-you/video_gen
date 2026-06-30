@@ -1119,6 +1119,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const params = new URLSearchParams(window.location.search);
     const presetKey = params.get("preset") || "";
     const presetMode = params.get("presetMode") || "";
+    const referenceImageUrl = params.get("referenceImageUrl") || "";
     const presetLinkKey = `${presetMode}:${presetKey}`;
     if (!presetKey || presetLinkKey === linkedPresetHandled) return;
     setLinkedPresetHandled(presetLinkKey);
@@ -1127,10 +1128,12 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       setStatus("画布预设不存在，请从左侧工作流预设重新选择。");
       return;
     }
-    if (presetMode === "replace") replaceCanvasWithWorkflowPreset(preset.key);
-    else addWorkflowPreset(preset.key, { x: 140, y: 140 });
+    const overrides = referenceImageUrl.trim() ? { referenceImageUrl: referenceImageUrl.trim() } : undefined;
+    if (presetMode === "replace") replaceCanvasWithWorkflowPreset(preset.key, overrides);
+    else addWorkflowPreset(preset.key, { x: 140, y: 140 }, overrides);
     params.delete("preset");
     params.delete("presetMode");
+    params.delete("referenceImageUrl");
     const nextQuery = params.toString();
     window.history.replaceState(null, "", `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`);
   }, [linkedPresetHandled, project]);
@@ -1815,7 +1818,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     addDroppedAssetNode(type, url.trim(), position);
   }
 
-  function instantiateWorkflowPreset(presetKey: string, basePosition?: { x: number; y: number }) {
+  function instantiateWorkflowPreset(presetKey: string, basePosition?: { x: number; y: number }, overrides?: { referenceImageUrl?: string }) {
     const preset = workflowPresets.find((item) => item.key === presetKey);
     if (!preset) return null;
     const firstShotId = shotOptions[0]?.id || "";
@@ -1825,11 +1828,12 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const createdNodes = preset.nodes.map((item, index) => {
       const id = `preset-${preset.key}-${timestamp}-${index}`;
       const generationData = item.type.includes("generation") && item.type !== "compose_generation" ? { shot_id: firstShotId } : {};
+      const referenceOverride = preset.key === "seedance2_image_video" && item.type === "image" && overrides?.referenceImageUrl ? { image_url: overrides.referenceImageUrl } : {};
       return {
         id,
         type: "platform",
         position: { x: baseX + item.offset.x, y: baseY + item.offset.y },
-        data: { ...item.data, ...generationData, nodeType: item.type, graphNodeId: id, status: "draft" }
+        data: { ...item.data, ...referenceOverride, ...generationData, nodeType: item.type, graphNodeId: id, status: "draft" }
       } satisfies Node;
     });
     const createdEdges = preset.edges.map(([sourceIndex, targetIndex], index) => ({
@@ -1844,8 +1848,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     return { preset, createdNodes, createdEdges };
   }
 
-  function addWorkflowPreset(presetKey: string, basePosition?: { x: number; y: number }) {
-    const graph = instantiateWorkflowPreset(presetKey, basePosition);
+  function addWorkflowPreset(presetKey: string, basePosition?: { x: number; y: number }, overrides?: { referenceImageUrl?: string }) {
+    const graph = instantiateWorkflowPreset(presetKey, basePosition, overrides);
     if (!graph) return;
     const { preset, createdNodes, createdEdges } = graph;
     rememberGraphHistory();
@@ -1857,8 +1861,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(basePosition ? `已在画布当前位置添加工作流预设：${preset.title}。` : `已添加工作流预设：${preset.title}。`);
   }
 
-  function replaceCanvasWithWorkflowPreset(presetKey: string) {
-    const graph = instantiateWorkflowPreset(presetKey, { x: 160, y: 140 });
+  function replaceCanvasWithWorkflowPreset(presetKey: string, overrides?: { referenceImageUrl?: string }) {
+    const graph = instantiateWorkflowPreset(presetKey, { x: 160, y: 140 }, overrides);
     if (!graph) return;
     const { preset, createdNodes, createdEdges } = graph;
     rememberGraphHistory();

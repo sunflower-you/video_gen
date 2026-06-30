@@ -1032,8 +1032,13 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /Seedance 2\.0 图生视频/);
   assert.match(canvasWorkspace, /params\.get\("preset"\)/);
   assert.match(canvasWorkspace, /params\.get\("presetMode"\)/);
+  assert.match(canvasWorkspace, /params\.get\("referenceImageUrl"\)/);
   assert.match(canvasWorkspace, /presetMode === "replace"/);
   assert.match(canvasWorkspace, /params\.delete\("presetMode"\)/);
+  assert.match(canvasWorkspace, /params\.delete\("referenceImageUrl"\)/);
+  assert.match(canvasWorkspace, /overrides\?\.referenceImageUrl/);
+  assert.match(canvasWorkspace, /referenceOverride/);
+  assert.match(canvasWorkspace, /image_url: overrides\.referenceImageUrl/);
   assert.match(canvasWorkspace, /window\.history\.replaceState/);
   assert.match(canvasWorkspace, /addWorkflowPreset/);
   assert.match(canvasWorkspace, /平台生成/);
@@ -1202,7 +1207,8 @@ test("Next 创作工作台调用真实项目和生成接口", () => {
   assert.match(createWorkbench, /已预选 TV Show 剧集开场/);
   assert.match(createWorkbench, /已预选创作者挑战赛/);
   assert.match(createWorkbench, /function quickPresetWorkspaceHref/);
-  assert.match(createWorkbench, /presetMode=replace/);
+  assert.match(createWorkbench, /new URLSearchParams\(\{ preset: presetKey, presetMode: "replace"/);
+  assert.match(createWorkbench, /\{ referenceImageUrl \}/);
   assert.match(createWorkbench, /createSeedanceQuickProject/);
   assert.match(createWorkbench, /project_type: "Seedance 2\.0 快速体验"/);
   assert.match(createWorkbench, /"seedance2_image_video"/);

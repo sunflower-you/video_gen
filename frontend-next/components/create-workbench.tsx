@@ -39,8 +39,9 @@ const quickModeOptions: { key: QuickModeKey; label: string; description: string 
   { key: "creator-challenge", label: "创作者挑战赛", description: "赛题 brief、参赛海报首帧、短片镜头、宣发口播和成片提交链路。" }
 ];
 
-function quickPresetWorkspaceHref(projectId: string, presetKey: string) {
-  return `/workspace/${projectId}?preset=${presetKey}&presetMode=replace`;
+function quickPresetWorkspaceHref(projectId: string, presetKey: string, params?: Record<string, string>) {
+  const search = new URLSearchParams({ preset: presetKey, presetMode: "replace", ...(params || {}) });
+  return `/workspace/${projectId}?${search.toString()}`;
 }
 
 type ProjectAnalysis = {
@@ -176,7 +177,7 @@ export function CreateWorkbench() {
       setProject(created);
       setScript(seedanceQuickPrompt);
       setStatus("Seedance 2.0 快速体验项目已创建，正在进入全画幅节点画布...");
-      window.location.href = quickPresetWorkspaceHref(created.id, "seedance2_image_video");
+      window.location.href = quickPresetWorkspaceHref(created.id, "seedance2_image_video", { referenceImageUrl });
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Seedance 2.0 快速体验创建失败，请稍后重试。");
     } finally {

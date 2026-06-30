@@ -1,7 +1,7 @@
 "use client";
 
 import { LayoutGrid } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import type { Work } from "../lib/api";
 import { categories } from "../lib/fallback-data";
 import { createSameStyleProjectFromHref } from "../lib/same-style-create";
@@ -39,6 +39,10 @@ export function WorkGallery({
   const [sharingWorkId, setSharingWorkId] = useState("");
   const [creatingChannel, setCreatingChannel] = useState(false);
   const [actionStatus, setActionStatus] = useState("");
+
+  useEffect(() => {
+    setKeywordDraft(query.keyword);
+  }, [query.keyword]);
 
   function updateQuery(partial: Partial<WorkQuery>) {
     onQueryChange({ ...query, ...partial });

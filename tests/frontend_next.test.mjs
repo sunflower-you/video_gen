@@ -129,6 +129,8 @@ test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
   assert.match(gallery, /item\.video_url/);
   assert.match(gallery, /item\.template_name/);
   assert.match(gallery, /item\.tags/);
+  assert.match(gallery, /useEffect\(\(\) => \{\s*setKeywordDraft\(query\.keyword\);/);
+  assert.match(gallery, /\}, \[query\.keyword\]\)/);
   assert.match(gallery, /href=\{`\/users\/\$\{item\.author_id \|\| "system"\}`\}/);
   assert.match(gallery, /quickStartHrefForWork/);
   assert.match(gallery, /createSameStyleProjectFromHref/);

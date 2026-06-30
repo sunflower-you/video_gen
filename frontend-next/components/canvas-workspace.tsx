@@ -2468,7 +2468,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const sourceNode = nodes.find((node) => node.id === selectedEdge.source);
     const targetNode = nodes.find((node) => node.id === selectedEdge.target);
     if (!sourceNode || !targetNode) {
-      setStatus("连线两端节点已丢失，暂不能插入节点。");
+      setShowValidation(true);
+      setStatus("连线两端节点已丢失，暂不能插入节点；已打开画布自检，可先定位断链并重新连接节点。");
       return;
     }
     const position = {
@@ -2590,7 +2591,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     }
     const label = String((selectedEdge.data as Record<string, unknown> | undefined)?.label || "").trim();
     if (!label) {
-      setStatus("当前连线没有标签，无法选中同标签连线。");
+      setShowValidation(true);
+      setStatus("当前连线没有标签，无法选中同标签连线；已打开画布自检，可先在右侧连线面板补充标签后重试。");
       return;
     }
     selectCanvasEdgesByIds(edges.filter((edge) => String((edge.data as Record<string, unknown> | undefined)?.label || "").trim() === label).map((edge) => edge.id), "同标签连线");

@@ -674,7 +674,8 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /请先选择一条连线，再选中同标签连线；已打开画布自检，可先定位需要批量处理的链路/);
   assert.match(canvasWorkspace, /请先选择一条连线，再选中同颜色连线；已打开画布自检，可先定位需要批量处理的链路/);
   assert.match(canvasWorkspace, /请先选择一条连线，再选中同样式连线；已打开画布自检，可先定位需要批量处理的链路/);
-  assert.match(canvasWorkspace, /当前连线没有标签/);
+  assert.match(canvasWorkspace, /当前连线没有标签，无法选中同标签连线；已打开画布自检，可先在右侧连线面板补充标签后重试/);
+  assert.match(canvasWorkspace, /连线两端节点已丢失，暂不能插入节点；已打开画布自检，可先定位断链并重新连接节点/);
   assert.match(canvasWorkspace, /可继续禁用、标记、改样式或删除/);
   assert.match(canvasWorkspace, /已选中\$\{label\}/);
   assert.match(canvasWorkspace, /同类型/);

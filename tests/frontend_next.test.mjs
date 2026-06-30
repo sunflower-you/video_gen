@@ -809,6 +809,9 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /从剪贴板读取 ProjectGraph JSON/);
   assert.match(canvasWorkspace, /替换当前画布/);
   assert.match(canvasWorkspace, /追加导入/);
+  assert.match(canvasWorkspace, /还没有可导入的 ProjectGraph JSON，可先读取剪贴板、导出当前画布作模板，或追加内置工作流继续搭建/);
+  assert.match(canvasWorkspace, /读取剪贴板<\/button>/);
+  assert.match(canvasWorkspace, /导出当前画布<\/button>/);
   assert.match(canvasWorkspace, /已替换当前画布工作流/);
   assert.match(canvasWorkspace, /已追加导入工作流/);
   assert.match(canvasWorkspace, /替换当前画布前会写入撤销历史/);

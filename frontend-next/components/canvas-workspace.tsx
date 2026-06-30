@@ -5017,6 +5017,15 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
           <span className="inline-flex items-center gap-2 rounded-md border border-white/10 px-2 py-1 text-xs text-slate-300"><ClipboardPaste size={14} />读取剪贴板</span>
         </button>
         <textarea className="mt-3 min-h-64 w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500" placeholder="粘贴从画布导出的 ProjectGraph JSON，可追加到当前画布，也可替换当前画布。" value={importText} onChange={(event) => setImportText(event.target.value)} />
+        {!importText.trim() && <div className="mt-3 rounded-md border border-white/10 px-3 py-2 text-sm text-slate-400">
+          <p>还没有可导入的 ProjectGraph JSON，可先读取剪贴板、导出当前画布作模板，或追加内置工作流继续搭建。</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button className="rounded-md border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs text-blue-50 hover:bg-blue-500/20" onClick={() => void loadImportJsonFromClipboard()}>读取剪贴板</button>
+            <button disabled={!nodes.length} className="rounded-md border border-white/10 px-3 py-1 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => void exportWorkflowJson()}>导出当前画布</button>
+            <button disabled={busy} className="rounded-md border border-white/10 px-3 py-1 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPreset("seedance2_image_video")}>追加 Seedance</button>
+            <button className="rounded-md border border-white/10 px-3 py-1 text-xs text-slate-100 hover:bg-white/10" onClick={() => setShowPalette(true)}>打开节点面板</button>
+          </div>
+        </div>}
         <div className="mt-3 grid gap-2 text-sm">
           <span className="text-xs text-slate-400">导入会重置节点状态为草稿，并保留参数、位置和连线；替换当前画布前会写入撤销历史。</span>
           <div className="flex flex-wrap items-center justify-end gap-2">

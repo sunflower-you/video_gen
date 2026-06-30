@@ -4374,13 +4374,15 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function addFilteredAssetNodes() {
     if (!filteredAssets.length) {
-      setStatus("当前素材筛选结果为空，无法批量添加到画布。");
+      setShowAssets(true);
+      setStatus("当前素材筛选结果为空，已打开素材库；可清空筛选、添加全部素材，或打开任务队列继续生成新素材。");
       return;
     }
     const existingIds = new Set(nodes.map((node) => node.id));
     const createdNodes = filteredAssets.map((asset, index) => assetNodeSpec(asset, index)).filter((node) => !existingIds.has(node.id));
     if (!createdNodes.length) {
-      setStatus("当前筛选素材都已在画布中，无需重复添加。");
+      setShowOutline(true);
+      setStatus("当前筛选素材都已在画布中，已打开节点大纲；可先定位已有素材节点继续编排。");
       return;
     }
     rememberGraphHistory();
@@ -4393,13 +4395,15 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function addAllAssetNodes() {
     if (!assets.length) {
-      setStatus("项目素材库暂无素材，无法批量添加到画布。");
+      setShowTasks(true);
+      setStatus("项目素材库暂无素材，已打开任务队列；可先运行生成任务或追加 Seedance 工作流产出素材。");
       return;
     }
     const existingIds = new Set(nodes.map((node) => node.id));
     const createdNodes = assets.map((asset, index) => assetNodeSpec(asset, index)).filter((node) => !existingIds.has(node.id));
     if (!createdNodes.length) {
-      setStatus("项目素材都已在画布中，无需重复添加。");
+      setShowOutline(true);
+      setStatus("项目素材都已在画布中，已打开节点大纲；可先定位已有素材节点继续编排。");
       return;
     }
     rememberGraphHistory();

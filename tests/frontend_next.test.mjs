@@ -436,7 +436,10 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /resetAssetFilters/);
   assert.match(canvasWorkspace, /已批量添加 .*个筛选素材到画布/);
   assert.match(canvasWorkspace, /已批量添加 .*个项目素材到画布/);
-  assert.match(canvasWorkspace, /当前筛选素材都已在画布中/);
+  assert.match(canvasWorkspace, /当前素材筛选结果为空，已打开素材库；可清空筛选、添加全部素材，或打开任务队列继续生成新素材/);
+  assert.match(canvasWorkspace, /项目素材库暂无素材，已打开任务队列；可先运行生成任务或追加 Seedance 工作流产出素材/);
+  assert.match(canvasWorkspace, /当前筛选素材都已在画布中，已打开节点大纲；可先定位已有素材节点继续编排/);
+  assert.match(canvasWorkspace, /项目素材都已在画布中，已打开节点大纲；可先定位已有素材节点继续编排/);
   assert.match(canvasWorkspace, /没有匹配素材，可清空筛选、批量添加全部素材，或打开任务队列继续生成新素材/);
   assert.match(canvasWorkspace, /清空素材筛选<\/button>/);
   assert.match(canvasWorkspace, /添加全部素材<\/button>/);

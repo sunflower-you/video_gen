@@ -2530,7 +2530,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function selectAllCanvasEdges() {
     if (!edges.length) {
-      setStatus("画布暂无连线，无法全选。");
+      setShowValidation(true);
+      setStatus("画布暂无连线，无法全选；已打开画布自检，可先检查孤立节点或从节点连接桩创建连线。");
       return;
     }
     setNodes((items) => items.map((node) => ({ ...node, selected: false })));
@@ -2544,7 +2545,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function invertCanvasEdgeSelection() {
     if (!edges.length) {
-      setStatus("画布暂无连线，无法反选。");
+      setShowValidation(true);
+      setStatus("画布暂无连线，无法反选；已打开画布自检，可先检查孤立节点或从节点连接桩创建连线。");
       return;
     }
     const selectedEdgeIds = new Set(selectedEdges.map((edge) => edge.id));
@@ -2966,7 +2968,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function selectAllCanvasNodes() {
     if (!nodes.length) {
-      setStatus("画布暂无节点，无法全选。");
+      setShowPalette(true);
+      setStatus("画布暂无节点，无法全选；已打开节点面板，可先添加节点、追加工作流预设或导入 ProjectGraph。");
       return;
     }
     setNodes((items) => items.map((node) => ({ ...node, selected: true })));
@@ -2979,7 +2982,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function invertCanvasSelection() {
     if (!nodes.length) {
-      setStatus("画布暂无节点，无法反选。");
+      setShowPalette(true);
+      setStatus("画布暂无节点，无法反选；已打开节点面板，可先添加节点、追加工作流预设或导入 ProjectGraph。");
       return;
     }
     const nextSelectedNodes = nodes.filter((node) => !selectedNodeIds.has(node.id));

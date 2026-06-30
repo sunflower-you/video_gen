@@ -353,6 +353,8 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /全选画布节点/);
   assert.match(canvasWorkspace, /反选画布节点/);
   assert.match(canvasWorkspace, /清空当前选区/);
+  assert.match(canvasWorkspace, /画布暂无节点，无法全选；已打开节点面板，可先添加节点、追加工作流预设或导入 ProjectGraph/);
+  assert.match(canvasWorkspace, /画布暂无节点，无法反选；已打开节点面板，可先添加节点、追加工作流预设或导入 ProjectGraph/);
   assert.match(canvasWorkspace, /已全选画布节点/);
   assert.match(canvasWorkspace, /已反选画布节点/);
   assert.match(canvasWorkspace, /已清空当前节点和连线选区/);
@@ -652,8 +654,8 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /连线选择/);
   assert.match(canvasWorkspace, /全选画布连线/);
   assert.match(canvasWorkspace, /反选画布连线/);
-  assert.match(canvasWorkspace, /画布暂无连线，无法全选/);
-  assert.match(canvasWorkspace, /画布暂无连线，无法反选/);
+  assert.match(canvasWorkspace, /画布暂无连线，无法全选；已打开画布自检，可先检查孤立节点或从节点连接桩创建连线/);
+  assert.match(canvasWorkspace, /画布暂无连线，无法反选；已打开画布自检，可先检查孤立节点或从节点连接桩创建连线/);
   assert.match(canvasWorkspace, /已全选画布连线/);
   assert.match(canvasWorkspace, /已反选画布连线/);
   assert.match(canvasWorkspace, /全部连线/);

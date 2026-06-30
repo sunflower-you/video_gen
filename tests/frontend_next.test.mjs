@@ -614,6 +614,12 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /选中同类型节点/);
   assert.match(canvasWorkspace, /选中同状态节点/);
   assert.match(canvasWorkspace, /选中同标记节点/);
+  assert.match(canvasWorkspace, /请先选择一个节点，再选中上游链路；已打开节点大纲，可先定位链路终点节点/);
+  assert.match(canvasWorkspace, /请先选择一个节点，再选中下游链路；已打开节点大纲，可先定位链路起点节点/);
+  assert.match(canvasWorkspace, /请先选择一个节点，再选中同类型节点；已打开节点大纲，可先定位参考节点/);
+  assert.match(canvasWorkspace, /请先选择一个节点，再选中同状态节点；已打开节点大纲，可先定位参考节点/);
+  assert.match(canvasWorkspace, /请先选择一个节点，再选中同标记节点；已打开节点大纲，可先定位参考节点/);
+  assert.match(canvasWorkspace, /请先选择一个绑定分镜的节点，再选中同分镜节点；已打开节点大纲，可先定位已绑定分镜的节点/);
   assert.match(canvasWorkspace, /选中禁用节点/);
   assert.match(canvasWorkspace, /选中孤立节点/);
   assert.match(canvasWorkspace, /选中起点节点/);
@@ -636,6 +642,11 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /选中同标签连线/);
   assert.match(canvasWorkspace, /选中同颜色连线/);
   assert.match(canvasWorkspace, /选中同样式连线/);
+  assert.match(canvasWorkspace, /请先选择一条连线，再选中同起点连线；已打开画布自检，可先定位需要批量处理的链路/);
+  assert.match(canvasWorkspace, /请先选择一条连线，再选中同终点连线；已打开画布自检，可先定位需要批量处理的链路/);
+  assert.match(canvasWorkspace, /请先选择一条连线，再选中同标签连线；已打开画布自检，可先定位需要批量处理的链路/);
+  assert.match(canvasWorkspace, /请先选择一条连线，再选中同颜色连线；已打开画布自检，可先定位需要批量处理的链路/);
+  assert.match(canvasWorkspace, /请先选择一条连线，再选中同样式连线；已打开画布自检，可先定位需要批量处理的链路/);
   assert.match(canvasWorkspace, /当前连线没有标签/);
   assert.match(canvasWorkspace, /可继续禁用、标记、改样式或删除/);
   assert.match(canvasWorkspace, /已选中\$\{label\}/);

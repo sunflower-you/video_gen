@@ -2554,7 +2554,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function selectSameSourceEdges() {
     if (!selectedEdge) {
-      setStatus("请先选择一条连线，再选中同起点连线。");
+      setShowValidation(true);
+      setStatus("请先选择一条连线，再选中同起点连线；已打开画布自检，可先定位需要批量处理的链路。");
       return;
     }
     selectCanvasEdgesByIds(edges.filter((edge) => edge.source === selectedEdge.source).map((edge) => edge.id), "同起点连线");
@@ -2562,7 +2563,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function selectSameTargetEdges() {
     if (!selectedEdge) {
-      setStatus("请先选择一条连线，再选中同终点连线。");
+      setShowValidation(true);
+      setStatus("请先选择一条连线，再选中同终点连线；已打开画布自检，可先定位需要批量处理的链路。");
       return;
     }
     selectCanvasEdgesByIds(edges.filter((edge) => edge.target === selectedEdge.target).map((edge) => edge.id), "同终点连线");
@@ -2570,7 +2572,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function selectSameLabelEdges() {
     if (!selectedEdge) {
-      setStatus("请先选择一条连线，再选中同标签连线。");
+      setShowValidation(true);
+      setStatus("请先选择一条连线，再选中同标签连线；已打开画布自检，可先定位需要批量处理的链路。");
       return;
     }
     const label = String((selectedEdge.data as Record<string, unknown> | undefined)?.label || "").trim();
@@ -2583,7 +2586,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function selectSameColorEdges() {
     if (!selectedEdge) {
-      setStatus("请先选择一条连线，再选中同颜色连线。");
+      setShowValidation(true);
+      setStatus("请先选择一条连线，再选中同颜色连线；已打开画布自检，可先定位需要批量处理的链路。");
       return;
     }
     const color = String((selectedEdge.data as Record<string, unknown> | undefined)?.edge_color || "");
@@ -2593,7 +2597,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function selectSameStyleEdges() {
     if (!selectedEdge) {
-      setStatus("请先选择一条连线，再选中同样式连线。");
+      setShowValidation(true);
+      setStatus("请先选择一条连线，再选中同样式连线；已打开画布自检，可先定位需要批量处理的链路。");
       return;
     }
     const style = String((selectedEdge.data as Record<string, unknown> | undefined)?.edge_style || "");
@@ -2768,7 +2773,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function selectSelectedUpstreamChain() {
     if (!selectedNode) {
-      setStatus("请先选择一个节点，再选中上游链路。");
+      setShowOutline(true);
+      setStatus("请先选择一个节点，再选中上游链路；已打开节点大纲，可先定位链路终点节点。");
       return;
     }
     selectCanvasNodesByIds([selectedNode.id, ...upstreamNodeIds(selectedNode.id, edges)], "当前上游链路");
@@ -2776,7 +2782,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function selectSelectedDownstreamChain() {
     if (!selectedNode) {
-      setStatus("请先选择一个节点，再选中下游链路。");
+      setShowOutline(true);
+      setStatus("请先选择一个节点，再选中下游链路；已打开节点大纲，可先定位链路起点节点。");
       return;
     }
     selectCanvasNodesByIds([selectedNode.id, ...downstreamNodeIds(selectedNode.id, edges)], "当前下游链路");
@@ -2784,7 +2791,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function selectSameTypeNodes() {
     if (!selectedNode) {
-      setStatus("请先选择一个节点，再选中同类型节点。");
+      setShowOutline(true);
+      setStatus("请先选择一个节点，再选中同类型节点；已打开节点大纲，可先定位参考节点。");
       return;
     }
     const type = String((selectedNode.data as Record<string, unknown>).nodeType || "text");
@@ -2794,7 +2802,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function selectSameStatusNodes() {
     if (!selectedNode) {
-      setStatus("请先选择一个节点，再选中同状态节点。");
+      setShowOutline(true);
+      setStatus("请先选择一个节点，再选中同状态节点；已打开节点大纲，可先定位参考节点。");
       return;
     }
     const nodeStatus = String((selectedNode.data as Record<string, unknown>).status || "draft");
@@ -2804,7 +2813,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function selectSameColorNodes() {
     if (!selectedNode) {
-      setStatus("请先选择一个节点，再选中同标记节点。");
+      setShowOutline(true);
+      setStatus("请先选择一个节点，再选中同标记节点；已打开节点大纲，可先定位参考节点。");
       return;
     }
     const color = String((selectedNode.data as Record<string, unknown>).node_color || "");
@@ -2815,7 +2825,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function selectSameShotNodes() {
     if (!selectedNode) {
-      setStatus("请先选择一个绑定分镜的节点，再选中同分镜节点。");
+      setShowOutline(true);
+      setStatus("请先选择一个绑定分镜的节点，再选中同分镜节点；已打开节点大纲，可先定位已绑定分镜的节点。");
       return;
     }
     const shotId = String((selectedNode.data as Record<string, unknown>).shot_id || "");

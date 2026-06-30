@@ -119,7 +119,7 @@ export function AuthorProfilePanel({ userId }: { userId: string }) {
   }
 
   async function copyTemplateShareLink(template: AuthorProfile["templates"][number]) {
-    const shareUrl = `${window.location.origin}/templates?template=${encodeURIComponent(template.id)}`;
+    const shareUrl = `${window.location.origin}${templateMarketHref(template)}`;
     setSharingItemId(`template:${template.id}`);
     try {
       if (navigator.clipboard?.writeText) {
@@ -135,6 +135,10 @@ export function AuthorProfilePanel({ userId }: { userId: string }) {
     } finally {
       setSharingItemId("");
     }
+  }
+
+  function templateMarketHref(template: AuthorProfile["templates"][number]) {
+    return `/templates?template=${encodeURIComponent(template.id)}`;
   }
 
   return (
@@ -208,7 +212,7 @@ export function AuthorProfilePanel({ userId }: { userId: string }) {
           <div className="mt-3 grid gap-2 text-sm">
             {profile.templates.map((template) => (
               <article key={template.id} className="rounded-md border border-line px-3 py-2 hover:border-accent">
-                <a className="block" href="/templates">
+                <a className="block" href={templateMarketHref(template)}>
                   <strong className="block">{template.name}</strong>
                   <span className="text-muted">{template.category} · {template.workflow_key}</span>
                 </a>
@@ -216,7 +220,7 @@ export function AuthorProfilePanel({ userId }: { userId: string }) {
                   <button className="rounded-md bg-accent px-3 py-1 text-xs text-white disabled:opacity-60" disabled={creatingSameStyleId === `template:${template.id}`} onClick={() => void createSameStyleTemplate(template)}>
                     {creatingSameStyleId === `template:${template.id}` ? "创建中" : "快速同款创作"}
                   </button>
-                  <a className="rounded-md border border-line px-3 py-1 text-xs" href="/templates">查看模板市场</a>
+                  <a className="rounded-md border border-line px-3 py-1 text-xs" href={templateMarketHref(template)}>查看模板市场</a>
                   <button className="rounded-md border border-line px-3 py-1 text-xs disabled:opacity-60" disabled={sharingItemId === `template:${template.id}`} onClick={() => void copyTemplateShareLink(template)}>
                     {sharingItemId === `template:${template.id}` ? "复制中" : "分享模板"}
                   </button>

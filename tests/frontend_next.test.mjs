@@ -1534,7 +1534,10 @@ test("Next 作者主页读取真实作者聚合并支持关注", () => {
   assert.match(authorProfile, /正在创建「\$\{template\.name\}」同款画布/);
   assert.match(authorProfile, /\/users\/\$\{profile\.id\}/);
   assert.match(authorProfile, /\/works\/\$\{work\.id\}/);
+  assert.match(authorProfile, /function templateMarketHref\(template: AuthorProfile\["templates"\]\[number\]\)/);
   assert.match(authorProfile, /\/templates\?template=\$\{encodeURIComponent\(template\.id\)\}/);
+  assert.match(authorProfile, /href=\{templateMarketHref\(template\)\}/);
+  assert.match(authorProfile, /`\$\{window\.location\.origin\}\$\{templateMarketHref\(template\)\}`/);
   assert.match(authorProfile, /navigator\.clipboard\?\.writeText/);
   assert.match(authorProfile, /author_share_link_\$\{profile\.id\}/);
   assert.match(authorProfile, /work_share_link_\$\{work\.id\}/);

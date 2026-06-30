@@ -24,6 +24,7 @@ function formatParams(params?: Record<string, unknown>): string {
 export function TemplateMarket({ templates, onUseTemplate }: { templates: Template[]; onUseTemplate?: (template: Template) => void }) {
   const [activeChannel, setActiveChannel] = useState("全部");
   const [creatingTemplateId, setCreatingTemplateId] = useState("");
+  const [creatingShortcut, setCreatingShortcut] = useState(false);
   const [actionStatus, setActionStatus] = useState("");
   const visibleTemplates = useMemo(() => {
     if (activeChannel === "全部") return templates;
@@ -47,6 +48,18 @@ export function TemplateMarket({ templates, onUseTemplate }: { templates: Templa
     }
   }
 
+  async function createChannelCanvas() {
+    const title = activeChannel === "全部" ? "模板市场" : activeChannel;
+    setCreatingShortcut(true);
+    setActionStatus(`正在创建${title}全画幅画布...`);
+    try {
+      window.location.href = await createSameStyleProjectFromHref(activeShortcut.href, `${title}创作`);
+    } catch (error) {
+      setActionStatus(error instanceof Error ? error.message : "模板频道画布创建失败，请稍后重试。");
+      setCreatingShortcut(false);
+    }
+  }
+
   return (
     <section id="模板市场" className="rounded-panel border border-line bg-panel p-4">
       <PanelTitle icon={<Sparkles size={18} />} title="模板市场" extra="可复用工作流" />
@@ -60,9 +73,9 @@ export function TemplateMarket({ templates, onUseTemplate }: { templates: Templa
             {item.label}
           </button>
         ))}
-        <a className="rounded-md border border-line px-3 py-2 text-muted hover:border-accent hover:text-foreground" href={activeShortcut.href}>
-          {activeChannel === "全部" ? "开始创作" : `创作${activeChannel}`}
-        </a>
+        <button className="rounded-md border border-line px-3 py-2 text-muted hover:border-accent hover:text-foreground disabled:opacity-60" disabled={creatingShortcut} onClick={() => void createChannelCanvas()}>
+          {creatingShortcut ? "创建中" : activeChannel === "全部" ? "开始创作" : `创作${activeChannel}`}
+        </button>
         <span className="text-xs text-muted">当前频道 {visibleTemplates.length} 个模板</span>
       </div>
       {actionStatus ? <div className="mt-3 rounded-md border border-line bg-canvas px-3 py-2 text-sm text-muted">{actionStatus}</div> : null}

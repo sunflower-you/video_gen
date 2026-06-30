@@ -1199,6 +1199,10 @@ test("Next 模板市场读取真实模板并支持复刻项目", () => {
   assert.match(templates, /visibleTemplates/);
   assert.match(templates, /当前频道 \{visibleTemplates\.length\} 个模板/);
   assert.match(templates, /当前频道暂无模板/);
+  assert.match(templates, /const \[creatingShortcut, setCreatingShortcut\]/);
+  assert.match(templates, /function createChannelCanvas/);
+  assert.match(templates, /window\.location\.href = await createSameStyleProjectFromHref\(activeShortcut\.href/);
+  assert.match(templates, /正在创建\$\{title\}全画幅画布/);
   assert.match(templates, /quickStartHrefForTemplate\(template\)/);
   assert.match(templates, /createSameStyleProjectFromHref/);
   assert.match(templates, /function createSameStyleTemplate/);

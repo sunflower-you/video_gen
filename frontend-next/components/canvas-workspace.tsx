@@ -1744,6 +1744,11 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus("已清空节点大纲筛选，可继续按依赖顺序查看和定位节点。");
   }
 
+  function resetEventLogFilter() {
+    setEventLogQuery("");
+    setStatus("已清空画布事件日志筛选，可继续查看保存、运行、导入导出和失败记录。");
+  }
+
   function addConnectedNodeFromSelected(type: string) {
     if (!selectedNode) return;
     const selectedType = String((selectedNode.data as Record<string, unknown>).nodeType || "text");
@@ -4742,8 +4747,21 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
             <p className="leading-5 text-slate-100">{item.message}</p>
             <time className="mt-1 block text-xs text-slate-500">{new Date(item.created_at).toLocaleString("zh-CN", { hour12: false })}</time>
           </article>)}
-          {!canvasEventLog.length && <p className="rounded-md border border-white/10 px-3 py-4 text-slate-400">暂无画布事件，保存、运行、导入导出或复制粘贴后会自动记录。</p>}
-          {!!canvasEventLog.length && !filteredCanvasEventLog.length && <p className="rounded-md border border-white/10 px-3 py-4 text-slate-400">没有匹配事件，请调整关键词。</p>}
+          {!canvasEventLog.length && <div className="rounded-md border border-white/10 px-3 py-4 text-slate-400">
+            <p>暂无画布事件，保存、运行、导入导出或复制粘贴后会自动记录。</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button disabled={busy} className="rounded-md border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs text-blue-50 hover:bg-blue-500/20 disabled:opacity-50" onClick={() => void saveGraph()}>保存画布</button>
+              <button disabled={busy || !nodes.length} className="rounded-md border border-white/10 px-3 py-1 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => void runCanvasGraph()}>运行全图</button>
+              <button className="rounded-md border border-white/10 px-3 py-1 text-xs text-slate-100 hover:bg-white/10" onClick={() => setShowTasks(true)}>打开任务队列</button>
+            </div>
+          </div>}
+          {!!canvasEventLog.length && !filteredCanvasEventLog.length && <div className="rounded-md border border-white/10 px-3 py-4 text-slate-400">
+            <p>没有匹配事件，请调整关键词。</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button className="rounded-md border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs text-blue-50 hover:bg-blue-500/20" onClick={resetEventLogFilter}>清空日志筛选</button>
+              <button className="rounded-md border border-white/10 px-3 py-1 text-xs text-slate-100 hover:bg-white/10" onClick={() => void exportCanvasEventLog()}>导出全部日志</button>
+            </div>
+          </div>}
         </div>
       </aside>}
 

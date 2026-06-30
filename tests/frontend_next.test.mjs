@@ -1006,6 +1006,10 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /已导出画布事件日志；浏览器剪贴板不可用，已把内容暂存到本地/);
   assert.match(canvasWorkspace, /暂无画布事件，保存、运行、导入导出或复制粘贴后会自动记录/);
   assert.match(canvasWorkspace, /没有匹配事件，请调整关键词/);
+  assert.match(canvasWorkspace, /resetEventLogFilter/);
+  assert.match(canvasWorkspace, /已清空画布事件日志筛选，可继续查看保存、运行、导入导出和失败记录/);
+  assert.match(canvasWorkspace, /清空日志筛选<\/button>/);
+  assert.match(canvasWorkspace, /导出全部日志<\/button>/);
   assert.match(canvasWorkspace, /StickyNote/);
   assert.match(canvasWorkspace, /comment: "画布批注"/);
   assert.match(canvasWorkspace, /记录制作意图、审核意见和修改点/);

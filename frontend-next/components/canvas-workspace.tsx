@@ -1731,6 +1731,13 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     }
   }
 
+  function resetNodePaletteFilters() {
+    setPaletteQuery("");
+    setPaletteCategoryFilter("all");
+    setActivePaletteNodeIndex(0);
+    setStatus("已清空节点面板筛选，可继续添加文本、图片、视频、配音和生成节点。");
+  }
+
   function addConnectedNodeFromSelected(type: string) {
     if (!selectedNode) return;
     const selectedType = String((selectedNode.data as Record<string, unknown>).nodeType || "text");
@@ -4906,7 +4913,15 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
               })}
             </section>;
           })}
-          {!filteredAddableNodes.length && <p className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-4 text-sm text-slate-400">没有匹配节点，请切换分类或调整关键词。</p>}
+          {!filteredAddableNodes.length && <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-4 text-sm text-slate-400">
+            <p>没有匹配节点，请切换分类或调整关键词。</p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button className="rounded-md border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-xs text-blue-50 hover:bg-blue-500/20" onClick={resetNodePaletteFilters}>清空筛选</button>
+              <button disabled={busy} className="rounded-md border border-white/10 px-3 py-2 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPreset("script_to_storyboard")}>追加脚本拆解</button>
+              <button disabled={busy} className="rounded-md border border-white/10 px-3 py-2 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPreset("seedance2_image_video")}>追加 Seedance</button>
+              <button disabled={busy} className="rounded-md border border-white/10 px-3 py-2 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => replaceCanvasWithWorkflowPreset("seedance2_image_video")}>新建 Seedance</button>
+            </div>
+          </div>}
         </div>
       </aside>}
 

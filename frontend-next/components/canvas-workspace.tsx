@@ -2087,7 +2087,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     }
     if (!text.trim()) text = fallbackText();
     if (!text.trim()) {
-      setStatus("剪贴板中没有可导入为预设的 ProjectGraph JSON，请先复制或导出预设。");
+      setShowPalette(true);
+      setStatus("剪贴板中没有可导入为预设的 ProjectGraph JSON，已打开节点面板；可先导出当前画布或选区预设作为模板。");
       return;
     }
     let graph: Partial<ProjectGraph> & { title?: unknown; description?: unknown; nodes?: unknown; edges?: unknown };
@@ -3152,7 +3153,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     }
     if (!text.trim()) text = fallbackText();
     if (!text.trim()) {
-      setStatus("剪贴板中没有可导入为画布版本的 ProjectGraph JSON，请先复制或导出版本快照。");
+      setShowGraphVersions(true);
+      setStatus("剪贴板中没有可导入为画布版本的 ProjectGraph JSON，已打开版本历史；可先保存或导出现有版本快照。");
       return;
     }
     let graph: Partial<ProjectGraph> & { title?: unknown; nodes?: unknown; edges?: unknown; viewport?: unknown };
@@ -4577,7 +4579,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     }
     if (!text.trim()) text = fallbackText();
     if (!text.trim()) {
-      setStatus("剪贴板中没有可导入的 ProjectGraph JSON，请先复制或导出工作流。");
+      setShowImport(true);
+      setStatus("剪贴板中没有可导入的 ProjectGraph JSON，已打开导入工作流面板；可先选择 JSON 文件、导出当前画布或复制选区。");
       return;
     }
     setImportText(text);

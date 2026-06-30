@@ -330,7 +330,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /导入画布版本快照/);
   assert.match(canvasWorkspace, /已导出并复制画布版本 ProjectGraph JSON/);
   assert.match(canvasWorkspace, /已导出画布版本 ProjectGraph JSON；浏览器剪贴板不可用，已把内容暂存到本地/);
-  assert.match(canvasWorkspace, /剪贴板中没有可导入为画布版本的 ProjectGraph JSON/);
+  assert.match(canvasWorkspace, /剪贴板中没有可导入为画布版本的 ProjectGraph JSON，已打开版本历史；可先保存或导出现有版本快照/);
   assert.match(canvasWorkspace, /已导入画布版本快照/);
   assert.match(canvasWorkspace, /已恢复画布版本快照/);
   assert.match(canvasWorkspace, /暂无画布版本快照，可先保存当前版本/);
@@ -871,7 +871,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /替换当前画布前会写入撤销历史/);
   assert.match(canvasWorkspace, /已下载并复制工作流 ProjectGraph JSON/);
   assert.match(canvasWorkspace, /已下载工作流 ProjectGraph JSON；浏览器剪贴板不可用，已把内容暂存到本地/);
-  assert.match(canvasWorkspace, /剪贴板中没有可导入的 ProjectGraph JSON/);
+  assert.match(canvasWorkspace, /剪贴板中没有可导入的 ProjectGraph JSON，已打开导入工作流面板；可先选择 JSON 文件、导出当前画布或复制选区/);
   assert.match(canvasWorkspace, /已从剪贴板读取 ProjectGraph JSON/);
   assert.match(canvasWorkspace, /已读取导入文件/);
   assert.match(canvasWorkspace, /请选择从画布导出的 JSON 文件/);
@@ -1187,7 +1187,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /导入预设 JSON<\/button>/);
   assert.match(canvasWorkspace, /已导出并复制预设 ProjectGraph JSON/);
   assert.match(canvasWorkspace, /已导出预设 ProjectGraph JSON；浏览器剪贴板不可用，已把内容暂存到本地/);
-  assert.match(canvasWorkspace, /剪贴板中没有可导入为预设的 ProjectGraph JSON/);
+  assert.match(canvasWorkspace, /剪贴板中没有可导入为预设的 ProjectGraph JSON，已打开节点面板；可先导出当前画布或选区预设作为模板/);
   assert.match(canvasWorkspace, /已导入预设到我的工作流/);
   assert.match(canvasWorkspace, /deleteCustomWorkflowPreset/);
   assert.match(canvasWorkspace, /保存选区为预设/);

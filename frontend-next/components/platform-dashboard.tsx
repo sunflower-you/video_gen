@@ -54,6 +54,20 @@ export function PlatformDashboard() {
   }, []);
 
   useEffect(() => {
+    function syncWorkQueryFromLocation() {
+      const params = new URLSearchParams(window.location.search);
+      setWorkQuery({
+        category: params.get("category") || "全部",
+        keyword: params.get("keyword") || "",
+        sortBy: params.get("sort_by") || "latest"
+      });
+    }
+    syncWorkQueryFromLocation();
+    window.addEventListener("popstate", syncWorkQueryFromLocation);
+    return () => window.removeEventListener("popstate", syncWorkQueryFromLocation);
+  }, []);
+
+  useEffect(() => {
     void loadWorks(workQuery);
   }, [workQuery]);
 

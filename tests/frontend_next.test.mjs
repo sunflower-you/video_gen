@@ -82,6 +82,12 @@ test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
   assert.match(dashboard, /new URLSearchParams\(\{ sort_by: query\.sortBy \}\)/);
   assert.match(dashboard, /params\.set\("category", query\.category\)/);
   assert.match(dashboard, /params\.set\("keyword", query\.keyword\.trim\(\)\)/);
+  assert.match(dashboard, /function syncWorkQueryFromLocation/);
+  assert.match(dashboard, /new URLSearchParams\(window\.location\.search\)/);
+  assert.match(dashboard, /category: params\.get\("category"\) \|\| "全部"/);
+  assert.match(dashboard, /keyword: params\.get\("keyword"\) \|\| ""/);
+  assert.match(dashboard, /sortBy: params\.get\("sort_by"\) \|\| "latest"/);
+  assert.match(dashboard, /window\.addEventListener\("popstate", syncWorkQueryFromLocation\)/);
   assert.match(dashboard, /apiFetch\(`\/api\/works\?\$\{params\.toString\(\)\}`\)/);
   assert.match(dashboard, /apiFetch\("\/api\/templates"\)/);
   assert.match(dashboard, /channelShortcuts/);
@@ -1460,6 +1466,8 @@ test("Next 作品详情页接入真实作品接口和互动入口", () => {
   assert.match(workDetail, /postJson<Work>\("\/api\/interactions"/);
   assert.match(workDetail, /interaction_type: interactionType/);
   assert.match(workDetail, /target_type: "work"/);
+  assert.match(workDetail, /href=\{`\/\?category=\$\{encodeURIComponent\(work\.category\)\}`\}/);
+  assert.match(workDetail, /href=\{`\/\?keyword=\$\{encodeURIComponent\(tag\)\}`\}/);
   assert.match(workDetail, /href=\{`\/users\/\$\{work\?\.author_id \|\| "system"\}`\}/);
   assert.match(workDetail, /href=\{`\/templates\?template=\$\{encodeURIComponent\(work\.template_id\)\}`\}/);
   assert.match(workDetail, /createSameStyleProjectFromHref/);

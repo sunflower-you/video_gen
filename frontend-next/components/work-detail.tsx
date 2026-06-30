@@ -87,7 +87,11 @@ export function WorkDetail({ workId }: { workId: string }) {
         <a className="text-sm text-accent" href="/">返回作品广场</a>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-sm text-muted">{work?.category || "作品详情"}</p>
+            {work?.category ? (
+              <a className="text-sm text-accent" href={`/?category=${encodeURIComponent(work.category)}`}>{work.category}</a>
+            ) : (
+              <p className="text-sm text-muted">作品详情</p>
+            )}
             <h1 className="mt-1 text-2xl font-semibold">{work?.title || "正在加载作品"}</h1>
           </div>
           <div className="flex gap-2">
@@ -133,7 +137,7 @@ export function WorkDetail({ workId }: { workId: string }) {
               <div className="rounded-md bg-canvas p-3"><dt className="text-muted">收藏</dt><dd className="mt-1 font-semibold">{work?.favorite_count || 0}</dd></div>
             </dl>
             <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
-              {tags.length ? tags.map((tag) => <span key={tag} className="rounded-md border border-line px-2 py-1">{tag}</span>) : <span>暂无标签</span>}
+              {tags.length ? tags.map((tag) => <a key={tag} className="rounded-md border border-line px-2 py-1 hover:border-accent hover:text-accent" href={`/?keyword=${encodeURIComponent(tag)}`}>{tag}</a>) : <span>暂无标签</span>}
             </div>
           </section>
 

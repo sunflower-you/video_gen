@@ -2687,7 +2687,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   function focusTaskNode(taskId: string) {
     const node = nodes.find((item) => String((item.data as Record<string, unknown>).task_id || "") === taskId);
     if (!node) {
-      setStatus("画布中暂未找到关联这个任务的节点。");
+      setShowTasks(true);
+      setStatus("画布中暂未找到关联这个任务的节点，已打开任务队列；可先同步任务状态、清空筛选或重新运行对应生成节点。");
       return;
     }
     setSelectedNodeId(node.id);
@@ -3294,7 +3295,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   async function runNodeChain(nodeId: string) {
     const targetNode = nodes.find((node) => node.id === nodeId);
     if (!targetNode) {
-      setStatus("画布中暂未找到要运行的节点。");
+      setShowOutline(true);
+      setStatus("画布中暂未找到要运行的节点，已打开节点大纲；可先重新定位链路终点节点后再运行。");
       return;
     }
     setSelectedNodeId(nodeId);

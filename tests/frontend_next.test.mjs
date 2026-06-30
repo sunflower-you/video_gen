@@ -425,6 +425,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /taskAction/);
   assert.match(canvasWorkspace, /batchFilteredTaskAction/);
   assert.match(canvasWorkspace, /focusTaskNode/);
+  assert.match(canvasWorkspace, /画布中暂未找到关联这个任务的节点，已打开任务队列；可先同步任务状态、清空筛选或重新运行对应生成节点/);
   assert.match(canvasWorkspace, /selectFilteredTaskNodes/);
   assert.match(canvasWorkspace, /taskStatusCounts/);
   assert.match(canvasWorkspace, /assetTypeCounts/);
@@ -1009,6 +1010,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /deleteSelectedEdge/);
   assert.match(canvasWorkspace, /runSelectedChain/);
   assert.match(canvasWorkspace, /runSelectedNodes/);
+  assert.match(canvasWorkspace, /画布中暂未找到要运行的节点，已打开节点大纲；可先重新定位链路终点节点后再运行/);
   assert.match(canvasWorkspace, /运行全图/);
   assert.match(canvasWorkspace, /运行选区/);
   assert.match(canvasWorkspace, /请先框选或点选节点，再运行选区；已打开节点大纲，可先定位并选择要运行的节点/);

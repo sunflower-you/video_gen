@@ -800,6 +800,7 @@ type WorkflowPresetOverrides = {
   sourceTitle?: string;
   sourceWorkId?: string;
   sourceTemplateId?: string;
+  sourceWorkflowKey?: string;
   sourceScript?: string;
   sourceReferenceUrl?: string;
 };
@@ -1134,6 +1135,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const sourceTitle = params.get("sourceTitle") || "";
     const sourceWorkId = params.get("sourceWorkId") || "";
     const sourceTemplateId = params.get("sourceTemplateId") || "";
+    const sourceWorkflowKey = params.get("sourceWorkflowKey") || "";
     const sourceScript = params.get("sourceScript") || "";
     const sourceReferenceUrl = params.get("sourceReferenceUrl") || "";
     const presetLinkKey = `${presetMode}:${presetKey}`;
@@ -1144,7 +1146,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       setStatus("画布预设不存在，请从左侧工作流预设重新选择。");
       return;
     }
-    const overrides = referenceImageUrl.trim() || quickScript.trim() || sourceTitle.trim() || sourceWorkId.trim() || sourceTemplateId.trim() || sourceScript.trim() || sourceReferenceUrl.trim() ? { referenceImageUrl: referenceImageUrl.trim(), quickScript: quickScript.trim(), sourceTitle: sourceTitle.trim(), sourceWorkId: sourceWorkId.trim(), sourceTemplateId: sourceTemplateId.trim(), sourceScript: sourceScript.trim(), sourceReferenceUrl: sourceReferenceUrl.trim() } : undefined;
+    const overrides = referenceImageUrl.trim() || quickScript.trim() || sourceTitle.trim() || sourceWorkId.trim() || sourceTemplateId.trim() || sourceWorkflowKey.trim() || sourceScript.trim() || sourceReferenceUrl.trim() ? { referenceImageUrl: referenceImageUrl.trim(), quickScript: quickScript.trim(), sourceTitle: sourceTitle.trim(), sourceWorkId: sourceWorkId.trim(), sourceTemplateId: sourceTemplateId.trim(), sourceWorkflowKey: sourceWorkflowKey.trim(), sourceScript: sourceScript.trim(), sourceReferenceUrl: sourceReferenceUrl.trim() } : undefined;
     if (presetMode === "replace") replaceCanvasWithWorkflowPreset(preset.key, overrides);
     else addWorkflowPreset(preset.key, { x: 140, y: 140 }, overrides);
     params.delete("preset");
@@ -1154,6 +1156,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     params.delete("sourceTitle");
     params.delete("sourceWorkId");
     params.delete("sourceTemplateId");
+    params.delete("sourceWorkflowKey");
     params.delete("sourceScript");
     params.delete("sourceReferenceUrl");
     const nextQuery = params.toString();
@@ -1850,8 +1853,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const createdNodes = preset.nodes.map((item, index) => {
       const id = `preset-${preset.key}-${timestamp}-${index}`;
       const generationData = item.type.includes("generation") && item.type !== "compose_generation" ? { shot_id: firstShotId } : {};
-      const referenceOverride = preset.key === "seedance2_image_video" && item.type === "image" && overrides?.referenceImageUrl ? { image_url: overrides.referenceImageUrl } : {};
-      const quickScriptOverride = overrides?.quickScript && preset.key === "seedance2_image_video" && item.type === "text" ? { text: overrides.quickScript } : overrides?.quickScript && preset.key === "seedance2_image_video" && item.type === "video_generation" ? { prompt: overrides.quickScript } : overrides?.quickScript && preset.key === "tv_show_storyboard" && item.type === "script" ? { script: overrides.quickScript } : overrides?.quickScript && preset.key === "creator_challenge_entry" && item.type === "text" ? { text: overrides.quickScript } : {};
+      const referenceOverride = overrides?.referenceImageUrl && (preset.key === "seedance2_image_video" || preset.key === "image_to_video") && item.type === "image" ? { image_url: overrides.referenceImageUrl } : {};
+      const quickScriptOverride = overrides?.quickScript && preset.key === "seedance2_image_video" && item.type === "text" ? { text: overrides.quickScript } : overrides?.quickScript && preset.key === "seedance2_image_video" && item.type === "video_generation" ? { prompt: overrides.quickScript } : overrides?.quickScript && (preset.key === "tv_show_storyboard" || preset.key === "script_to_storyboard") && item.type === "script" ? { script: overrides.quickScript } : overrides?.quickScript && preset.key === "creator_challenge_entry" && item.type === "text" ? { text: overrides.quickScript } : overrides?.quickScript && preset.key === "image_to_video" && item.type === "video_generation" ? { prompt: overrides.quickScript } : overrides?.quickScript && preset.key === "voice_compose" && item.type === "text" ? { text: overrides.quickScript } : {};
       return {
         id,
         type: "platform",
@@ -1860,13 +1863,13 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       } satisfies Node;
     });
     const sourceNodeId = `preset-${preset.key}-${timestamp}-source`;
-    const sourceNode = overrides?.sourceTitle || overrides?.sourceWorkId || overrides?.sourceTemplateId || overrides?.sourceScript || overrides?.sourceReferenceUrl ? {
+    const sourceNode = overrides?.sourceTitle || overrides?.sourceWorkId || overrides?.sourceTemplateId || overrides?.sourceWorkflowKey || overrides?.sourceScript || overrides?.sourceReferenceUrl ? {
       id: sourceNodeId,
       type: "platform",
       position: { x: baseX, y: baseY - 150 },
       data: {
         title: "同款来源",
-        text: [`来源：${overrides?.sourceTitle || "未命名作品/模板"}`, overrides?.sourceTemplateId ? `模板 ID：${overrides.sourceTemplateId}` : "", overrides?.sourceWorkId ? `作品 ID：${overrides.sourceWorkId}` : "", overrides?.sourceScript ? `示例提示词：${overrides.sourceScript}` : "", overrides?.sourceReferenceUrl ? `参考图：${overrides.sourceReferenceUrl}` : ""].filter(Boolean).join("\n"),
+        text: [`来源：${overrides?.sourceTitle || "未命名作品/模板"}`, overrides?.sourceTemplateId ? `模板 ID：${overrides.sourceTemplateId}` : "", overrides?.sourceWorkId ? `作品 ID：${overrides.sourceWorkId}` : "", overrides?.sourceWorkflowKey ? `工作流：${overrides.sourceWorkflowKey}` : "", overrides?.sourceScript ? `示例提示词：${overrides.sourceScript}` : "", overrides?.sourceReferenceUrl ? `参考图：${overrides.sourceReferenceUrl}` : ""].filter(Boolean).join("\n"),
         source_entity_type: overrides?.sourceWorkId ? "work" : overrides?.sourceTemplateId ? "template" : "same_style",
         source_entity_id: overrides?.sourceWorkId || overrides?.sourceTemplateId || "",
         nodeType: "comment",

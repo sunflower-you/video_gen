@@ -8,11 +8,12 @@ function firstStringValue(params: Record<string, unknown> | undefined, keys: str
   return "";
 }
 
-function appendTemplateSource(href: string, template: Pick<Template, "id" | "name" | "cover_url" | "example_inputs">) {
+function appendTemplateSource(href: string, template: Pick<Template, "id" | "name" | "workflow_key" | "cover_url" | "example_inputs">) {
   const [path, query = ""] = href.split("?");
   const search = new URLSearchParams(query);
   search.set("sourceTitle", template.name);
   search.set("sourceTemplateId", template.id);
+  search.set("sourceWorkflowKey", template.workflow_key);
   const sourceScript = firstStringValue(template.example_inputs, ["prompt", "script", "text", "brief"]);
   const sourceReferenceUrl = firstStringValue(template.example_inputs, ["first_frame_url", "reference_image_url", "image_url", "cover_url"]) || template.cover_url || "";
   if (sourceScript) search.set("sourceScript", sourceScript);

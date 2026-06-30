@@ -120,6 +120,12 @@ export function TemplateMarket({
     setActionStatus("已清空模板筛选，正在显示全部模板。");
   }
 
+  function filterByScenario(scenario: string) {
+    setTemplateKeyword(scenario);
+    writeTemplateFilters(activeChannel, scenario);
+    setActionStatus(`已按适用场景筛选模板：${scenario}`);
+  }
+
   async function createChannelCanvas() {
     const title = activeChannel === "全部" ? "模板市场" : activeChannel;
     setCreatingShortcut(true);
@@ -203,7 +209,9 @@ export function TemplateMarket({
             <p className="mt-1 text-sm text-muted">{item.description}</p>
             <div className="mt-2 flex flex-wrap gap-1">
               {(item.applicable_scenarios || []).slice(0, 3).map((scenario) => (
-                <span key={scenario} className="rounded-sm bg-canvas px-2 py-1 text-xs text-muted">{scenario}</span>
+                <button key={scenario} className="rounded-sm bg-canvas px-2 py-1 text-xs text-muted hover:text-accent" onClick={() => filterByScenario(scenario)}>
+                  {scenario}
+                </button>
               ))}
             </div>
             <dl className="mt-2 grid gap-1 text-xs text-muted">

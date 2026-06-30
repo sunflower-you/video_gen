@@ -1248,6 +1248,9 @@ test("Next 模板市场读取真实模板并支持复刻项目", () => {
   assert.match(templates, /function updateActiveChannel\(nextChannel: string\)/);
   assert.match(templates, /function clearTemplateFilters\(\)/);
   assert.match(templates, /已清空模板筛选/);
+  assert.match(templates, /function filterByScenario\(scenario: string\)/);
+  assert.match(templates, /writeTemplateFilters\(activeChannel, scenario\)/);
+  assert.match(templates, /已按适用场景筛选模板：\$\{scenario\}/);
   assert.match(templates, /当前筛选：\{activeTemplateFilterText\}/);
   assert.match(templates, /visibleTemplates/);
   assert.match(templates, /const keyword = templateKeyword\.trim\(\)\.toLowerCase\(\)/);
@@ -1279,6 +1282,7 @@ test("Next 模板市场读取真实模板并支持复刻项目", () => {
   assert.match(templates, /function createSameStyleTemplate/);
   assert.match(templates, /window\.location\.href = await createSameStyleProjectFromHref/);
   assert.match(templates, /正在创建「\$\{template\.name\}」同款画布/);
+  assert.match(templates, /onClick=\{\(\) => filterByScenario\(scenario\)\}/);
   assert.match(templateQuickStart, /function quickStartHrefForTemplate/);
   assert.match(fallbackData, /quick\/creator_challenge_entry/);
   assert.match(fallbackData, /创作者挑战赛参赛片/);

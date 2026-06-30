@@ -4203,7 +4203,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     if (!selectedNodes.length) return;
     const prefix = selectedRenamePrefix.trim();
     if (!prefix) {
-      setStatus("请输入选区批量命名前缀。");
+      setShowOutline(true);
+      setStatus("请输入选区批量命名前缀；已打开节点大纲，可先确认选区后在右侧选区批量命名中补全前缀。");
       return;
     }
     const orderedIds = [...selectedNodes]

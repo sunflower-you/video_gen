@@ -790,7 +790,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /selectedRenamePrefix/);
   assert.match(canvasWorkspace, /renameSelectedNodesWithPrefix/);
   assert.match(canvasWorkspace, /选区批量命名/);
-  assert.match(canvasWorkspace, /请输入选区批量命名前缀/);
+  assert.match(canvasWorkspace, /请输入选区批量命名前缀；已打开节点大纲，可先确认选区后在右侧选区批量命名中补全前缀/);
   assert.match(canvasWorkspace, /已按前缀/);
   assert.match(canvasWorkspace, /setSelectedSelectionEdgesDisabled/);
   assert.match(canvasWorkspace, /deleteSelectedSelectionEdges/);

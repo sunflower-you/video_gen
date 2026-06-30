@@ -863,6 +863,9 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /复制节点参数 JSON/);
   assert.match(canvasWorkspace, /复制节点定位链接/);
   assert.match(canvasWorkspace, /复制链接/);
+  assert.match(canvasWorkspace, /请先选择一个节点，再复制节点 ID；已打开节点大纲，可先定位目标节点/);
+  assert.match(canvasWorkspace, /请先选择一个节点，再复制节点参数 JSON；已打开节点大纲，可先定位目标节点/);
+  assert.match(canvasWorkspace, /请先选择一个节点，再复制节点定位链接；已打开节点大纲，可先定位目标节点/);
   assert.match(canvasWorkspace, /已复制节点 ID 到系统剪贴板/);
   assert.match(canvasWorkspace, /已复制节点参数 JSON 到系统剪贴板/);
   assert.match(canvasWorkspace, /已复制节点定位链接到系统剪贴板/);
@@ -919,6 +922,9 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /复制连线 ID/);
   assert.match(canvasWorkspace, /复制连线参数 JSON/);
   assert.match(canvasWorkspace, /复制连线定位链接/);
+  assert.match(canvasWorkspace, /请先选择一条连线，再复制连线 ID；已打开画布自检，可先定位需要处理的链路/);
+  assert.match(canvasWorkspace, /请先选择一条连线，再复制连线参数 JSON；已打开画布自检，可先定位需要处理的链路/);
+  assert.match(canvasWorkspace, /请先选择一条连线，再复制连线定位链接；已打开画布自检，可先定位需要处理的链路/);
   assert.match(canvasWorkspace, /已复制连线 ID 到系统剪贴板/);
   assert.match(canvasWorkspace, /已复制连线参数 JSON 到系统剪贴板/);
   assert.match(canvasWorkspace, /已复制连线定位链接到系统剪贴板/);

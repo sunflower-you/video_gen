@@ -3574,7 +3574,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   async function copySelectedNodeId() {
     if (!selectedNode) {
-      setStatus("请先选择一个节点，再复制节点 ID。");
+      setShowOutline(true);
+      setStatus("请先选择一个节点，再复制节点 ID；已打开节点大纲，可先定位目标节点。");
       return;
     }
     const copiedToClipboard = await copyTextToSystemClipboard(selectedNode.id, `project_graph_node_id_${projectId}`);
@@ -3583,7 +3584,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   async function copySelectedNodeParams() {
     if (!selectedNode) {
-      setStatus("请先选择一个节点，再复制节点参数 JSON。");
+      setShowOutline(true);
+      setStatus("请先选择一个节点，再复制节点参数 JSON；已打开节点大纲，可先定位目标节点。");
       return;
     }
     const payload = JSON.stringify(fromFlowNode(selectedNode), null, 2);
@@ -3593,7 +3595,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   async function copySelectedNodeLink() {
     if (!selectedNode) {
-      setStatus("请先选择一个节点，再复制节点定位链接。");
+      setShowOutline(true);
+      setStatus("请先选择一个节点，再复制节点定位链接；已打开节点大纲，可先定位目标节点。");
       return;
     }
     const url = new URL(window.location.href);
@@ -3605,7 +3608,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   async function copySelectedEdgeId() {
     if (!selectedEdge) {
-      setStatus("请先选择一条连线，再复制连线 ID。");
+      setShowValidation(true);
+      setStatus("请先选择一条连线，再复制连线 ID；已打开画布自检，可先定位需要处理的链路。");
       return;
     }
     const copiedToClipboard = await copyTextToSystemClipboard(selectedEdge.id, `project_graph_edge_id_${projectId}`);
@@ -3614,7 +3618,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   async function copySelectedEdgeParams() {
     if (!selectedEdge) {
-      setStatus("请先选择一条连线，再复制连线参数 JSON。");
+      setShowValidation(true);
+      setStatus("请先选择一条连线，再复制连线参数 JSON；已打开画布自检，可先定位需要处理的链路。");
       return;
     }
     const payload = JSON.stringify(fromFlowEdge(selectedEdge), null, 2);
@@ -3624,7 +3629,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   async function copySelectedEdgeLink() {
     if (!selectedEdge) {
-      setStatus("请先选择一条连线，再复制连线定位链接。");
+      setShowValidation(true);
+      setStatus("请先选择一条连线，再复制连线定位链接；已打开画布自检，可先定位需要处理的链路。");
       return;
     }
     const url = new URL(window.location.href);

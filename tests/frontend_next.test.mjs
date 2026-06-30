@@ -89,9 +89,13 @@ test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
   assert.match(dashboard, /quickHref: "\/create\?quick=seedance2"/);
   assert.match(dashboard, /activeChannel/);
   assert.match(dashboard, /创作\$\{activeChannel\.label\}/);
-  assert.match(dashboard, /href="\/create\?quick=creator-challenge"/);
-  assert.match(dashboard, /href="\/create\?quick=seedance2"/);
-  assert.match(dashboard, /href="\/create\?quick=tv-show"/);
+  assert.match(dashboard, /createSameStyleProjectFromHref/);
+  assert.match(dashboard, /function createQuickCanvas/);
+  assert.match(dashboard, /window\.location\.href = await createSameStyleProjectFromHref/);
+  assert.match(dashboard, /正在创建\$\{title\}全画幅画布/);
+  assert.match(dashboard, /createQuickCanvas\("\/create\?quick=creator-challenge"/);
+  assert.match(dashboard, /createQuickCanvas\("\/create\?quick=seedance2"/);
+  assert.match(dashboard, /createQuickCanvas\("\/create\?quick=tv-show"/);
   assert.match(dashboard, /setWorkQuery\(\(query\) => \(\{ \.\.\.query, category: item\.category \}\)\)/);
   assert.match(fallbackData, /category: "Seedance 2\.0"/);
   assert.match(fallbackData, /Seedance 雨夜回眸/);

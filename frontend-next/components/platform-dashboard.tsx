@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { apiFetch, type Template, type Work } from "../lib/api";
 import { fallbackTemplates, fallbackWorks } from "../lib/fallback-data";
+import { createSameStyleProjectFromHref } from "../lib/same-style-create";
 import { AppShell } from "./app-shell";
 import { TemplateMarket } from "./template-market";
 import { WorkGallery } from "./work-gallery";
@@ -45,6 +46,7 @@ export function PlatformDashboard() {
   const [workQuery, setWorkQuery] = useState<WorkQuery>({ category: "全部", keyword: "", sortBy: "latest" });
   const [workStatus, setWorkStatus] = useState("正在读取作品广场...");
   const [templates, setTemplates] = useState<Template[]>(fallbackTemplates);
+  const [creatingQuickHref, setCreatingQuickHref] = useState("");
   const activeChannel = channelShortcuts.find((item) => item.category === workQuery.category) || channelShortcuts[0];
 
   useEffect(() => {
@@ -81,6 +83,21 @@ export function PlatformDashboard() {
     }
   }
 
+  async function createQuickCanvas(href: string, title: string) {
+    if (href === "/create") {
+      window.location.href = href;
+      return;
+    }
+    setCreatingQuickHref(href);
+    setWorkStatus(`正在创建${title}全画幅画布...`);
+    try {
+      window.location.href = await createSameStyleProjectFromHref(href, `${title}创作`);
+    } catch (error) {
+      setWorkStatus(error instanceof Error ? error.message : "快捷画布创建失败，请稍后重试。");
+      setCreatingQuickHref("");
+    }
+  }
+
 
   return (
     <AppShell>
@@ -92,9 +109,9 @@ export function PlatformDashboard() {
         </div>
         <div className="flex flex-wrap justify-end gap-2">
           <a className="rounded-md bg-accent px-4 py-2 text-white" href="/create">开始创作</a>
-          <a className="rounded-md border border-line px-4 py-2" href="/create?quick=creator-challenge">创作者挑战赛</a>
-          <a className="rounded-md border border-line px-4 py-2" href="/create?quick=seedance2">快速体验 Seedance 2.0</a>
-          <a className="rounded-md border border-line px-4 py-2" href="/create?quick=tv-show">TV Show</a>
+          <button className="rounded-md border border-line px-4 py-2 disabled:opacity-60" disabled={creatingQuickHref === "/create?quick=creator-challenge"} onClick={() => void createQuickCanvas("/create?quick=creator-challenge", "创作者挑战赛")}>{creatingQuickHref === "/create?quick=creator-challenge" ? "创建中" : "创作者挑战赛"}</button>
+          <button className="rounded-md border border-line px-4 py-2 disabled:opacity-60" disabled={creatingQuickHref === "/create?quick=seedance2"} onClick={() => void createQuickCanvas("/create?quick=seedance2", "Seedance 2.0")}>{creatingQuickHref === "/create?quick=seedance2" ? "创建中" : "快速体验 Seedance 2.0"}</button>
+          <button className="rounded-md border border-line px-4 py-2 disabled:opacity-60" disabled={creatingQuickHref === "/create?quick=tv-show"} onClick={() => void createQuickCanvas("/create?quick=tv-show", "TV Show")}>{creatingQuickHref === "/create?quick=tv-show" ? "创建中" : "TV Show"}</button>
           <a className="rounded-md border border-line px-4 py-2" href="/templates">快速体验模板</a>
         </div>
       </header>
@@ -108,7 +125,9 @@ export function PlatformDashboard() {
             {item.label}
           </button>
         ))}
-        <a className="rounded-md border border-line px-3 py-2 hover:border-accent" href={activeChannel.quickHref}>{activeChannel.category === "全部" ? "开始创作" : `创作${activeChannel.label}`}</a>
+        <button className="rounded-md border border-line px-3 py-2 hover:border-accent disabled:opacity-60" disabled={creatingQuickHref === activeChannel.quickHref} onClick={() => void createQuickCanvas(activeChannel.quickHref, activeChannel.label)}>
+          {creatingQuickHref === activeChannel.quickHref ? "创建中" : activeChannel.category === "全部" ? "开始创作" : `创作${activeChannel.label}`}
+        </button>
       </nav>
       <section className="grid grid-cols-[minmax(0,1.35fr)_420px] gap-4">
         <WorkGallery works={works} query={workQuery} status={workStatus} onQueryChange={setWorkQuery} />

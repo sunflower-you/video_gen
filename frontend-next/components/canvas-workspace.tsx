@@ -4510,6 +4510,11 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       setStatus("工作流 JSON 需要包含 nodes 和 edges，已打开导入工作流面板；可先导出当前画布作为格式模板。");
       return;
     }
+    if (graph.nodes.length === 0) {
+      setShowImport(true);
+      setStatus("工作流 JSON 中没有节点，已打开导入工作流面板；可先导出当前画布、选择有效文件，或追加内置工作流预设。");
+      return;
+    }
     const timestamp = Date.now();
     const idMap = new Map<string, string>();
     const importedNodes = (graph.nodes as ProjectGraphNode[]).map((item, index) => {

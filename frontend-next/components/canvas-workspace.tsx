@@ -2176,6 +2176,31 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(`已为 ${selectedFilteredShots.length} 个分镜添加生成链路。`);
   }
 
+  function addAllProjectShotWorkflows() {
+    if (!shotOptions.length) {
+      setStatus("项目暂无分镜，无法批量添加生成链路。");
+      return;
+    }
+    const timestamp = Date.now();
+    const groups = shotOptions.map((shot, index) => buildShotWorkflow(shot, timestamp + index, 220, 120 + index * 280));
+    const createdNodes = groups.flatMap((group) => group.createdNodes);
+    const createdEdges = groups.flatMap((group) => group.createdEdges);
+    rememberGraphHistory();
+    setNodes((items) => [...items, ...createdNodes]);
+    setEdges((items) => [...items, ...createdEdges]);
+    setSelectedNodeId(createdNodes[0]?.id || "");
+    setShowShots(false);
+    setStatus(`已为全部 ${shotOptions.length} 个分镜添加生成链路。`);
+  }
+
+  function resetShotFilters() {
+    setShotStatusFilter("all");
+    setShotWorkflowFilter("all");
+    setShotQuery("");
+    setShotSort("index-asc");
+    setStatus("已清空分镜筛选，可继续选择或铺设分镜链路。");
+  }
+
   function toggleShotSelection(shotId: string) {
     setSelectedShotIds((items) => items.includes(shotId) ? items.filter((item) => item !== shotId) : [...items, shotId]);
   }
@@ -5837,8 +5862,23 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
               <button disabled={!shotWorkflowShotIds.has(shot.id)} className="inline-flex items-center justify-center gap-2 rounded-md border border-white/10 px-3 py-2 text-xs text-slate-200 hover:bg-white/10 disabled:opacity-50" onClick={() => focusShotWorkflow(shot)}><Focus size={14} />定位已有链路</button>
             </div>
           </article>)}
-          {!shotOptions.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">暂无分镜，请先从创作入口生成脚本分镜。</p>}
-          {!!shotOptions.length && !filteredShots.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">没有匹配分镜，请调整状态或关键词。</p>}
+          {!shotOptions.length && <div className="rounded-md border border-white/10 px-3 py-2 text-slate-400">
+            <p>暂无分镜，可先追加脚本拆解工作流、打开节点面板手动搭建，或导入已有 ProjectGraph 工作流继续创作。</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button disabled={busy} className="rounded-md border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs text-blue-50 hover:bg-blue-500/20 disabled:opacity-50" onClick={() => addWorkflowPreset("script_to_storyboard")}>追加脚本拆解</button>
+              <button className="rounded-md border border-white/10 px-3 py-1 text-xs text-slate-100 hover:bg-white/10" onClick={() => setShowPalette(true)}>打开节点面板</button>
+              <button className="rounded-md border border-white/10 px-3 py-1 text-xs text-slate-100 hover:bg-white/10" onClick={() => setShowImport(true)}>导入工作流</button>
+            </div>
+          </div>}
+          {!!shotOptions.length && !filteredShots.length && <div className="rounded-md border border-white/10 px-3 py-2 text-slate-400">
+            <p>没有匹配分镜，可清空筛选、铺设全部分镜链路，或只选择当前未铺设分镜继续整理。</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button className="rounded-md border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs text-blue-50 hover:bg-blue-500/20" onClick={resetShotFilters}>清空分镜筛选</button>
+              <button disabled={busy} className="rounded-md border border-white/10 px-3 py-1 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={addAllProjectShotWorkflows}>铺设全部分镜</button>
+              <button className="rounded-md border border-white/10 px-3 py-1 text-xs text-slate-100 hover:bg-white/10" onClick={() => { setShotWorkflowFilter("unlinked"); setShotStatusFilter("all"); setShotQuery(""); }}>只看未铺设</button>
+              <button className="rounded-md border border-white/10 px-3 py-1 text-xs text-slate-100 hover:bg-white/10" onClick={() => setShowPalette(true)}>打开节点面板</button>
+            </div>
+          </div>}
         </div>
       </aside>}
 

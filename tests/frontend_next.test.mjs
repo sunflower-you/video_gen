@@ -559,6 +559,14 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /暂未铺设生成链路/);
   assert.match(canvasWorkspace, /添加当前分镜链路/);
   assert.match(canvasWorkspace, /没有匹配分镜/);
+  assert.match(canvasWorkspace, /resetShotFilters/);
+  assert.match(canvasWorkspace, /addAllProjectShotWorkflows/);
+  assert.match(canvasWorkspace, /暂无分镜，可先追加脚本拆解工作流、打开节点面板手动搭建，或导入已有 ProjectGraph 工作流继续创作/);
+  assert.match(canvasWorkspace, /没有匹配分镜，可清空筛选、铺设全部分镜链路，或只选择当前未铺设分镜继续整理/);
+  assert.match(canvasWorkspace, /清空分镜筛选<\/button>/);
+  assert.match(canvasWorkspace, /铺设全部分镜<\/button>/);
+  assert.match(canvasWorkspace, /只看未铺设<\/button>/);
+  assert.match(canvasWorkspace, /已为全部 \$\{shotOptions\.length\} 个分镜添加生成链路/);
   assert.match(canvasWorkspace, /当前筛选结果没有可添加的分镜/);
   assert.match(canvasWorkspace, /outlineQuery/);
   assert.match(canvasWorkspace, /outlineIssuesOnly/);

@@ -2944,7 +2944,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function selectSelectedGroups() {
     if (!selectedGroupIds.size) {
-      setStatus("当前选区没有已打组节点。");
+      setShowOutline(true);
+      setStatus("当前选区没有已打组节点；已打开节点大纲，可先定位并选择已有分组节点。");
       return;
     }
     const groupNodes = nodes.filter((node) => selectedGroupIds.has(String((node.data as Record<string, unknown>).group_id || "")));
@@ -4170,7 +4171,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function setSelectedSelectionEdgesDisabled(disabled: boolean) {
     if (!selectedSelectionEdges.length) {
-      setStatus("当前选区没有内部连线可批量操作。");
+      setShowOutline(true);
+      setStatus("当前选区没有内部连线可批量操作；已打开节点大纲，可先多选有连线关系的节点。");
       return;
     }
     const edgeIds = new Set(selectedSelectionEdges.map((edge) => edge.id));
@@ -4184,7 +4186,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function deleteSelectedSelectionEdges() {
     if (!selectedSelectionEdges.length) {
-      setStatus("当前选区没有内部连线可删除。");
+      setShowOutline(true);
+      setStatus("当前选区没有内部连线可删除；已打开节点大纲，可先多选要断开内部连线的节点。");
       return;
     }
     const edgeIds = new Set(selectedSelectionEdges.map((edge) => edge.id));
@@ -4195,7 +4198,11 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   }
 
   function disconnectSelectedNodes() {
-    if (!selectedNodes.length) return;
+    if (!selectedNodes.length) {
+      setShowOutline(true);
+      setStatus("请先框选或点选节点，再断开节点连线；已打开节点大纲，可先定位要断开的节点。");
+      return;
+    }
     const incidentEdges = edges.filter((edge) => selectedNodeIds.has(edge.source) || selectedNodeIds.has(edge.target));
     if (!incidentEdges.length) {
       setStatus(selectedNodes.length > 1 ? "当前选区没有可断开的连线。" : "当前节点没有可断开的连线。");
@@ -4210,7 +4217,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function setSelectedSelectionEdgesColor(color: string) {
     if (!selectedSelectionEdges.length) {
-      setStatus("当前选区没有内部连线可设置颜色。");
+      setShowOutline(true);
+      setStatus("当前选区没有内部连线可设置颜色；已打开节点大纲，可先多选有连线关系的节点。");
       return;
     }
     const markerColor = edgeMarkerColorByValue.get(color) || edgeMarkerColorByValue.get("");
@@ -4225,7 +4233,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function setSelectedSelectionEdgesStyle(style: string) {
     if (!selectedSelectionEdges.length) {
-      setStatus("当前选区没有内部连线可设置样式。");
+      setShowOutline(true);
+      setStatus("当前选区没有内部连线可设置样式；已打开节点大纲，可先多选有连线关系的节点。");
       return;
     }
     const lineStyle = edgeLineStyleByValue.get(style) || edgeLineStyleByValue.get("");
@@ -4240,7 +4249,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function groupSelectedNodes() {
     if (selectedNodes.length <= 1) {
-      setStatus("请先框选多个节点，再打组为工作流片段。");
+      setShowOutline(true);
+      setStatus("请先框选多个节点，再打组为工作流片段；已打开节点大纲，可先定位并多选要打组的节点。");
       return;
     }
     const groupId = `group-${Date.now()}`;
@@ -4255,7 +4265,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function updateSelectedGroupTitle(title: string, announce = false) {
     if (!selectedGroupIds.size) {
-      if (announce) setStatus("当前选区没有已打组节点。");
+      if (announce) {
+        setShowOutline(true);
+        setStatus("当前选区没有已打组节点；已打开节点大纲，可先定位并选择已有分组节点。");
+      }
       return;
     }
     setNodes((items) => items.map((node) => {
@@ -4267,10 +4280,15 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
   }
 
   function ungroupSelectedNodes() {
-    if (!selectedNodes.length) return;
+    if (!selectedNodes.length) {
+      setShowOutline(true);
+      setStatus("请先选择已打组节点，再取消分组；已打开节点大纲，可先定位已有分组节点。");
+      return;
+    }
     const groupedCount = selectedNodes.filter((node) => String((node.data as Record<string, unknown>).group_id || "")).length;
     if (!groupedCount) {
-      setStatus("当前选区没有已打组节点。");
+      setShowOutline(true);
+      setStatus("当前选区没有已打组节点；已打开节点大纲，可先定位并选择已有分组节点。");
       return;
     }
     rememberGraphHistory();
@@ -4440,7 +4458,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   async function exportSelectedWorkflowJson() {
     if (!selectedNodes.length) {
-      setStatus("请先框选或点选节点，再导出选区 JSON。");
+      setShowOutline(true);
+      setStatus("请先框选或点选节点，再导出选区 JSON；已打开节点大纲，可先定位并选择要导出的节点。");
       return;
     }
     const graph = {

@@ -734,7 +734,9 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /group_id/);
   assert.match(canvasWorkspace, /group_title/);
   assert.match(canvasWorkspace, /打组选区/);
+  assert.match(canvasWorkspace, /请先框选多个节点，再打组为工作流片段；已打开节点大纲，可先定位并多选要打组的节点/);
   assert.match(canvasWorkspace, /取消分组/);
+  assert.match(canvasWorkspace, /请先选择已打组节点，再取消分组；已打开节点大纲，可先定位已有分组节点/);
   assert.match(canvasWorkspace, /selectedGroupIds/);
   assert.match(canvasWorkspace, /selectedGroupTitleValue/);
   assert.match(canvasWorkspace, /updateSelectedGroupTitle/);
@@ -743,6 +745,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /多个分组，将统一改名/);
   assert.match(canvasWorkspace, /选中同组节点/);
   assert.match(canvasWorkspace, /选中同组/);
+  assert.match(canvasWorkspace, /当前选区没有已打组节点；已打开节点大纲，可先定位并选择已有分组节点/);
   assert.match(canvasWorkspace, /当前分组/);
   assert.match(canvasWorkspace, /当前多个分组/);
   assert.match(canvasWorkspace, /已更新分组名称/);
@@ -775,12 +778,16 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /断开节点连线/);
   assert.match(canvasWorkspace, /已断开选区相关连线/);
   assert.match(canvasWorkspace, /已断开当前节点相关连线/);
+  assert.match(canvasWorkspace, /请先框选或点选节点，再断开节点连线；已打开节点大纲，可先定位要断开的节点/);
   assert.match(canvasWorkspace, /当前节点没有可断开的连线/);
   assert.match(canvasWorkspace, /删除内部连线/);
   assert.match(canvasWorkspace, /已删除选区内部连线/);
   assert.match(canvasWorkspace, /已设置选区内部连线颜色/);
   assert.match(canvasWorkspace, /已设置选区内部连线样式/);
-  assert.match(canvasWorkspace, /当前选区没有内部连线/);
+  assert.match(canvasWorkspace, /当前选区没有内部连线可批量操作；已打开节点大纲，可先多选有连线关系的节点/);
+  assert.match(canvasWorkspace, /当前选区没有内部连线可删除；已打开节点大纲，可先多选要断开内部连线的节点/);
+  assert.match(canvasWorkspace, /当前选区没有内部连线可设置颜色；已打开节点大纲，可先多选有连线关系的节点/);
+  assert.match(canvasWorkspace, /当前选区没有内部连线可设置样式；已打开节点大纲，可先多选有连线关系的节点/);
   assert.match(canvasWorkspace, /toggleSelectedNodeCollapsed/);
   assert.match(canvasWorkspace, /setSelectedNodesCollapsed/);
   assert.match(canvasWorkspace, /折叠节点内容/);
@@ -896,6 +903,7 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /复制选区/);
   assert.match(canvasWorkspace, /剪切选区/);
   assert.match(canvasWorkspace, /导出选区 JSON/);
+  assert.match(canvasWorkspace, /请先框选或点选节点，再导出选区 JSON；已打开节点大纲，可先定位并选择要导出的节点/);
   assert.match(canvasWorkspace, /downloadJsonFile/);
   assert.match(canvasWorkspace, /已下载并复制选区 ProjectGraph JSON/);
   assert.match(canvasWorkspace, /已下载选区 ProjectGraph JSON；浏览器剪贴板不可用，已把内容暂存到本地/);

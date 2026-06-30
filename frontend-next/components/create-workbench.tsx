@@ -338,7 +338,7 @@ export function CreateWorkbench() {
               ))}
             </select>
           )}
-          {projectType === "图片成片" && (
+          {(projectType === "图片成片" || activeQuickMode === "seedance2") && (
             <input className="rounded-md border border-line px-3 py-2" value={referenceImageUrl} onChange={(event) => setReferenceImageUrl(event.target.value)} placeholder="参考图 URL" />
           )}
           <textarea className="min-h-32 rounded-md border border-line px-3 py-2" value={script} onChange={(event) => setScript(event.target.value)} />

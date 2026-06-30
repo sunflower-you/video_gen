@@ -1180,6 +1180,7 @@ test("Next 创作工作台调用真实项目和生成接口", () => {
   assert.match(createWorkbench, /aspect_ratio: aspectRatio/);
   assert.match(createWorkbench, /template_id: projectType === "模板复刻" \? selectedTemplateId : undefined/);
   assert.match(createWorkbench, /reference_image_url: projectType === "图片成片" \? referenceImageUrl : ""/);
+  assert.match(createWorkbench, /projectType === "图片成片" \|\| activeQuickMode === "seedance2"/);
   assert.match(createWorkbench, /projectType === "空白项目"/);
   assert.match(createWorkbench, /projectType === "模板复刻"/);
   assert.match(createWorkbench, /quickStartModes/);

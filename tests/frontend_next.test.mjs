@@ -334,6 +334,10 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /已导入画布版本快照/);
   assert.match(canvasWorkspace, /已恢复画布版本快照/);
   assert.match(canvasWorkspace, /暂无画布版本快照，可先保存当前版本/);
+  assert.match(canvasWorkspace, /暂无视图书签，可先保存当前视图/);
+  assert.match(canvasWorkspace, /复制视图链接<\/button>/);
+  assert.match(canvasWorkspace, /适配全部节点<\/button>/);
+  assert.match(canvasWorkspace, /保存当前版本<\/button>/);
   assert.match(canvasWorkspace, /已保存画布视图书签/);
   assert.match(canvasWorkspace, /已恢复画布视图书签/);
   assert.match(canvasWorkspace, /已适配选区视图/);

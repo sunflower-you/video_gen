@@ -2225,11 +2225,13 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function bindSelectedShotsToSelectedNodes() {
     if (!selectedShotIds.length) {
-      setStatus("请先在项目分镜面板选择一个或多个分镜。");
+      setShowShots(true);
+      setStatus("请先在项目分镜面板选择一个或多个分镜；已打开分镜面板，可先筛选并选择要绑定的分镜。");
       return;
     }
     if (!selectedShotBindingNodes.length) {
-      setStatus("请先框选文本、脚本、分镜图、视频或配音节点，再绑定分镜。");
+      setShowOutline(true);
+      setStatus("请先框选文本、脚本、分镜图、视频或配音节点，再绑定分镜；已打开节点大纲，可先定位可绑定节点。");
       return;
     }
     const selectedShotIdSet = new Set(selectedShotIds);
@@ -2831,7 +2833,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     }
     const shotId = String((selectedNode.data as Record<string, unknown>).shot_id || "");
     if (!shotId) {
-      setStatus("当前节点没有绑定分镜，无法选中同分镜节点。");
+      setShowShots(true);
+      setStatus("当前节点没有绑定分镜，无法选中同分镜节点；已打开分镜面板，可先为节点绑定分镜。");
       return;
     }
     const sameShotNodes = nodes.filter((node) => String((node.data as Record<string, unknown>).shot_id || "") === shotId);
@@ -2840,13 +2843,15 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function syncSelectedNodeParamsToSameShot() {
     if (!selectedNode) {
-      setStatus("请先选择一个绑定分镜的节点，再同步同分镜参数。");
+      setShowOutline(true);
+      setStatus("请先选择一个绑定分镜的节点，再同步同分镜参数；已打开节点大纲，可先定位已绑定分镜的源节点。");
       return;
     }
     const selectedDataForSync = selectedNode.data as Record<string, unknown>;
     const shotId = String(selectedDataForSync.shot_id || "");
     if (!shotId) {
-      setStatus("当前节点没有绑定分镜，无法同步同分镜参数。");
+      setShowShots(true);
+      setStatus("当前节点没有绑定分镜，无法同步同分镜参数；已打开分镜面板，可先为源节点绑定分镜。");
       return;
     }
     const type = String(selectedDataForSync.nodeType || "text");
@@ -2871,7 +2876,8 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
 
   function applySelectedNodeParamsToSelection() {
     if (!selectedNode || selectedNodes.length <= 1) {
-      setStatus("请先选择一个源节点和至少一个同类型目标节点，再应用当前参数到选区。");
+      setShowOutline(true);
+      setStatus("请先选择一个源节点和至少一个同类型目标节点，再应用当前参数到选区；已打开节点大纲，可先定位并多选同类型节点。");
       return;
     }
     const sourceData = selectedNode.data as Record<string, unknown>;

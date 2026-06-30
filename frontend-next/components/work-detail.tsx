@@ -11,6 +11,7 @@ export function WorkDetail({ workId }: { workId: string }) {
   const [work, setWork] = useState<Work | null>(null);
   const [status, setStatus] = useState("正在加载作品详情...");
   const [creatingSameStyle, setCreatingSameStyle] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
     void loadWork();
@@ -58,6 +59,26 @@ export function WorkDetail({ workId }: { workId: string }) {
     }
   }
 
+  async function copyShareLink() {
+    if (!work) return;
+    const shareUrl = `${window.location.origin}/works/${work.id}`;
+    setSharing(true);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        setStatus("作品分享链接已复制。");
+      } else {
+        window.localStorage.setItem(`work_share_link_${work.id}`, shareUrl);
+        setStatus("浏览器剪贴板不可用，已把作品分享链接暂存到本地。");
+      }
+    } catch {
+      window.localStorage.setItem(`work_share_link_${work.id}`, shareUrl);
+      setStatus(`分享链接复制失败，已暂存到本地：${shareUrl}`);
+    } finally {
+      setSharing(false);
+    }
+  }
+
   const tags = work?.tags || [];
 
   return (
@@ -81,6 +102,9 @@ export function WorkDetail({ workId }: { workId: string }) {
             <button className="inline-flex items-center gap-2 rounded-md border border-line px-3 py-2 text-sm" onClick={() => void interact("favorite")}>
               <Bookmark size={16} />
               收藏
+            </button>
+            <button className="inline-flex items-center gap-2 rounded-md border border-line px-3 py-2 text-sm disabled:opacity-60" disabled={!work || sharing} onClick={() => void copyShareLink()}>
+              {sharing ? "复制中" : "分享"}
             </button>
           </div>
         </div>

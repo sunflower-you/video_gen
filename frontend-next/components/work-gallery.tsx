@@ -36,6 +36,7 @@ export function WorkGallery({
 }) {
   const [keywordDraft, setKeywordDraft] = useState(query.keyword);
   const [creatingWorkId, setCreatingWorkId] = useState("");
+  const [sharingWorkId, setSharingWorkId] = useState("");
   const [creatingChannel, setCreatingChannel] = useState(false);
   const [actionStatus, setActionStatus] = useState("");
 
@@ -71,6 +72,25 @@ export function WorkGallery({
     } catch (error) {
       setActionStatus(error instanceof Error ? error.message : "频道画布创建失败，请稍后重试。");
       setCreatingChannel(false);
+    }
+  }
+
+  async function copyWorkShareLink(item: Work) {
+    const shareUrl = `${window.location.origin}/works/${item.id}`;
+    setSharingWorkId(item.id);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        setActionStatus(`已复制《${item.title}》分享链接。`);
+      } else {
+        window.localStorage.setItem(`work_share_link_${item.id}`, shareUrl);
+        setActionStatus(`浏览器剪贴板不可用，已暂存《${item.title}》分享链接。`);
+      }
+    } catch {
+      window.localStorage.setItem(`work_share_link_${item.id}`, shareUrl);
+      setActionStatus(`分享链接复制失败，已暂存到本地：${shareUrl}`);
+    } finally {
+      setSharingWorkId("");
     }
   }
 
@@ -133,6 +153,9 @@ export function WorkGallery({
                   {creatingWorkId === item.id ? "创建中" : "同款创作"}
                 </button>
                 <a className="rounded-md border border-line px-3 py-2 hover:border-accent" href={`/works/${item.id}`}>查看详情</a>
+                <button className="rounded-md border border-line px-3 py-2 hover:border-accent disabled:opacity-60" disabled={sharingWorkId === item.id} onClick={() => void copyWorkShareLink(item)}>
+                  {sharingWorkId === item.id ? "复制中" : "分享"}
+                </button>
               </div>
             </article>
           ))}

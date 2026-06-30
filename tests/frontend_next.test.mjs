@@ -128,6 +128,10 @@ test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
   assert.match(gallery, /function createSameStyleWork/);
   assert.match(gallery, /window\.location\.href = await createSameStyleProjectFromHref/);
   assert.match(gallery, /正在创建《\$\{item\.title\}》同款画布/);
+  assert.match(gallery, /function copyWorkShareLink/);
+  assert.match(gallery, /navigator\.clipboard\?\.writeText/);
+  assert.match(gallery, /work_share_link_\$\{item\.id\}/);
+  assert.match(gallery, /已复制《\$\{item\.title\}》分享链接/);
   assert.match(gallery, /function quickHrefForCategory/);
   assert.match(gallery, /function createChannelCanvas/);
   assert.match(gallery, /creatingChannel/);
@@ -144,7 +148,7 @@ test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
   assert.match(gallery, /onSubmit=\{submitSearch\}/);
   assert.match(gallery, /onQueryChange/);
   assert.match(gallery, /sortOptions/);
-  for (const text of ["搜索作品", "最新发布", "最多浏览", "最多点赞", "最多收藏", "成片", "模板：", "同款创作", "查看详情", "暂无匹配作品", "全部作品", "当前频道", "可直接进入同款创作画布"]) {
+  for (const text of ["搜索作品", "最新发布", "最多浏览", "最多点赞", "最多收藏", "成片", "模板：", "同款创作", "查看详情", "分享", "暂无匹配作品", "全部作品", "当前频道", "可直接进入同款创作画布"]) {
     assert.match(gallery, new RegExp(text));
   }
   assert.doesNotMatch(`${page}\n${dashboard}`, /hero/i);
@@ -1439,6 +1443,10 @@ test("Next 作品详情页接入真实作品接口和互动入口", () => {
   assert.match(workDetail, /quickStartHrefForWork\(work\)/);
   assert.match(workDetail, /使用该作品同款创作/);
   assert.match(workDetail, /Sparkles/);
+  assert.match(workDetail, /function copyShareLink/);
+  assert.match(workDetail, /navigator\.clipboard\?\.writeText/);
+  assert.match(workDetail, /work_share_link_\$\{work\.id\}/);
+  assert.match(workDetail, /作品分享链接已复制/);
   assert.match(workQuickStart, /function quickStartHrefForWork/);
   assert.match(workQuickStart, /appendSameStyleSource/);
   assert.match(workQuickStart, /sourceTitle: item\.title/);
@@ -1446,7 +1454,7 @@ test("Next 作品详情页接入真实作品接口和互动入口", () => {
   assert.match(workQuickStart, /sourceScript/);
   assert.match(workQuickStart, /sourceReferenceUrl: item\.cover_url/);
   assert.match(gallery, /href=\{`\/works\/\$\{item\.id\}`\}/);
-  for (const text of ["作品详情", "同款创作", "点赞", "收藏", "查看作者主页", "作品数据", "成片预览"]) {
+  for (const text of ["作品详情", "同款创作", "点赞", "收藏", "分享", "查看作者主页", "作品数据", "成片预览"]) {
     assert.match(workDetail, new RegExp(text));
   }
 });

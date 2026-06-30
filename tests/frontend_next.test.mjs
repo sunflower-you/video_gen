@@ -1034,12 +1034,21 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /params\.get\("presetMode"\)/);
   assert.match(canvasWorkspace, /params\.get\("referenceImageUrl"\)/);
   assert.match(canvasWorkspace, /params\.get\("quickScript"\)/);
+  assert.match(canvasWorkspace, /params\.get\("sourceTitle"\)/);
+  assert.match(canvasWorkspace, /params\.get\("sourceWorkId"\)/);
+  assert.match(canvasWorkspace, /params\.get\("sourceTemplateId"\)/);
   assert.match(canvasWorkspace, /presetMode === "replace"/);
   assert.match(canvasWorkspace, /params\.delete\("presetMode"\)/);
   assert.match(canvasWorkspace, /params\.delete\("referenceImageUrl"\)/);
   assert.match(canvasWorkspace, /params\.delete\("quickScript"\)/);
+  assert.match(canvasWorkspace, /params\.delete\("sourceTitle"\)/);
+  assert.match(canvasWorkspace, /params\.delete\("sourceWorkId"\)/);
+  assert.match(canvasWorkspace, /params\.delete\("sourceTemplateId"\)/);
   assert.match(canvasWorkspace, /overrides\?\.referenceImageUrl/);
   assert.match(canvasWorkspace, /overrides\?\.quickScript/);
+  assert.match(canvasWorkspace, /overrides\?\.sourceTitle/);
+  assert.match(canvasWorkspace, /source_entity_type/);
+  assert.match(canvasWorkspace, /同款来源/);
   assert.match(canvasWorkspace, /referenceOverride/);
   assert.match(canvasWorkspace, /quickScriptOverride/);
   assert.match(canvasWorkspace, /image_url: overrides\.referenceImageUrl/);
@@ -1159,6 +1168,9 @@ test("Next 模板市场读取真实模板并支持复刻项目", () => {
   assert.match(templateQuickStart, /\/create\?quick=tv-show/);
   assert.match(templateQuickStart, /\/create\?quick=seedance2/);
   assert.match(templateQuickStart, /\/create\?template=\$\{encodeURIComponent\(item\.id\)\}/);
+  assert.match(templateQuickStart, /appendTemplateSource/);
+  assert.match(templateQuickStart, /sourceTitle/);
+  assert.match(templateQuickStart, /sourceTemplateId/);
   assert.match(api, /default_params\?: Record<string, unknown>/);
   assert.match(api, /example_inputs\?: Record<string, unknown>/);
   for (const text of ["复刻项目", "快速同款创作", "复刻项目标题", "目标画幅", "9:16 竖屏短视频", "16:9 横屏短片", "1:1 方形画布", "刷新模板", "模板复刻成功", "模板复刻失败，请稍后重试", "默认参数", "示例输入", "使用次数", "查看封面", "查看成片示例", "全部", "创作者挑战赛", "Seedance 2.0", "TV Show", "创作", "开始创作"]) {
@@ -1195,6 +1207,12 @@ test("Next 创作工作台调用真实项目和生成接口", () => {
   assert.match(createWorkbench, /const params = new URLSearchParams\(window\.location\.search\)/);
   assert.match(createWorkbench, /params\.get\("quick"\)/);
   assert.match(createWorkbench, /params\.get\("template"\)/);
+  assert.match(createWorkbench, /params\.get\("sourceTitle"\)/);
+  assert.match(createWorkbench, /params\.get\("sourceWorkId"\)/);
+  assert.match(createWorkbench, /params\.get\("sourceTemplateId"\)/);
+  assert.match(createWorkbench, /const \[sameStyleSource, setSameStyleSource\]/);
+  assert.match(createWorkbench, /function sameStyleParams/);
+  assert.match(createWorkbench, /同款来源/);
   assert.match(createWorkbench, /applyQuickMode\(quick as QuickModeKey\)/);
   assert.match(createWorkbench, /setProjectType\("模板复刻"\)/);
   assert.match(createWorkbench, /setSelectedTemplateId\(templateId\)/);
@@ -1216,8 +1234,8 @@ test("Next 创作工作台调用真实项目和生成接口", () => {
   assert.match(createWorkbench, /已预选创作者挑战赛/);
   assert.match(createWorkbench, /function quickPresetWorkspaceHref/);
   assert.match(createWorkbench, /new URLSearchParams\(\{ preset: presetKey, presetMode: "replace"/);
-  assert.match(createWorkbench, /\{ referenceImageUrl, quickScript: script \}/);
-  assert.match(createWorkbench, /\{ quickScript: script \}/);
+  assert.match(createWorkbench, /\{ referenceImageUrl, quickScript: script, \.\.\.sameStyleParams\(\) \}/);
+  assert.match(createWorkbench, /\{ quickScript: script, \.\.\.sameStyleParams\(\) \}/);
   assert.match(createWorkbench, /createSeedanceQuickProject/);
   assert.match(createWorkbench, /project_type: "Seedance 2\.0 快速体验"/);
   assert.match(createWorkbench, /"seedance2_image_video"/);
@@ -1323,6 +1341,9 @@ test("Next 作品详情页接入真实作品接口和互动入口", () => {
   assert.match(workDetail, /使用该作品同款创作/);
   assert.match(workDetail, /Sparkles/);
   assert.match(workQuickStart, /function quickStartHrefForWork/);
+  assert.match(workQuickStart, /appendSameStyleSource/);
+  assert.match(workQuickStart, /sourceTitle: item\.title/);
+  assert.match(workQuickStart, /sourceWorkId: item\.id/);
   assert.match(gallery, /href=\{`\/works\/\$\{item\.id\}`\}/);
   for (const text of ["作品详情", "同款创作", "点赞", "收藏", "查看作者主页", "作品数据", "成片预览"]) {
     assert.match(workDetail, new RegExp(text));

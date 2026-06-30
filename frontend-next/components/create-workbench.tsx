@@ -50,6 +50,12 @@ type ProjectAnalysis = {
   task: GenerationTask;
 };
 
+type SameStyleSource = {
+  title: string;
+  workId: string;
+  templateId: string;
+};
+
 export function CreateWorkbench() {
   const [title, setTitle] = useState("雨夜重逢的漫剧短片");
   const [projectType, setProjectType] = useState("脚本成片");
@@ -63,15 +69,23 @@ export function CreateWorkbench() {
   const [status, setStatus] = useState("等待创建项目");
   const [busy, setBusy] = useState(false);
   const [activeQuickMode, setActiveQuickMode] = useState("");
+  const [sameStyleSource, setSameStyleSource] = useState<SameStyleSource>({ title: "", workId: "", templateId: "" });
 
   useEffect(() => {
     void loadTemplates();
     const params = new URLSearchParams(window.location.search);
     const quick = params.get("quick") || "";
     const templateId = params.get("template") || "";
+    const sourceTitle = params.get("sourceTitle") || "";
+    const sourceWorkId = params.get("sourceWorkId") || "";
+    const sourceTemplateId = params.get("sourceTemplateId") || "";
     const mode = quickStartModes[quick as keyof typeof quickStartModes];
+    if (sourceTitle || sourceWorkId || sourceTemplateId) {
+      setSameStyleSource({ title: sourceTitle, workId: sourceWorkId, templateId: sourceTemplateId });
+    }
     if (mode) {
       applyQuickMode(quick as QuickModeKey);
+      if (sourceTitle) setStatus(`已选择同款创作来源：${sourceTitle}，可一键创建并进入全画幅画布。`);
     }
     if (templateId) {
       setProjectType("模板复刻");
@@ -107,6 +121,14 @@ export function CreateWorkbench() {
   function clearQuickMode() {
     setActiveQuickMode("");
     setStatus("已切换为普通创建模式，可选择脚本成片、图片成片、模板复刻或空白项目。");
+  }
+
+  function sameStyleParams() {
+    const params: Record<string, string> = {};
+    if (sameStyleSource.title.trim()) params.sourceTitle = sameStyleSource.title.trim();
+    if (sameStyleSource.workId.trim()) params.sourceWorkId = sameStyleSource.workId.trim();
+    if (sameStyleSource.templateId.trim()) params.sourceTemplateId = sameStyleSource.templateId.trim();
+    return params;
   }
 
   async function loadTemplates() {
@@ -177,7 +199,7 @@ export function CreateWorkbench() {
       setProject(created);
       setScript(seedanceQuickPrompt);
       setStatus("Seedance 2.0 快速体验项目已创建，正在进入全画幅节点画布...");
-      window.location.href = quickPresetWorkspaceHref(created.id, "seedance2_image_video", { referenceImageUrl, quickScript: script });
+      window.location.href = quickPresetWorkspaceHref(created.id, "seedance2_image_video", { referenceImageUrl, quickScript: script, ...sameStyleParams() });
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Seedance 2.0 快速体验创建失败，请稍后重试。");
     } finally {
@@ -198,7 +220,7 @@ export function CreateWorkbench() {
       setProject(created);
       setScript(tvShowQuickScript);
       setStatus("TV Show 剧集项目已创建，正在进入全画幅节点画布...");
-      window.location.href = quickPresetWorkspaceHref(created.id, "tv_show_storyboard", { quickScript: script });
+      window.location.href = quickPresetWorkspaceHref(created.id, "tv_show_storyboard", { quickScript: script, ...sameStyleParams() });
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "TV Show 剧集项目创建失败，请稍后重试。");
     } finally {
@@ -219,7 +241,7 @@ export function CreateWorkbench() {
       setProject(created);
       setScript(creatorChallengeScript);
       setStatus("创作者挑战赛项目已创建，正在进入全画幅节点画布...");
-      window.location.href = quickPresetWorkspaceHref(created.id, "creator_challenge_entry", { quickScript: script });
+      window.location.href = quickPresetWorkspaceHref(created.id, "creator_challenge_entry", { quickScript: script, ...sameStyleParams() });
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "创作者挑战赛项目创建失败，请稍后重试。");
     } finally {
@@ -314,6 +336,12 @@ export function CreateWorkbench() {
               <span className="mt-1 block text-xs text-muted">{item.description}</span>
             </button>
           ))}
+          {(sameStyleSource.title || sameStyleSource.workId || sameStyleSource.templateId) && (
+            <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900">
+              <strong className="block">同款来源：{sameStyleSource.title || sameStyleSource.templateId || sameStyleSource.workId}</strong>
+              <span className="mt-1 block text-blue-700">{sameStyleSource.templateId ? `模板 ${sameStyleSource.templateId}` : sameStyleSource.workId ? `作品 ${sameStyleSource.workId}` : "来源信息会带入画布批注"}</span>
+            </div>
+          )}
         </section>
         <div className="mt-4 grid gap-3">
           <input className="rounded-md border border-line px-3 py-2" value={title} onChange={(event) => setTitle(event.target.value)} />

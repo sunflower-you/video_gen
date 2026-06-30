@@ -794,6 +794,14 @@ type CustomWorkflowPreset = {
   created_at: string;
 };
 
+type WorkflowPresetOverrides = {
+  referenceImageUrl?: string;
+  quickScript?: string;
+  sourceTitle?: string;
+  sourceWorkId?: string;
+  sourceTemplateId?: string;
+};
+
 type GraphHistorySnapshot = {
   nodes: Node[];
   edges: Edge[];
@@ -1121,6 +1129,9 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     const presetMode = params.get("presetMode") || "";
     const referenceImageUrl = params.get("referenceImageUrl") || "";
     const quickScript = params.get("quickScript") || "";
+    const sourceTitle = params.get("sourceTitle") || "";
+    const sourceWorkId = params.get("sourceWorkId") || "";
+    const sourceTemplateId = params.get("sourceTemplateId") || "";
     const presetLinkKey = `${presetMode}:${presetKey}`;
     if (!presetKey || presetLinkKey === linkedPresetHandled) return;
     setLinkedPresetHandled(presetLinkKey);
@@ -1129,13 +1140,16 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       setStatus("画布预设不存在，请从左侧工作流预设重新选择。");
       return;
     }
-    const overrides = referenceImageUrl.trim() || quickScript.trim() ? { referenceImageUrl: referenceImageUrl.trim(), quickScript: quickScript.trim() } : undefined;
+    const overrides = referenceImageUrl.trim() || quickScript.trim() || sourceTitle.trim() || sourceWorkId.trim() || sourceTemplateId.trim() ? { referenceImageUrl: referenceImageUrl.trim(), quickScript: quickScript.trim(), sourceTitle: sourceTitle.trim(), sourceWorkId: sourceWorkId.trim(), sourceTemplateId: sourceTemplateId.trim() } : undefined;
     if (presetMode === "replace") replaceCanvasWithWorkflowPreset(preset.key, overrides);
     else addWorkflowPreset(preset.key, { x: 140, y: 140 }, overrides);
     params.delete("preset");
     params.delete("presetMode");
     params.delete("referenceImageUrl");
     params.delete("quickScript");
+    params.delete("sourceTitle");
+    params.delete("sourceWorkId");
+    params.delete("sourceTemplateId");
     const nextQuery = params.toString();
     window.history.replaceState(null, "", `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`);
   }, [linkedPresetHandled, project]);
@@ -1820,7 +1834,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     addDroppedAssetNode(type, url.trim(), position);
   }
 
-  function instantiateWorkflowPreset(presetKey: string, basePosition?: { x: number; y: number }, overrides?: { referenceImageUrl?: string; quickScript?: string }) {
+  function instantiateWorkflowPreset(presetKey: string, basePosition?: { x: number; y: number }, overrides?: WorkflowPresetOverrides) {
     const preset = workflowPresets.find((item) => item.key === presetKey);
     if (!preset) return null;
     const firstShotId = shotOptions[0]?.id || "";
@@ -1839,6 +1853,21 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
         data: { ...item.data, ...referenceOverride, ...quickScriptOverride, ...generationData, nodeType: item.type, graphNodeId: id, status: "draft" }
       } satisfies Node;
     });
+    const sourceNodeId = `preset-${preset.key}-${timestamp}-source`;
+    const sourceNode = overrides?.sourceTitle || overrides?.sourceWorkId || overrides?.sourceTemplateId ? {
+      id: sourceNodeId,
+      type: "platform",
+      position: { x: baseX, y: baseY - 150 },
+      data: {
+        title: "同款来源",
+        text: [`来源：${overrides?.sourceTitle || "未命名作品/模板"}`, overrides?.sourceTemplateId ? `模板 ID：${overrides.sourceTemplateId}` : "", overrides?.sourceWorkId ? `作品 ID：${overrides.sourceWorkId}` : ""].filter(Boolean).join("\n"),
+        source_entity_type: overrides?.sourceWorkId ? "work" : overrides?.sourceTemplateId ? "template" : "same_style",
+        source_entity_id: overrides?.sourceWorkId || overrides?.sourceTemplateId || "",
+        nodeType: "comment",
+        graphNodeId: sourceNodeId,
+        status: "draft"
+      }
+    } satisfies Node : null;
     const createdEdges = preset.edges.map(([sourceIndex, targetIndex], index) => ({
       id: `edge-${preset.key}-${timestamp}-${index}`,
       source: createdNodes[sourceIndex].id,
@@ -1848,10 +1877,10 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
       animated: true,
       data: { label: "" }
     } satisfies Edge));
-    return { preset, createdNodes, createdEdges };
+    return { preset, createdNodes: sourceNode ? [sourceNode, ...createdNodes] : createdNodes, createdEdges };
   }
 
-  function addWorkflowPreset(presetKey: string, basePosition?: { x: number; y: number }, overrides?: { referenceImageUrl?: string; quickScript?: string }) {
+  function addWorkflowPreset(presetKey: string, basePosition?: { x: number; y: number }, overrides?: WorkflowPresetOverrides) {
     const graph = instantiateWorkflowPreset(presetKey, basePosition, overrides);
     if (!graph) return;
     const { preset, createdNodes, createdEdges } = graph;
@@ -1864,7 +1893,7 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setStatus(basePosition ? `已在画布当前位置添加工作流预设：${preset.title}。` : `已添加工作流预设：${preset.title}。`);
   }
 
-  function replaceCanvasWithWorkflowPreset(presetKey: string, overrides?: { referenceImageUrl?: string; quickScript?: string }) {
+  function replaceCanvasWithWorkflowPreset(presetKey: string, overrides?: WorkflowPresetOverrides) {
     const graph = instantiateWorkflowPreset(presetKey, { x: 160, y: 140 }, overrides);
     if (!graph) return;
     const { preset, createdNodes, createdEdges } = graph;

@@ -454,6 +454,14 @@ test("Next 全屏创作画布支持节点编排和平台节点运行", () => {
   assert.match(canvasWorkspace, /当前筛选结果没有待生成或生成中的任务可取消/);
   assert.match(canvasWorkspace, /没有匹配素材/);
   assert.match(canvasWorkspace, /没有匹配任务/);
+  assert.match(canvasWorkspace, /resetTaskFilters/);
+  assert.match(canvasWorkspace, /selectAllTaskNodes/);
+  assert.match(canvasWorkspace, /没有匹配任务，可清空筛选、选中全部任务关联节点，或打开画布自检继续排查生成链路/);
+  assert.match(canvasWorkspace, /清空任务筛选<\/button>/);
+  assert.match(canvasWorkspace, /选中全部任务节点<\/button>/);
+  assert.match(canvasWorkspace, /打开画布自检<\/button>/);
+  assert.match(canvasWorkspace, /已清空任务筛选，可继续查看、同步或定位生成任务/);
+  assert.match(canvasWorkspace, /全部任务关联节点/);
   assert.match(canvasWorkspace, /selectedTask/);
   assert.match(canvasWorkspace, /\/api\/tasks\/\$\{taskId\}\/\$\{action\}/);
   assert.match(canvasWorkspace, /\/api\/comfy\/tasks\/\$\{taskId\}\/sync/);

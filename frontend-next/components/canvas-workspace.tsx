@@ -2681,6 +2681,27 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
     setShowTasks(false);
   }
 
+  function selectAllTaskNodes() {
+    const taskIds = new Set(tasks.map((task) => task.id));
+    const matchedNodes = nodes.filter((node) => taskIds.has(String((node.data as Record<string, unknown>).task_id || "")));
+    if (!tasks.length) {
+      setStatus("当前暂无生成任务，无法选中关联节点。");
+      return;
+    }
+    if (!matchedNodes.length) {
+      setStatus("当前任务暂未在画布中找到关联节点。");
+      return;
+    }
+    selectCanvasNodesByIds(matchedNodes.map((node) => node.id), "全部任务关联节点");
+    setShowTasks(false);
+  }
+
+  function resetTaskFilters() {
+    setTaskStatusFilter("all");
+    setTaskQuery("");
+    setStatus("已清空任务筛选，可继续查看、同步或定位生成任务。");
+  }
+
   function focusCanvasNode(nodeId: string) {
     const node = nodes.find((item) => item.id === nodeId);
     if (!node) {
@@ -5933,7 +5954,16 @@ export function CanvasWorkspace({ projectId }: { projectId: string }) {
               </div>
             </div>
           )}
-          {!!tasks.length && !filteredTasks.length && <p className="rounded-md border border-white/10 px-3 py-2 text-slate-400">没有匹配任务，请调整状态或关键词。</p>}
+          {!!tasks.length && !filteredTasks.length && <div className="rounded-md border border-white/10 px-3 py-2 text-slate-400">
+            <p>没有匹配任务，可清空筛选、选中全部任务关联节点，或打开画布自检继续排查生成链路。</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button className="rounded-md border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs text-blue-50 hover:bg-blue-500/20" onClick={resetTaskFilters}>清空任务筛选</button>
+              <button className="rounded-md border border-white/10 px-3 py-1 text-xs text-slate-100 hover:bg-white/10" onClick={selectAllTaskNodes}>选中全部任务节点</button>
+              <button className="rounded-md border border-amber-400/30 px-3 py-1 text-xs text-amber-100 hover:bg-amber-500/10" onClick={() => setShowValidation(true)}>打开画布自检</button>
+              <button disabled={busy} className="rounded-md border border-white/10 px-3 py-1 text-xs text-slate-100 hover:bg-white/10 disabled:opacity-50" onClick={() => addWorkflowPreset("seedance2_image_video")}>追加 Seedance</button>
+              <button className="rounded-md border border-white/10 px-3 py-1 text-xs text-slate-100 hover:bg-white/10" onClick={() => setShowPalette(true)}>打开节点面板</button>
+            </div>
+          </div>}
         </div>
       </aside>}
     </main>

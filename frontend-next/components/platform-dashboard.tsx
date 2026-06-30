@@ -84,10 +84,6 @@ export function PlatformDashboard() {
   }
 
   async function createQuickCanvas(href: string, title: string) {
-    if (href === "/create") {
-      window.location.href = href;
-      return;
-    }
     setCreatingQuickHref(href);
     setWorkStatus(`正在创建${title}全画幅画布...`);
     try {
@@ -108,7 +104,7 @@ export function PlatformDashboard() {
           <p className="mt-2 max-w-3xl text-sm text-muted">从作品、模板或脚本开始创作，进入全屏节点画布后可添加文本、图片、视频、音频、脚本和平台生成节点。</p>
         </div>
         <div className="flex flex-wrap justify-end gap-2">
-          <a className="rounded-md bg-accent px-4 py-2 text-white" href="/create">开始创作</a>
+          <button className="rounded-md bg-accent px-4 py-2 text-white disabled:opacity-60" disabled={creatingQuickHref === "/create"} onClick={() => void createQuickCanvas("/create", "空白项目")}>{creatingQuickHref === "/create" ? "创建中" : "开始创作"}</button>
           <button className="rounded-md border border-line px-4 py-2 disabled:opacity-60" disabled={creatingQuickHref === "/create?quick=creator-challenge"} onClick={() => void createQuickCanvas("/create?quick=creator-challenge", "创作者挑战赛")}>{creatingQuickHref === "/create?quick=creator-challenge" ? "创建中" : "创作者挑战赛"}</button>
           <button className="rounded-md border border-line px-4 py-2 disabled:opacity-60" disabled={creatingQuickHref === "/create?quick=seedance2"} onClick={() => void createQuickCanvas("/create?quick=seedance2", "Seedance 2.0")}>{creatingQuickHref === "/create?quick=seedance2" ? "创建中" : "快速体验 Seedance 2.0"}</button>
           <button className="rounded-md border border-line px-4 py-2 disabled:opacity-60" disabled={creatingQuickHref === "/create?quick=tv-show"} onClick={() => void createQuickCanvas("/create?quick=tv-show", "TV Show")}>{creatingQuickHref === "/create?quick=tv-show" ? "创建中" : "TV Show"}</button>

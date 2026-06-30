@@ -93,6 +93,8 @@ test("Next 首页呈现用户创作入口并隐藏后台能力", () => {
   assert.match(dashboard, /function createQuickCanvas/);
   assert.match(dashboard, /window\.location\.href = await createSameStyleProjectFromHref/);
   assert.match(dashboard, /正在创建\$\{title\}全画幅画布/);
+  assert.doesNotMatch(dashboard, /window\.location\.href = href/);
+  assert.match(dashboard, /createQuickCanvas\("\/create", "空白项目"\)/);
   assert.match(dashboard, /createQuickCanvas\("\/create\?quick=creator-challenge"/);
   assert.match(dashboard, /createQuickCanvas\("\/create\?quick=seedance2"/);
   assert.match(dashboard, /createQuickCanvas\("\/create\?quick=tv-show"/);
@@ -153,6 +155,7 @@ test("Next 前端迁移已拆分组件并提供核心路由", () => {
   assert.match(shell, /function createQuickCanvas/);
   assert.match(shell, /window\.location\.href = await createSameStyleProjectFromHref/);
   assert.match(shell, /正在创建\$\{title\}全画幅画布/);
+  assert.match(shell, /createQuickCanvas\(item\.href, "空白项目"\)/);
   assert.match(shell, /\/create\?quick=creator-challenge/);
   assert.match(shell, /\/create\?quick=seedance2/);
   assert.match(shell, /\/create\?quick=tv-show/);
@@ -1241,6 +1244,8 @@ test("Next 模板市场读取真实模板并支持复刻项目", () => {
   assert.match(sameStyleCreate, /selfhost\/video_wan2\.1_fusionx/);
   assert.match(sameStyleCreate, /selfhost\/tts_edge/);
   assert.match(sameStyleCreate, /postJson<Project>\("\/api\/projects"/);
+  assert.match(sameStyleCreate, /const isBlankCreate = !quick && !templateId && !sourceTitle && !sourceWorkflowKey/);
+  assert.match(sameStyleCreate, /isBlankCreate \? "空白项目" : "同款创作"/);
   assert.match(sameStyleCreate, /presetMode: "replace"/);
   assert.match(sameStyleCreate, /workspaceParams\.set\("quickScript"/);
   assert.match(sameStyleCreate, /workspaceParams\.set\("referenceImageUrl"/);

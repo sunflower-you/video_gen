@@ -45,9 +45,20 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
         <nav className="grid gap-1 text-sm text-slate-200">
           {navItems.map((item) => (
-            <a key={item.href} className="rounded-md px-3 py-2 hover:bg-slate-700" href={item.href}>
-              {item.label}
-            </a>
+            item.href === "/create" ? (
+              <button
+                key={item.href}
+                className="rounded-md px-3 py-2 text-left hover:bg-slate-700 disabled:opacity-60"
+                disabled={creatingQuickHref === item.href}
+                onClick={() => void createQuickCanvas(item.href, "空白项目")}
+              >
+                {creatingQuickHref === item.href ? "创建中" : item.label}
+              </button>
+            ) : (
+              <a key={item.href} className="rounded-md px-3 py-2 hover:bg-slate-700" href={item.href}>
+                {item.label}
+              </a>
+            )
           ))}
         </nav>
         <div className="mt-6 border-t border-white/10 pt-4">

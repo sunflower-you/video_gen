@@ -47,9 +47,10 @@ export async function createSameStyleProjectFromHref(href: string, fallbackTitle
   const mode = quickCreateModes[quick];
   const presetKey = mode?.presetKey || workflowPresetByKey[sourceWorkflowKey] || "";
   const title = sourceTitle ? `${sourceTitle} 同款创作` : fallbackTitle;
+  const isBlankCreate = !quick && !templateId && !sourceTitle && !sourceWorkflowKey;
   const created = await postJson<Project>("/api/projects", {
-    title: title.trim() || mode?.title || "同款创作项目",
-    project_type: mode?.projectType || (templateId ? "模板复刻" : "同款创作"),
+    title: title.trim() || mode?.title || (isBlankCreate ? "空白创作项目" : "同款创作项目"),
+    project_type: mode?.projectType || (templateId ? "模板复刻" : isBlankCreate ? "空白项目" : "同款创作"),
     aspect_ratio: mode?.aspectRatio || "9:16",
     owner_id: currentUserId(),
     template_id: !mode && templateId ? templateId : undefined

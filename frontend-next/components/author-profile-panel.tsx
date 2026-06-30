@@ -3,6 +3,7 @@
 import { UserPlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { apiFetch, currentUserId, postJson, type AuthorProfile } from "../lib/api";
+import { createSameStyleProjectFromHref } from "../lib/same-style-create";
 import { quickStartHrefForTemplate } from "../lib/template-quick-start";
 import { quickStartHrefForWork } from "../lib/work-quick-start";
 
@@ -22,6 +23,7 @@ const emptyProfile: AuthorProfile = {
 export function AuthorProfilePanel({ userId }: { userId: string }) {
   const [profile, setProfile] = useState<AuthorProfile>(emptyProfile);
   const [status, setStatus] = useState("正在加载作者主页...");
+  const [creatingSameStyleId, setCreatingSameStyleId] = useState("");
 
   useEffect(() => {
     void loadProfile();
@@ -52,6 +54,28 @@ export function AuthorProfilePanel({ userId }: { userId: string }) {
       setStatus("关注已记录。");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "关注失败，请稍后重试。");
+    }
+  }
+
+  async function createSameStyleWork(work: AuthorProfile["works"][number]) {
+    setCreatingSameStyleId(`work:${work.id}`);
+    setStatus(`正在创建《${work.title}》同款画布...`);
+    try {
+      window.location.href = await createSameStyleProjectFromHref(quickStartHrefForWork(work), `${work.title} 同款创作`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "同款画布创建失败，请稍后重试。");
+      setCreatingSameStyleId("");
+    }
+  }
+
+  async function createSameStyleTemplate(template: AuthorProfile["templates"][number]) {
+    setCreatingSameStyleId(`template:${template.id}`);
+    setStatus(`正在创建「${template.name}」同款画布...`);
+    try {
+      window.location.href = await createSameStyleProjectFromHref(quickStartHrefForTemplate(template), `${template.name} 同款创作`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "同款画布创建失败，请稍后重试。");
+      setCreatingSameStyleId("");
     }
   }
 
@@ -102,7 +126,9 @@ export function AuthorProfilePanel({ userId }: { userId: string }) {
                   <span className="text-muted">{work.category} · {work.view_count || 0} 浏览 · {work.like_count || 0} 点赞</span>
                 </a>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  <a className="rounded-md bg-accent px-3 py-1 text-xs text-white" href={quickStartHrefForWork(work)}>同款创作</a>
+                  <button className="rounded-md bg-accent px-3 py-1 text-xs text-white disabled:opacity-60" disabled={creatingSameStyleId === `work:${work.id}`} onClick={() => void createSameStyleWork(work)}>
+                    {creatingSameStyleId === `work:${work.id}` ? "创建中" : "同款创作"}
+                  </button>
                   <a className="rounded-md border border-line px-3 py-1 text-xs" href={`/works/${work.id}`}>查看详情</a>
                 </div>
               </article>
@@ -121,7 +147,9 @@ export function AuthorProfilePanel({ userId }: { userId: string }) {
                   <span className="text-muted">{template.category} · {template.workflow_key}</span>
                 </a>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  <a className="rounded-md bg-accent px-3 py-1 text-xs text-white" href={quickStartHrefForTemplate(template)}>快速同款创作</a>
+                  <button className="rounded-md bg-accent px-3 py-1 text-xs text-white disabled:opacity-60" disabled={creatingSameStyleId === `template:${template.id}`} onClick={() => void createSameStyleTemplate(template)}>
+                    {creatingSameStyleId === `template:${template.id}` ? "创建中" : "快速同款创作"}
+                  </button>
                   <a className="rounded-md border border-line px-3 py-1 text-xs" href="/templates">查看模板市场</a>
                 </div>
               </article>

@@ -4,11 +4,13 @@ import { Bookmark, Heart, Sparkles, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { apiFetch, currentUserId, postJson, type Work } from "../lib/api";
 import { fallbackWorks } from "../lib/fallback-data";
+import { createSameStyleProjectFromHref } from "../lib/same-style-create";
 import { quickStartHrefForWork } from "../lib/work-quick-start";
 
 export function WorkDetail({ workId }: { workId: string }) {
   const [work, setWork] = useState<Work | null>(null);
   const [status, setStatus] = useState("正在加载作品详情...");
+  const [creatingSameStyle, setCreatingSameStyle] = useState(false);
 
   useEffect(() => {
     void loadWork();
@@ -44,6 +46,18 @@ export function WorkDetail({ workId }: { workId: string }) {
     }
   }
 
+  async function createSameStyleWork() {
+    if (!work) return;
+    setCreatingSameStyle(true);
+    setStatus(`正在创建《${work.title}》同款画布...`);
+    try {
+      window.location.href = await createSameStyleProjectFromHref(quickStartHrefForWork(work), `${work.title} 同款创作`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "同款画布创建失败，请稍后重试。");
+      setCreatingSameStyle(false);
+    }
+  }
+
   const tags = work?.tags || [];
 
   return (
@@ -56,10 +70,10 @@ export function WorkDetail({ workId }: { workId: string }) {
             <h1 className="mt-1 text-2xl font-semibold">{work?.title || "正在加载作品"}</h1>
           </div>
           <div className="flex gap-2">
-            <a className="inline-flex items-center gap-2 rounded-md bg-accent px-3 py-2 text-sm text-white" href={quickStartHrefForWork(work)}>
+            <button className="inline-flex items-center gap-2 rounded-md bg-accent px-3 py-2 text-sm text-white disabled:opacity-60" disabled={!work || creatingSameStyle} onClick={() => void createSameStyleWork()}>
               <Sparkles size={16} />
-              同款创作
-            </a>
+              {creatingSameStyle ? "创建中" : "同款创作"}
+            </button>
             <button className="inline-flex items-center gap-2 rounded-md border border-line px-3 py-2 text-sm" onClick={() => void interact("like")}>
               <Heart size={16} />
               点赞
@@ -106,10 +120,10 @@ export function WorkDetail({ workId }: { workId: string }) {
               查看作者主页
             </a>
             <p className="mt-3 text-sm text-muted">模板：{work?.template_name || work?.template_id || "未绑定模板"}</p>
-            <a className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md bg-accent px-3 py-2 text-sm text-white" href={quickStartHrefForWork(work)}>
+            <button className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md bg-accent px-3 py-2 text-sm text-white disabled:opacity-60" disabled={!work || creatingSameStyle} onClick={() => void createSameStyleWork()}>
               <Sparkles size={16} />
-              使用该作品同款创作
-            </a>
+              {creatingSameStyle ? "正在创建同款画布" : "使用该作品同款创作"}
+            </button>
             <p className="mt-3 rounded-md border border-line bg-canvas px-3 py-2 text-sm text-muted">{status}</p>
           </section>
         </aside>

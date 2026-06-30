@@ -1368,6 +1368,10 @@ test("Next 作品详情页接入真实作品接口和互动入口", () => {
   assert.match(workDetail, /interaction_type: interactionType/);
   assert.match(workDetail, /target_type: "work"/);
   assert.match(workDetail, /href=\{`\/users\/\$\{work\?\.author_id \|\| "system"\}`\}/);
+  assert.match(workDetail, /createSameStyleProjectFromHref/);
+  assert.match(workDetail, /function createSameStyleWork/);
+  assert.match(workDetail, /window\.location\.href = await createSameStyleProjectFromHref/);
+  assert.match(workDetail, /正在创建《\$\{work\.title\}》同款画布/);
   assert.match(workDetail, /quickStartHrefForWork\(work\)/);
   assert.match(workDetail, /使用该作品同款创作/);
   assert.match(workDetail, /Sparkles/);
@@ -1390,6 +1394,12 @@ test("Next 作者主页读取真实作者聚合并支持关注", () => {
   assert.match(authorProfile, /target_type: "author"/);
   assert.match(authorProfile, /interaction_type: "follow"/);
   assert.match(authorProfile, /href=\{`\/works\/\$\{work\.id\}`\}/);
+  assert.match(authorProfile, /createSameStyleProjectFromHref/);
+  assert.match(authorProfile, /function createSameStyleWork/);
+  assert.match(authorProfile, /function createSameStyleTemplate/);
+  assert.match(authorProfile, /window\.location\.href = await createSameStyleProjectFromHref/);
+  assert.match(authorProfile, /正在创建《\$\{work\.title\}》同款画布/);
+  assert.match(authorProfile, /正在创建「\$\{template\.name\}」同款画布/);
   assert.match(authorProfile, /quickStartHrefForWork\(work\)/);
   assert.match(authorProfile, /quickStartHrefForTemplate\(template\)/);
   assert.match(authorProfile, /查看详情/);
